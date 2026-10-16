@@ -5,11 +5,15 @@
     "dev": "wrangler pages dev public --compatibility-date=2024-09-23",
     "dev:mock": "LOGI_MOCK=1 wrangler pages dev public --compatibility-date=2024-09-23",
     "typecheck": "tsc --noEmit",
+    "test:unit": "node --test scripts/test-unit.mjs",
     "smoke": "node scripts/smoke-api.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5",
     "typescript": "^7.0.2",
     "wrangler": "^3"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0"
   }
 }

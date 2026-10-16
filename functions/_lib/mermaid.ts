@@ -1,30 +1,46 @@
-// Mermaid ソース生成（唯一の実装）。セッション JSON → Mermaid 文字列
+// Mermaid ソース生成（唯一の実装）。セッション JSON → Mermaid 文字列（サーバーサイド専用）
 
 import type { LogiSession, SessionParts, StepName } from "./types.js";
 
-// ── ユーティリティ ────────────────────────────────────────────────
+// ── サニタイズ ────────────────────────────────────────────────────
 
-/** 30文字超のラベルを改行する。Mermaid ノードラベル用 */
-function wrapLabel(text: string, maxLen = 28): string {
-  if (!text || text === "") return "（未入力）";
+/**
+ * Mermaid ノードラベルに埋め込む文字列をサニタイズする。
+ * - 実際の改行 → スペース（`\n` はラベル内改行に使うため区別）
+ * - ダブルクォート → シングルクォート（ラベル境界を壊さないため必須）
+ * - 長さ上限 200 文字
+ */
+function sanitize(raw: string): string {
+  if (!raw || raw.trim() === "") return "";
+  return raw
+    .trim()
+    .replace(/[\r\n]+/g, " ")     // 実際の改行 → スペース
+    .replace(/"/g, "'")            // " → ' (ラベル境界保護)
+    .slice(0, 200);
+}
+
+/** 30 文字超のラベルを `\n` で折り返す（Mermaid のノード内改行）*/
+function wrap(text: string, maxLen = 28): string {
   if (text.length <= maxLen) return text;
-  // 日本語は文字単位で折り返す
-  const lines: string[] = [];
+  const chunks: string[] = [];
   let cur = "";
   for (const ch of text) {
     cur += ch;
-    if (cur.length >= maxLen) {
-      lines.push(cur);
-      cur = "";
-    }
+    if (cur.length >= maxLen) { chunks.push(cur); cur = ""; }
   }
-  if (cur) lines.push(cur);
-  return lines.join("\n");
+  if (cur) chunks.push(cur);
+  return chunks.join("\\n");
 }
 
-/** Mermaid ノードラベルを安全にクォートする */
-function q(text: string): string {
-  return `"${wrapLabel(text).replace(/"/g, "'")}"`;
+/** テキストをサニタイズ → 折り返し → Mermaid ラベル文字列にする */
+function label(raw: string, fallback = "（未入力）"): string {
+  const s = sanitize(raw);
+  return s ? wrap(s) : fallback;
+}
+
+/** ノードラベルをダブルクォートで囲む */
+function q(raw: string, fallback = "（未入力）"): string {
+  return `"${label(raw, fallback)}"`;
 }
 
 /** 配列から非空要素のみ取り出す（最大 max 個）*/
@@ -38,9 +54,9 @@ function buildStep1(parts: SessionParts): string {
   const { reality, ideal, proposal } = parts.core;
   return [
     "flowchart TB",
-    `  R[${q("🔴 現実\\n" + reality)}]`,
-    `  I[${q("🟢 理想\\n" + ideal)}]`,
-    `  P[${q("💡 提案\\n" + proposal)}]`,
+    `  R[${q("🔴 現実\\n" + reality, "（未入力）")}]`,
+    `  I[${q("🟢 理想\\n" + ideal, "（未入力）")}]`,
+    `  P[${q("💡 提案\\n" + proposal, "（未入力）")}]`,
     `  R -->|"ギャップ"| I`,
     `  P -->|"橋渡し"| I`,
     `  R -.->|"課題の源"| P`,
@@ -51,16 +67,16 @@ function buildStep1(parts: SessionParts): string {
 
 function buildStep2(parts: SessionParts): string {
   const factors = nonEmpty(parts.drilldown.reality_factors);
-  const goals = nonEmpty(parts.drilldown.ideal_goals);
-  const gap = parts.drilldown.gap_summary || "変革";
+  const goals   = nonEmpty(parts.drilldown.ideal_goals);
+  const gap     = sanitize(parts.drilldown.gap_summary) || "変革";
 
   const rfNodes = factors.length > 0
     ? factors.map((f, i) => `    RF${i}[${q(f)}]`).join("\n")
-    : `    RF0[${q("（未入力）")}]`;
+    : `    RF0["（未入力）"]`;
 
   const igNodes = goals.length > 0
     ? goals.map((g, i) => `    IG${i}[${q(g)}]`).join("\n")
-    : `    IG0[${q("（未入力）")}]`;
+    : `    IG0["（未入力）"]`;
 
   return [
     "flowchart LR",
@@ -80,19 +96,19 @@ function buildStep2(parts: SessionParts): string {
 
 function buildStep3(parts: SessionParts): string {
   const whats = nonEmpty(parts.what_how.what_items);
-  const hows = nonEmpty(parts.what_how.how_items);
-  const len = Math.min(whats.length, hows.length);
+  const hows  = nonEmpty(parts.what_how.how_items);
+  const len   = Math.min(whats.length, hows.length);
 
   if (len === 0) {
     return [
       "flowchart TB",
-      `  W[${q("What（何を）")}] --> H[${q("How（どうやって）")}]`,
+      `  W["What（何を）"] --> H["How（どうやって）"]`,
     ].join("\n");
   }
 
   const wNodes = whats.slice(0, len).map((w, i) => `    W${i}[${q(w)}]`).join("\n");
-  const hNodes = hows.slice(0, len).map((h, i) => `    H${i}[${q(h)}]`).join("\n");
-  const edges = Array.from({ length: len }, (_, i) => `  W${i} --> H${i}`).join("\n");
+  const hNodes = hows.slice(0,  len).map((h, i) => `    H${i}[${q(h)}]`).join("\n");
+  const edges  = Array.from({ length: len }, (_, i) => `  W${i} --> H${i}`).join("\n");
 
   return [
     "flowchart TB",
@@ -109,28 +125,28 @@ function buildStep3(parts: SessionParts): string {
 // ── Step 4: 検証図 ────────────────────────────────────────────────
 
 function buildStep4(parts: SessionParts): string {
-  const contradictions = parts.verification.contradictions.filter(
-    (c) => c.description.trim()
-  );
+  const cs = parts.verification.contradictions.filter((c) => c.description.trim());
 
-  if (contradictions.length === 0) {
+  if (cs.length === 0) {
     return [
       "flowchart LR",
-      `  S1[${q("Step 1\\nコア")}] --> S2[${q("Step 2\\nドリルダウン")}]`,
-      `  S2 --> S3[${q("Step 3\\nWhat/How")}]`,
-      `  S3 --> OK[${q("✅ 論理一貫\\n整合性確認済み")}]`,
+      `  S1["Step 1\\nコア"] --> S2["Step 2\\nドリルダウン"]`,
+      `  S2 --> S3["Step 3\\nWhat/How"]`,
+      `  S3 --> OK["✅ 論理一貫\\n整合性確認済み"]`,
     ].join("\n");
   }
 
-  const c = contradictions[0];
+  const c = cs[0];
+  const resolvedEdge = c.resolution.trim()
+    ? `  C -->|${q("解決: " + c.resolution)}| OK["✅ 解決済み"]`
+    : `  C --> UNRESOLVED["⚠️ 未解決"]`;
+
   return [
     "flowchart TB",
-    `  C{${q("🔍 矛盾検出\\n" + c.description)}}`,
-    `  S1[${q("Step 1\\nコア")}] --> C`,
-    `  S3[${q("Step 3\\nWhat/How")}] --> C`,
-    c.resolution.trim()
-      ? `  C -->|${q("解決: " + c.resolution)}| OK[${q("✅ 解決済み")}]`
-      : `  C --> UNRESOLVED[${q("⚠️ 未解決")}]`,
+    `  C{${q("🔍 矛盾\\n" + c.description)}}`,
+    `  S1["Step 1\\nコア"] --> C`,
+    `  S3["Step 3\\nWhat/How"] --> C`,
+    resolvedEdge,
   ].join("\n");
 }
 
@@ -139,15 +155,14 @@ function buildStep4(parts: SessionParts): string {
 function buildFinal(parts: SessionParts): string {
   const { core, what_how, frame } = parts;
   const firstWhat = nonEmpty(what_how.what_items)[0] ?? "What";
-  const firstHow = nonEmpty(what_how.how_items)[0] ?? "How";
+  const firstHow  = nonEmpty(what_how.how_items)[0]  ?? "How";
 
-  const lines = ["flowchart TB"];
+  const header = frame.title
+    ? `---\ntitle: ${sanitize(frame.title)}\n---\n`
+    : "";
 
-  if (frame.title) {
-    lines.unshift(`---\ntitle: ${frame.title}\n---`);
-  }
-
-  lines.push(
+  const lines = [
+    `${header}flowchart TB`,
     `  subgraph "🎯 イントロ"`,
     `    H[${q("フック:\\n" + frame.intro.hook)}]`,
     "  end",
@@ -162,8 +177,8 @@ function buildFinal(parts: SessionParts): string {
     `  subgraph "🏁 クロージング"`,
     `    CTA[${q("行動促進:\\n" + frame.closing.cta)}]`,
     "  end",
-    "  イントロ --> コア --> 展開 --> クロージング"
-  );
+    "  イントロ --> コア --> 展開 --> クロージング",
+  ];
 
   return lines.join("\n");
 }
@@ -171,8 +186,8 @@ function buildFinal(parts: SessionParts): string {
 // ── 公開 API ─────────────────────────────────────────────────────
 
 /**
- * 指定ステップの Mermaid ソースを生成する。
- * @param step  生成対象のステップ（"final" は合体ロボ図）
+ * 指定ステップの Mermaid ソースを生成する（サーバーサイド唯一の実装）。
+ * @param step  生成対象ステップ（"final" = 合体ロボ図）
  * @param session  現在のセッション状態
  */
 export function buildDiagram(
@@ -181,29 +196,24 @@ export function buildDiagram(
 ): string {
   const { parts } = session;
   switch (step) {
-    case "step1_core":
-      return buildStep1(parts);
-    case "step2_drilldown":
-      return buildStep2(parts);
-    case "step3_what_how":
-      return buildStep3(parts);
-    case "step4_verify":
-      return buildStep4(parts);
+    case "step1_core":      return buildStep1(parts);
+    case "step2_drilldown": return buildStep2(parts);
+    case "step3_what_how":  return buildStep3(parts);
+    case "step4_verify":    return buildStep4(parts);
     case "step5_combine":
-    case "final":
-      return buildFinal(parts);
+    case "final":           return buildFinal(parts);
     default:
-      return `flowchart TB\n  A["（図なし: ${step}）"]`;
+      return `flowchart TB\n  A["（図なし: ${step})"]`;
   }
 }
 
 /**
- * バルク抽出後の仮組み図を一括生成して返す。
- * 抽出済みのステップのみ生成する。
+ * バルク抽出後の仮組み図を一括生成する。
+ * 抽出済みデータが存在するステップのみ生成する。
  */
 export function buildBulkDiagrams(
   session: LogiSession
-): Partial<Record<"step1" | "step2" | "step3" | "step4" | "step5" | "final", string>> {
+): Partial<Record<"step1" | "step2" | "step3" | "step4" | "step5", string>> {
   const { parts } = session;
   const result: ReturnType<typeof buildBulkDiagrams> = {};
 

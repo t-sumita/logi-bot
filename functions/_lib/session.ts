@@ -244,3 +244,62 @@ export function transition(
 export function isBulkInput(message: string): boolean {
   return message.trim().length > 100;
 }
+
+// ── 抽出結果のマージ ──────────────────────────────────────────────
+
+/**
+ * Claude が抽出した Partial<SessionParts> を既存セッションにマージする。
+ * - 文字列: 非空の場合のみ上書き
+ * - 配列: 非空の場合のみ上書き（追記ではなく置換）
+ * - boolean: undefined でない場合のみ上書き
+ */
+export function mergeExtracted(
+  session: LogiSession,
+  extracted: Partial<SessionParts> | undefined
+): LogiSession {
+  if (!extracted) return { ...session, updatedAt: new Date().toISOString() };
+
+  const p = session.parts;
+  const e = extracted;
+
+  const parts: typeof p = {
+    core: {
+      reality:  e.core?.reality?.trim()  || p.core.reality,
+      ideal:    e.core?.ideal?.trim()    || p.core.ideal,
+      proposal: e.core?.proposal?.trim() || p.core.proposal,
+    },
+    drilldown: {
+      reality_factors: e.drilldown?.reality_factors?.length
+        ? e.drilldown.reality_factors : p.drilldown.reality_factors,
+      ideal_goals: e.drilldown?.ideal_goals?.length
+        ? e.drilldown.ideal_goals : p.drilldown.ideal_goals,
+      gap_summary: e.drilldown?.gap_summary?.trim() || p.drilldown.gap_summary,
+    },
+    what_how: {
+      what_items: e.what_how?.what_items?.length
+        ? e.what_how.what_items : p.what_how.what_items,
+      how_items: e.what_how?.how_items?.length
+        ? e.what_how.how_items : p.what_how.how_items,
+      who_when: e.what_how?.who_when?.length
+        ? e.what_how.who_when : p.what_how.who_when,
+    },
+    verification: {
+      contradictions: e.verification?.contradictions?.length
+        ? e.verification.contradictions : p.verification.contradictions,
+      is_consistent: e.verification?.is_consistent !== undefined
+        ? e.verification.is_consistent : p.verification.is_consistent,
+    },
+    frame: {
+      intro: {
+        audience: e.frame?.intro?.audience?.trim() || p.frame.intro.audience,
+        hook:     e.frame?.intro?.hook?.trim()     || p.frame.intro.hook,
+      },
+      closing: {
+        cta: e.frame?.closing?.cta?.trim() || p.frame.closing.cta,
+      },
+      title: e.frame?.title?.trim() || p.frame.title,
+    },
+  };
+
+  return { ...session, parts, updatedAt: new Date().toISOString() };
+}

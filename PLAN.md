@@ -266,12 +266,16 @@ logi-bot/
 - [x] `npm run typecheck` が通ること
 
 ### フェーズ 2: API 層（`feature/phase2-api`）
-- [ ] `functions/_lib/prompt.ts`（onboarding / bulk-extract / step別ファシリテーター / drilldown-quality の各プロンプト）
-- [ ] `functions/_lib/claude.ts`（Claude API ラッパー: MOCK モード付き）
-- [ ] `functions/api/chat.ts`（`POST /api/chat`。onboarding 時のバルク抽出も担当）
-- [ ] `functions/api/advance.ts`（`POST /api/advance`。図生成を含む）
-- [ ] `functions/api/diagram.ts`（`POST /api/diagram`）
-- [ ] `scripts/smoke-api.mjs` + `npm run smoke`（MOCK モード検証）
+- [x] `functions/_lib/mermaid.ts` サニタイズ強化（実改行・ダブルクォート・長さ上限）
+- [x] `functions/_lib/session.ts` に `mergeExtracted` を追加
+- [x] `functions/_lib/prompt.ts`（Tool 定義 / ステップ別プロンプト / バルク抽出プロンプト / drilldown 品質パターン）
+- [x] `functions/_lib/claude.ts`（Tool Use による構造化抽出 / MOCK モード付き）
+- [x] `functions/api/chat.ts`（`POST /api/chat`。バルク抽出モード対応）
+- [x] `functions/api/advance.ts`（`POST /api/advance`。Mermaid 図生成含む）
+- [x] `functions/api/diagram.ts`（`POST /api/diagram`）
+- [x] `scripts/test-unit.mjs` + `npm run test:unit`（28 テスト全通過）
+- [x] `scripts/smoke-api.mjs` + `npm run smoke`（MOCK サーバーで 16 ケース全通過）
+- [x] `npm run typecheck` エラー 0 件
 
 ### フェーズ 3: フロントエンド（`feature/phase3-ui`）
 - [ ] `public/index.html`（スタート画面）
