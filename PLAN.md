@@ -278,23 +278,27 @@ logi-bot/
 - [x] `npm run typecheck` エラー 0 件
 
 ### フェーズ 3: フロントエンド（`feature/phase3-ui`）
-- [ ] `public/index.html`（スタート画面）
-- [ ] `public/session.html`（セッション画面: オンボーディング + 5ステップ + complete）
-- [ ] `public/js/app.js` / `session.js`（localStorage 管理含む）/ `api.js`
-- [ ] `public/js/components/`（step-nav / chat-panel / diagram-panel / export-panel）
-- [ ] `public/css/`（tokens.css / app.css）
-- [ ] `wrangler pages dev` + ブラウザ確認依頼
+- [x] `public/index.html`（スタート画面：2WAY入力・5ステップガイド・再開機能）
+- [x] `public/session.html`（セッション画面: 2ペイン・ステップバー・ズームモーダル）
+- [x] `public/js/storage.js` / `api.js` / `index-app.js` / `session-app.js`
+- [x] `public/js/mermaid-renderer.js` / `export.js`
+- [x] `public/css/tokens.css` / `app.css`
+- [x] `wrangler pages dev` 動作確認済み
 
-### フェーズ 4: エクスポートと complete 画面（`feature/phase4-export`）
-- [ ] Markdown エクスポート（コピー + `.md` ダウンロード）
-- [ ] complete 状態の画面（タブ切り替え・合体ロボ図大表示）
-- [ ] モバイル対応（タップ 44px・640px 以下縦積み）
+### フェーズ 4: モード切り替え・BYOK・デプロイ準備（`feature/phase4-deploy`）
+- [x] `functions/_lib/gemini.ts` / `openai.ts` / `llm.ts` — マルチプロバイダー LLM アダプター
+- [x] `functions/api/chat.ts` — mock/owner/byok マルチモード認証ルーティング
+- [x] `public/js/settings.js` — 設定モーダル（3モード・バッジ・SKILL.md コピー）
+- [x] MOCK 強化（不良在庫サンプル・テキスト抽出）
+- [x] `.dev.vars.example` に OWNER_PASSCODE 追加
+- [x] `public/config.js` v0.4.0 にバンプ
+- [x] `typecheck` 0エラー / `test:unit` 28/28 / `smoke` 16/16 全通過
 
 ### フェーズ 5: 公開準備（`feature/phase5-release`）
-- [ ] API 認証（`X-Lab-Key` ⇔ `LOGI_API_KEY`）
-- [ ] 入力バリデーション・XSS 対策
+- [ ] GitHub リポジトリ作成・push
 - [ ] Cloudflare Pages デプロイ・動作確認
 - [ ] README.md 整備
+- [ ] 入力バリデーション・XSS 対策（Markdown インジェクション等）
 
 ---
 

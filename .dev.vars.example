@@ -7,3 +7,6 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 # モックモード（1 = Claude API を呼ばず固定レスポンスを返す）
 LOGI_MOCK=1
+
+# オーナーモードのパスコード（オーナーモードを使う場合は設定）
+OWNER_PASSCODE=your-passcode-here

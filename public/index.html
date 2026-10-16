@@ -13,6 +13,9 @@
   <header class="app-header">
     <div class="header-inner">
       <div class="logo">🤖 <span>logi-bot</span></div>
+      <div style="flex:1"></div>
+      <button class="mode-badge badge-demo" id="modeBadge" id2="settingsGearBtn" title="AI・モード設定を開く">🎭 DEMO</button>
+      <button class="btn btn-ghost btn-sm btn-icon" id="settingsGearBtn" title="AI・モード設定">⚙️</button>
     </div>
   </header>
 
@@ -137,5 +140,13 @@
   </footer>
 
   <script type="module" src="js/index-app.js"></script>
+  <script type="module">
+    import { initSettings, renderBadge } from "./js/settings.js";
+    document.addEventListener("DOMContentLoaded", () => {
+      initSettings();
+      // バッジクリックでもモーダルを開く
+      document.getElementById("modeBadge").addEventListener("click", () => document.getElementById("settingsGearBtn").click());
+    });
+  </script>
 </body>
 </html>

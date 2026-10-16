@@ -266,6 +266,15 @@ export function buildBulkSystemPrompt(session: LogiSession): string {
 - 抽出に自信がない情報は含めない（寧ろ質問する）`;
 }
 
+// ── マルチプロバイダ向けスキーマエクスポート ─────────────────────
+
+/**
+ * Gemini / OpenAI ツール定義で使うスキーマ（Anthropic input_schema と同一構造）。
+ * プロバイダによってラッパー形式が異なるが、プロパティ定義は共通。
+ */
+export const SESSION_PARTS_SCHEMA: Record<string, unknown> = SESSION_UPDATE_TOOL.input_schema;
+export const SESSION_UPDATE_DESCRIPTION = SESSION_UPDATE_TOOL.description;
+
 // ── オンボーディング用ウェルカムメッセージ ───────────────────────
 
 /**

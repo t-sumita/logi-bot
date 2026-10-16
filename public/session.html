@@ -17,6 +17,8 @@
       <a href="index.html" class="logo" title="ホームへ">🤖 <span>logi-bot</span></a>
       <div class="header-title" id="sessionTitle">読み込み中…</div>
       <div class="header-actions">
+        <button class="mode-badge badge-demo" id="modeBadge" title="AI・モード設定を開く">🎭 DEMO</button>
+        <button class="btn btn-ghost btn-sm btn-icon" id="settingsGearBtn" title="AI・モード設定">⚙️</button>
         <button class="btn btn-ghost btn-sm" id="copyMdBtn" title="現在の内容をMarkdownとしてコピー">📋 コピー</button>
         <button class="btn btn-ghost btn-sm" id="downloadMdBtn" title="Markdownファイルをダウンロード">⬇ .md</button>
       </div>
@@ -154,5 +156,12 @@
   </div>
 
   <script type="module" src="js/session-app.js"></script>
+  <script type="module">
+    import { initSettings, renderBadge } from "./js/settings.js";
+    document.addEventListener("DOMContentLoaded", () => {
+      initSettings();
+      document.getElementById("modeBadge").addEventListener("click", () => document.getElementById("settingsGearBtn").click());
+    });
+  </script>
 </body>
 </html>

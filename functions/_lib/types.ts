@@ -158,9 +158,18 @@ export interface ErrorResponse {
   error: { code: string; message: string };
 }
 
+// ── マルチプロバイダ / モード ─────────────────────────────────────
+
+/** サポートする LLM プロバイダ */
+export type LLMProvider = "anthropic" | "gemini" | "openai";
+
+/** クライアントから指定される動作モード */
+export type AppMode = "mock" | "owner" | "byok";
+
 // ── Cloudflare 環境変数 ───────────────────────────────────────────
 
 export interface Env {
   ANTHROPIC_API_KEY?: string;
   LOGI_MOCK?: string;
+  OWNER_PASSCODE?: string;
 }

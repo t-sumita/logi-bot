@@ -1,9 +1,11 @@
-// API クライアント — /api/chat, /api/advance, /api/diagram
+// API クライアント — /api/chat, /api/advance, /api/diagram（モードヘッダー付き）
 
-async function request(path, body) {
+import { getModeHeaders } from "./settings.js";
+
+async function request(path, body, extraHeaders = {}) {
   const res = await fetch(path, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getModeHeaders(), ...extraHeaders },
     body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
@@ -14,17 +16,17 @@ async function request(path, body) {
   return data;
 }
 
-/** POST /api/chat — チャットメッセージ送信 */
+/** POST /api/chat */
 export async function chat(session, message) {
   return request("api/chat", { session, message, step: session.step });
 }
 
-/** POST /api/advance — ステップ進行（NEXT / BACK / RESET） */
+/** POST /api/advance */
 export async function advance(session, event) {
   return request("api/advance", { session, event });
 }
 
-/** POST /api/diagram — オンデマンド図再生成 */
+/** POST /api/diagram */
 export async function diagram(session, step) {
   return request("api/diagram", { session, step });
 }
