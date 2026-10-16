@@ -1,14 +1,14 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.2.0`
+`0.3.0`
 
 ## 最終更新
 2026-10-16
 
 ## 現在地
-- フェーズ 2（API 層）を `feature/phase2-api` で完了。**ユーザーのマージ指示待ち**
-- フェーズ 3（フロントエンド）は未着手
+- フェーズ 3（フロントエンド）を `feature/phase3-ui` で完了。**ユーザーのマージ指示待ち**
+- フェーズ 4（エクスポート強化・完了画面・モバイル最適化）は未着手
 
 ## 完了したこと
 
@@ -40,13 +40,22 @@
 - `npm run test:unit` 通過（28/28）
 - `npm run smoke` 通過（16/16、MOCK モード）
 
+### フェーズ 3（フロントエンド）
+- `public/css/tokens.css` — デザイントークン（色・サイズ・シャドウ）
+- `public/css/app.css` — 全スタイル（index・session・チャット・Mermaid・モーダル）
+- `public/js/storage.js` — localStorage セッション管理（pending message 対応）
+- `public/js/api.js` — APIクライアント（chat / advance / diagram）
+- `public/js/mermaid-renderer.js` — Mermaid.js v11 ラッパー（ズームモーダル対応）
+- `public/js/export.js` — Markdownエクスポート（コピー＋ダウンロード＋トースト通知）
+- `public/js/index-app.js` — index.html ロジック（2WAY入力・セッション一覧）
+- `public/js/session-app.js` — session.html ロジック（チャット・ステップ進行・図切り替え）
+- `public/index.html` — スタート画面（5ステップガイド・テーマ入力・バルク入力・再開機能）
+- `public/session.html` — セッション画面（2ペイン・ステップバー・ズームモーダル）
+- `typecheck` 0エラー / `test:unit` 28/28 / `smoke` 16/16 / `e2e-ui` 13/13 全通過
+
 ## 次の一手
-- ユーザーが `feature/phase2-api` をマージ指示 → main へ fast-forward マージ
-- フェーズ 3 開始: `feature/phase3-ui` ブランチでフロントエンド実装
-  - `public/index.html`（セッション一覧・新規作成）
-  - `public/session.html`（チャット・図表示・ステップナビ）
-  - `public/js/` / `public/css/`
-  - `npm run dev:mock` でブラウザ動作確認
+- ユーザーが `feature/phase3-ui` をマージ指示 → main へ fast-forward マージ
+- フェーズ 4: `feature/phase4-export` （complete画面・Markdown詳細強化・モバイル最適化）
 
 ## 未確認事項
 - npm install の脆弱性警告（7件）は wrangler 依存による推移的なものと想定。公開前に `npm audit` で確認
