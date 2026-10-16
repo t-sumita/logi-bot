@@ -1,0 +1,9 @@
+# ローカル開発用の環境変数サンプル
+# このファイルをコピーして .dev.vars を作成し、実際の値を設定してください
+# .dev.vars は .gitignore により git 管理外です
+
+# Claude API キー（必須）
+ANTHROPIC_API_KEY=sk-ant-...
+
+# モックモード（1 = Claude API を呼ばず固定レスポンスを返す）
+LOGI_MOCK=1

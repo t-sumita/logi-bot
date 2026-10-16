@@ -1,0 +1,166 @@
+// logi-bot の型定義。セッション状態・ステートマシン・API の共通型
+
+export type StepName =
+  | "idle"
+  | "onboarding"
+  | "step1_core"
+  | "step2_drilldown"
+  | "step3_what_how"
+  | "step4_verify"
+  | "step5_combine"
+  | "complete";
+
+export type SessionStatus = "in_progress" | "complete" | "error";
+
+export type SessionEvent = "START" | "BULK_EXTRACT" | "NEXT" | "BACK" | "RESET";
+
+// ── セッションパーツ ──────────────────────────────────────────────
+
+export interface CorePart {
+  reality: string;
+  ideal: string;
+  proposal: string;
+}
+
+export interface DrilldownPart {
+  reality_factors: string[];
+  ideal_goals: string[];
+  gap_summary: string;
+}
+
+export interface WhoWhen {
+  what_index: number;
+  who?: string;
+  when?: string;
+}
+
+export interface WhatHowPart {
+  what_items: string[];
+  how_items: string[];
+  who_when: WhoWhen[];
+}
+
+export interface Contradiction {
+  description: string;
+  location: string;
+  resolution: string;
+}
+
+export interface VerifyPart {
+  contradictions: Contradiction[];
+  is_consistent: boolean;
+}
+
+export interface IntroPart {
+  audience: string;
+  hook: string;
+}
+
+export interface ClosingPart {
+  cta: string;
+}
+
+export interface FramePart {
+  intro: IntroPart;
+  closing: ClosingPart;
+  title: string;
+}
+
+export interface SessionParts {
+  core: CorePart;
+  drilldown: DrilldownPart;
+  what_how: WhatHowPart;
+  verification: VerifyPart;
+  frame: FramePart;
+}
+
+export interface SessionDiagrams {
+  step1?: string;
+  step2?: string;
+  step3?: string;
+  step4?: string;
+  step5?: string;
+  final?: string;
+}
+
+export interface ConversationTurn {
+  role: "assistant" | "user";
+  content: string;
+  step: StepName;
+  timestamp: string;
+  extracted?: Partial<SessionParts>;
+}
+
+// ── セッション本体 ────────────────────────────────────────────────
+
+export interface LogiSession {
+  sessionId: string;
+  title: string;
+  step: StepName;
+  status: SessionStatus;
+  fast_track: boolean;
+  onboarding_complete: boolean;
+  createdAt: string;
+  updatedAt: string;
+  parts: SessionParts;
+  diagrams: SessionDiagrams;
+  history: ConversationTurn[];
+}
+
+// ── API リクエスト / レスポンス ──────────────────────────────────
+
+export interface ChatRequest {
+  session: LogiSession;
+  message: string;
+  step: StepName;
+}
+
+export interface ChatResponse {
+  ok: true;
+  reply: string;
+  extracted?: Partial<SessionParts>;
+  fast_track?: boolean;
+  first_incomplete_step?: StepName;
+  diagrams?: Partial<SessionDiagrams>;
+  session: LogiSession;
+}
+
+export interface AdvanceRequest {
+  session: LogiSession;
+  event: "NEXT" | "BACK" | "RESET";
+}
+
+export interface AdvanceResponse {
+  ok: true;
+  session: LogiSession;
+  diagram?: string;
+}
+
+export interface AdvanceGuardFailed {
+  ok: false;
+  error: { code: "guard_failed"; message: string };
+  missing_fields: string[];
+}
+
+export interface DiagramRequest {
+  session: LogiSession;
+  step: StepName | "final";
+}
+
+export interface DiagramResponse {
+  ok: true;
+  diagram: string;
+  step: StepName | "final";
+}
+
+export interface ErrorResponse {
+  ok: false;
+  error: { code: string; message: string };
+}
+
+// ── Cloudflare 環境変数 ───────────────────────────────────────────
+
+export interface Env {
+  ANTHROPIC_API_KEY?: string;
+  LOGI_MOCK?: string;
+}
