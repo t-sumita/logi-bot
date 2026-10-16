@@ -1,0 +1,20 @@
+[
+  {
+    "id": "github-site",
+    "status": "visible",
+    "url": "https://github.com/t-sumita/logi-bot",
+    "title": "GitHub: t-sumita/logi-bot",
+    "title_ja": "GitHub: t-sumita/logi-bot",
+    "description": "Source code",
+    "description_ja": "ソースコード"
+  },
+  {
+    "id": "cloudflare-ai-lab-site",
+    "status": "visible",
+    "url": "https://cloudflare-ai-lab.pages.dev",
+    "title": "cloudflare-ai-lab",
+    "title_ja": "cloudflare-ai-lab",
+    "description": "Edge AI playground",
+    "description_ja": "エッジ AI 検証ラボ"
+  }
+]

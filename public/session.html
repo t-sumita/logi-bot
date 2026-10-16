@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>logi-bot — セッション</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/favicon-180.png">
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/app.css">
   <!-- Mermaid v11 CDN -->
@@ -17,10 +20,17 @@
       <a href="index.html" class="logo" title="ホームへ">🤖 <span>logi-bot</span></a>
       <div class="header-title" id="sessionTitle">読み込み中…</div>
       <div class="header-actions">
-        <button class="mode-badge badge-demo" id="modeBadge" title="AI・モード設定を開く">🎭 DEMO</button>
-        <button class="btn btn-ghost btn-sm btn-icon" id="settingsGearBtn" title="AI・モード設定">⚙️</button>
-        <button class="btn btn-ghost btn-sm" id="copyMdBtn" title="現在の内容をMarkdownとしてコピー">📋 コピー</button>
-        <button class="btn btn-ghost btn-sm" id="downloadMdBtn" title="Markdownファイルをダウンロード">⬇ .md</button>
+        <button class="btn btn-ghost btn-sm btn-icon" id="infoBtn"
+          data-t-attr="title:header.info.title" aria-label="About">ℹ️</button>
+        <button class="btn-lang" id="langToggleBtn"
+          data-t-attr="aria-label:header.lang.aria" data-t="header.lang.label">EN</button>
+        <button class="mode-badge badge-demo" id="modeBadge" title="">🎭 お試し (MOCK)</button>
+        <button class="btn btn-ghost btn-sm btn-icon" id="settingsGearBtn"
+          data-t-attr="title:header.gear.title">⚙️</button>
+        <button class="btn btn-ghost btn-sm" id="copyMdBtn"
+          data-t="header.copy" data-t-attr="title:header.copy.title">📋 コピー</button>
+        <button class="btn btn-ghost btn-sm" id="downloadMdBtn"
+          data-t="header.download" data-t-attr="title:header.download.title">⬇ .md</button>
       </div>
     </div>
   </header>
@@ -29,37 +39,37 @@
   <div class="step-indicator" id="stepIndicator" role="progressbar" aria-label="進行ステップ">
     <div class="step-item" data-step="onboarding">
       <div class="step-dot"></div>
-      <div class="step-name">準備</div>
+      <div class="step-name" data-t="step.onboarding">準備</div>
     </div>
     <div class="step-connector"></div>
     <div class="step-item" data-step="step1_core">
       <div class="step-dot">1</div>
-      <div class="step-name">胸・腹</div>
+      <div class="step-name" data-t="step.step1">胸・腹</div>
     </div>
     <div class="step-connector"></div>
     <div class="step-item" data-step="step2_drilldown">
       <div class="step-dot">2</div>
-      <div class="step-name">両腕</div>
+      <div class="step-name" data-t="step.step2">両腕</div>
     </div>
     <div class="step-connector"></div>
     <div class="step-item" data-step="step3_what_how">
       <div class="step-dot">3</div>
-      <div class="step-name">両脚</div>
+      <div class="step-name" data-t="step.step3">両脚</div>
     </div>
     <div class="step-connector"></div>
     <div class="step-item" data-step="step4_verify">
       <div class="step-dot">4</div>
-      <div class="step-name">点検</div>
+      <div class="step-name" data-t="step.step4">点検</div>
     </div>
     <div class="step-connector"></div>
     <div class="step-item" data-step="step5_combine">
       <div class="step-dot">5</div>
-      <div class="step-name">頭・台座</div>
+      <div class="step-name" data-t="step.step5">頭・台座</div>
     </div>
     <div class="step-connector"></div>
     <div class="step-item" data-step="complete">
       <div class="step-dot">🤖</div>
-      <div class="step-name">完成</div>
+      <div class="step-name" data-t="step.complete">完成</div>
     </div>
   </div>
 
@@ -78,12 +88,11 @@
           <div class="guard-notice-inner">
             <span class="guard-notice-icon">⚠️</span>
             <div class="guard-notice-body">
-              <div class="guard-notice-title">次へ進む前に確認が必要な項目があります</div>
+              <div class="guard-notice-title" data-t="guard.title">次へ進む前に確認が必要な項目があります</div>
               <ul class="guard-missing-list" id="guardMissingList"></ul>
             </div>
-            <button class="btn btn-ghost btn-sm" id="forceNextBtn" title="不完全なまま強制的に次へ進む">
-              それでも進む
-            </button>
+            <button class="btn btn-ghost btn-sm" id="forceNextBtn"
+              data-t="guard.forceNext">それでも進む</button>
           </div>
         </div>
 
@@ -91,6 +100,7 @@
         <form class="chat-form" id="chatForm" autocomplete="off">
           <textarea
             class="chat-input" id="chatInput" rows="2"
+            data-t-attr="placeholder:chat.ph"
             placeholder="メッセージを入力… (Enter で送信、Shift+Enter で改行)"
             maxlength="4000" aria-label="メッセージ入力"></textarea>
           <button class="chat-send" id="chatSendBtn" type="submit" aria-label="送信">↑</button>
@@ -102,22 +112,22 @@
     <div class="diagram-pane" id="diagramPane">
       <div class="diagram-header">
         <div class="diagram-tabs" id="diagramTabs" role="tablist">
-          <button class="diagram-tab active" data-tab="current" role="tab" aria-selected="true">
-            現在のステップ
-          </button>
-          <button class="diagram-tab" data-tab="final" role="tab" aria-selected="false">
-            合体ロボ全体図
-          </button>
+          <button class="diagram-tab active" data-tab="current" role="tab" aria-selected="true"
+            data-t="diagram.tab.current">現在のステップ</button>
+          <button class="diagram-tab" data-tab="final" role="tab" aria-selected="false"
+            data-t="diagram.tab.final">合体ロボ全体図</button>
         </div>
         <div class="diagram-actions">
-          <button class="btn btn-ghost btn-sm btn-icon" id="zoomDiagramBtn" title="拡大表示">⛶</button>
-          <button class="btn btn-ghost btn-sm btn-icon" id="showCodeBtn" title="Mermaidコードを表示">{ }</button>
+          <button class="btn btn-ghost btn-sm btn-icon" id="zoomDiagramBtn"
+            data-t-attr="title:diagram.zoom.title">⛶</button>
+          <button class="btn btn-ghost btn-sm btn-icon" id="showCodeBtn"
+            data-t-attr="title:diagram.code.btn">{ }</button>
         </div>
       </div>
       <div class="diagram-content" id="diagramContent" aria-label="Mermaid図プレビュー">
         <div class="diagram-placeholder">
           <div class="placeholder-icon">📊</div>
-          <div class="placeholder-text">ステップを進めると図が生成されます</div>
+          <div class="placeholder-text" data-t="diagram.placeholder">ステップを進めると図が生成されます</div>
         </div>
       </div>
     </div>
@@ -126,22 +136,20 @@
 
   <!-- ── Bottom Navigation ── -->
   <nav class="session-nav" id="sessionNav" aria-label="ステップナビゲーション">
-    <button class="btn btn-ghost btn-nav" id="backBtn" disabled aria-label="前のステップへ戻る">
-      ← 前へ
-    </button>
+    <button class="btn btn-ghost btn-nav" id="backBtn" disabled
+      data-t="nav.back" aria-label="前のステップへ戻る">← 前へ</button>
     <div class="nav-center">
       <span class="step-label" id="stepLabel">読み込み中…</span>
     </div>
-    <button class="btn btn-primary btn-nav" id="nextBtn" aria-label="次のステップへ進む">
-      次のステップへ →
-    </button>
+    <button class="btn btn-primary btn-nav" id="nextBtn"
+      data-t="nav.next" aria-label="次のステップへ進む">次のステップへ →</button>
   </nav>
 
   <!-- ── Zoom Modal ── -->
   <div class="modal-overlay" id="zoomModal" hidden role="dialog" aria-modal="true" aria-labelledby="zoomModalTitle">
     <div class="modal">
       <div class="modal-header">
-        <h3 class="modal-title" id="zoomModalTitle">図の拡大表示</h3>
+        <h3 class="modal-title" id="zoomModalTitle" data-t="diagram.zoom.title">図の拡大表示</h3>
         <button class="btn btn-ghost btn-sm btn-icon modal-close" id="zoomModalClose" aria-label="閉じる">✕</button>
       </div>
       <div class="modal-body">
@@ -155,13 +163,142 @@
     </div>
   </div>
 
+  <!-- ── Info モーダル ── -->
+  <div class="modal-overlay" id="infoModal" hidden role="dialog" aria-modal="true" aria-labelledby="infoModalTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="infoModalTitle" data-t="info.modal.title">logi-bot について</h3>
+        <button class="btn btn-ghost btn-sm btn-icon modal-close" id="infoModalClose"
+          data-t-attr="aria-label:info.close">✕</button>
+      </div>
+      <div class="info-modal-body">
+
+        <!-- JA コンテンツ -->
+        <div data-lang="ja">
+          <div class="info-section-heading">logi-bot とは</div>
+          <div class="info-section-body">
+            <p>5ステップの対話とドリルダウンで、バラバラなアイデアからプレゼンの全体構想（合体ロボ図）を組み立てる思考整理パートナーアプリです。</p>
+            <p>各ステップで AI と一問一答しながら Mermaid 図を自動生成。最終的に「合体ロボ（全体シナリオ図）」が完成したら、Markdown としてエクスポートできます。</p>
+          </div>
+        </div>
+        <div data-lang="ja">
+          <div class="info-section-heading">図解思考メソッドへのリスペクトと出典</div>
+          <div class="info-section-body">
+            <p>本アプリの思考ステップおよび「合体ロボ作戦」のフレームワークは、永田豊志氏の著書および解説記事にインスパイアされて開発しました。より深い図解思考の技術については、ぜひ原著および元記事をご覧ください。</p>
+            <div class="info-ref-list">
+              <div class="info-ref-item">
+                <span class="info-ref-icon">📘</span>
+                <div>
+                  <strong>書籍</strong><br>
+                  <a href="https://www.amazon.co.jp/%E3%83%97%E3%83%AC%E3%82%BC%E3%83%B3%E3%81%8C%E3%81%86%E3%81%BE%E3%81%84%E4%BA%BA%E3%81%AE%E3%80%8C%E5%9B%B3%E8%A7%A3%E6%80%9D%E8%80%83%E3%80%8D%E3%81%AE%E6%8A%80%E8%A1%93-%E6%B0%B8%E7%94%B0-%E8%B1%8A%E5%BF%97/dp/4806139033" target="_blank" rel="noopener noreferrer">
+                    永田豊志 著『プレゼンがうまい人の「図解思考」の技術』（Amazon）
+                  </a>
+                </div>
+              </div>
+              <div class="info-ref-item">
+                <span class="info-ref-icon">📰</span>
+                <div>
+                  <strong>解説記事</strong><br>
+                  <a href="https://www.itmedia.co.jp/bizid/articles/1012/20/news037.html" target="_blank" rel="noopener noreferrer">
+                    ITmedia Biz.ID：頭、体、台座で考える――プレゼンの「合体ロボ作戦」とは
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EN コンテンツ -->
+        <div data-lang="en" hidden>
+          <div class="info-section-heading">What is logi-bot?</div>
+          <div class="info-section-body">
+            <p>logi-bot is a thinking-partner app that helps you build a complete presentation outline (the "Combo-Robot diagram") from scattered ideas through 5-step guided Q&A with AI.</p>
+            <p>Each step generates a Mermaid diagram automatically. Once all steps are complete, you can export the full scenario as Markdown.</p>
+          </div>
+        </div>
+        <div data-lang="en" hidden>
+          <div class="info-section-heading">Framework Credits &amp; References</div>
+          <div class="info-section-body">
+            <p>The thinking steps and "Combo-Robot Strategy" framework in this app are inspired by the work of Toyoshi Nagata. For a deeper dive into visual thinking techniques, please refer to the original book and article below.</p>
+            <div class="info-ref-list">
+              <div class="info-ref-item">
+                <span class="info-ref-icon">📘</span>
+                <div>
+                  <strong>Book</strong><br>
+                  <a href="https://www.amazon.co.jp/%E3%83%97%E3%83%AC%E3%82%BC%E3%83%B3%E3%81%8C%E3%81%86%E3%81%BE%E3%81%84%E4%BA%BA%E3%81%AE%E3%80%8C%E5%9B%B3%E8%A7%A3%E6%80%9D%E8%80%83%E3%80%8D%E3%81%AE%E6%8A%80%E8%A1%93-%E6%B0%B8%E7%94%B0-%E8%B1%8A%E5%BF%97/dp/4806139033" target="_blank" rel="noopener noreferrer">
+                    Toyoshi Nagata — "Visual Thinking Techniques for Great Presentations" (Amazon JP)
+                  </a>
+                </div>
+              </div>
+              <div class="info-ref-item">
+                <span class="info-ref-icon">📰</span>
+                <div>
+                  <strong>Article (Japanese)</strong><br>
+                  <a href="https://www.itmedia.co.jp/bizid/articles/1012/20/news037.html" target="_blank" rel="noopener noreferrer">
+                    ITmedia Biz.ID: The "Combo-Robot Strategy" for presentations
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="js/session-app.js"></script>
   <script type="module">
     import { initSettings, renderBadge } from "./js/settings.js";
+    import { initLang, applyStatic, toggleLang, onLangChange } from "./js/i18n.js";
+    import { APP_VERSION } from "./config.js";
+
     document.addEventListener("DOMContentLoaded", () => {
+      // 言語初期化
+      initLang();
+      applyStatic();
+
+      // 設定モーダル初期化
       initSettings();
-      document.getElementById("modeBadge").addEventListener("click", () => document.getElementById("settingsGearBtn").click());
+      document.getElementById("modeBadge").addEventListener("click", () =>
+        document.getElementById("settingsGearBtn").click());
+
+      // 言語切り替えボタン
+      document.getElementById("langToggleBtn").addEventListener("click", () => {
+        toggleLang();
+        applyStatic();
+        renderBadge();
+        document.dispatchEvent(new CustomEvent("subu:langchange"));
+      });
+
+      // 言語変更を監視
+      onLangChange(() => { applyStatic(); renderBadge(); });
+
+      // Info モーダル
+      const infoModal = document.getElementById("infoModal");
+      document.getElementById("infoBtn").addEventListener("click", () => { infoModal.hidden = false; });
+      document.getElementById("infoModalClose").addEventListener("click", () => { infoModal.hidden = true; });
+      infoModal.addEventListener("click", (e) => { if (e.target === infoModal) infoModal.hidden = true; });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !infoModal.hidden) infoModal.hidden = true;
+      });
+
+      // バージョン注入
+      window.SUBUTOMO_FOOTER_VERSION = APP_VERSION;
+      if (window.__suBadgeApplyVersion) window.__suBadgeApplyVersion();
     });
   </script>
+
+  <!-- Subutomo バッジ（左下フローティング） -->
+  <script>
+    window.SUBUTOMO_BADGE_CONFIG = {
+      currentSiteId: "logi-bot",
+      sitesJsonPath: "config/subutomo-sites.json",
+      logoPath: "assets/logo.png",
+      theme: "light-bg",
+      privacy: { localStorage: true, analytics: false },
+    };
+  </script>
+  <script src="assets/subutomo-badge.js"></script>
 </body>
 </html>

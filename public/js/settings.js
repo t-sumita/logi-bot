@@ -1,5 +1,7 @@
 // AI・モード設定モーダル — localStorage に永続化
 
+import { t, applyStatic, onLangChange } from "./i18n.js";
+
 const SETTINGS_KEY = "logiSettings";
 
 const CHAT_AI_PROMPT = `あなたは「logi-bot」、図解思考AIファシリテーターです。
@@ -68,15 +70,17 @@ export function saveSettings(settings) {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 }
 
-// ── モードバッジのラベルと色 ─────────────────────────────────────
+// ── モードバッジのラベル・色・ツールチップ ───────────────────────
 export function getModeBadge(settings = getSettings()) {
   switch (settings.mode) {
-    case "owner": return { label: "🔑 Owner", cls: "badge-owner" };
+    case "owner":
+      return { label: t("mode.owner.label"), cls: "badge-owner", title: t("mode.owner.title") };
     case "byok": {
-      const map = { anthropic: "🤖 Claude", gemini: "✨ Gemini", openai: "🟢 GPT" };
-      return { label: map[settings.byokProvider] ?? "BYOK", cls: "badge-byok" };
+      const provKey = `mode.byok.${settings.byokProvider}`;
+      return { label: t(provKey), cls: "badge-byok", title: t("mode.byok.title") };
     }
-    default: return { label: "🎭 DEMO", cls: "badge-demo" };
+    default:
+      return { label: t("mode.mock.label"), cls: "badge-demo", title: t("mode.mock.title") };
   }
 }
 
@@ -238,13 +242,14 @@ export function initSettings() {
   renderBadge();
 }
 
-/** ヘッダーのモードバッジを現在の設定に合わせて更新する */
+/** ヘッダーのモードバッジを現在の設定と言語に合わせて更新する */
 export function renderBadge() {
   const badge = document.getElementById("modeBadge");
   if (!badge) return;
-  const { label, cls } = getModeBadge();
+  const { label, cls, title } = getModeBadge();
   badge.textContent = label;
   badge.className = `mode-badge ${cls}`;
+  badge.title = title;
 }
 
 function showToast(msg, isError = false) {

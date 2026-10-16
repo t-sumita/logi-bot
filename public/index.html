@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="図解思考（ドリルダウン＋合体ロボ作戦）でアイデアをプレゼン構想に整理するAIアシスタント">
   <title>logi-bot — 図解思考でプレゼン構想を組み立てる</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/favicon-180.png">
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/app.css">
 </head>
@@ -14,8 +17,15 @@
     <div class="header-inner">
       <div class="logo">🤖 <span>logi-bot</span></div>
       <div style="flex:1"></div>
-      <button class="mode-badge badge-demo" id="modeBadge" id2="settingsGearBtn" title="AI・モード設定を開く">🎭 DEMO</button>
-      <button class="btn btn-ghost btn-sm btn-icon" id="settingsGearBtn" title="AI・モード設定">⚙️</button>
+      <div class="header-actions">
+        <button class="btn btn-ghost btn-sm btn-icon" id="infoBtn"
+          data-t-attr="title:header.info.title" aria-label="About">ℹ️</button>
+        <button class="btn-lang" id="langToggleBtn"
+          data-t-attr="aria-label:header.lang.aria" data-t="header.lang.label">EN</button>
+        <button class="mode-badge badge-demo" id="modeBadge" title="">🎭 お試し (MOCK)</button>
+        <button class="btn btn-ghost btn-sm btn-icon" id="settingsGearBtn"
+          data-t-attr="title:header.gear.title">⚙️</button>
+      </div>
     </div>
   </header>
 
@@ -24,9 +34,10 @@
     <!-- ── 前回セッション再開 ── -->
     <section class="resume-section" id="resumeSection" hidden>
       <div class="container">
-        <h2 class="resume-title">🔄 前回の続きから再開する</h2>
+        <h2 class="resume-title" data-t="resume.title">🔄 前回の続きから再開する</h2>
         <div class="session-list" id="sessionList"></div>
-        <button class="btn btn-ghost btn-sm" id="clearAllBtn">すべてのセッションを削除</button>
+        <button class="btn btn-ghost btn-sm" id="clearAllBtn"
+          data-t="resume.clearAll">すべてのセッションを削除</button>
       </div>
     </section>
 
@@ -34,10 +45,12 @@
     <section class="hero">
       <div class="container">
         <div style="font-size:3rem;margin-bottom:16px">🤖</div>
-        <h1 class="hero-title">図解思考で<br>プレゼン構想を組み立てる</h1>
-        <p class="hero-sub">
-          5ステップの一問一答で、バラバラなアイデアを<br>
-          「合体ロボ（全体シナリオ図）」へと整理します。
+        <h1 class="hero-title">
+          <span data-t="hero.title.l1">図解思考で</span><br>
+          <span data-t="hero.title.l2">プレゼン構想を組み立てる</span>
+        </h1>
+        <p class="hero-sub" data-t="hero.sub">
+          5ステップの一問一答で、バラバラなアイデアを「合体ロボ（全体シナリオ図）」へと整理します。
         </p>
       </div>
     </section>
@@ -45,37 +58,37 @@
     <!-- ── 5ステップガイド ── -->
     <section class="guide-section">
       <div class="container">
-        <h2 class="guide-title">合体ロボの5パーツ — どんな順番で組み立てる？</h2>
+        <h2 class="guide-title" data-t="guide.title">合体ロボの5パーツ — どんな順番で組み立てる？</h2>
         <div class="step-cards">
           <div class="step-card">
             <div class="step-card-num">Step 1</div>
             <div class="step-card-icon">🫀</div>
-            <div class="step-card-title">胸・腹（コア）</div>
-            <div class="step-card-desc">現実・理想・提案の骨格を1〜2文でまとめる</div>
+            <div class="step-card-title" data-t="step1.title">胸・腹（コア）</div>
+            <div class="step-card-desc"  data-t="step1.desc">現実・理想・提案の骨格を1〜2文でまとめる</div>
           </div>
           <div class="step-card">
             <div class="step-card-num">Step 2</div>
             <div class="step-card-icon">💪</div>
-            <div class="step-card-title">両腕（ドリルダウン）</div>
-            <div class="step-card-desc">根拠・数値・原因を深掘りして腕を鍛える</div>
+            <div class="step-card-title" data-t="step2.title">両腕（ドリルダウン）</div>
+            <div class="step-card-desc"  data-t="step2.desc">根拠・数値・原因を深掘りして腕を鍛える</div>
           </div>
           <div class="step-card">
             <div class="step-card-num">Step 3</div>
             <div class="step-card-icon">🦵</div>
-            <div class="step-card-title">両脚（What/How）</div>
-            <div class="step-card-desc">何をどうやって実現するか、脚を固める</div>
+            <div class="step-card-title" data-t="step3.title">両脚（What/How）</div>
+            <div class="step-card-desc"  data-t="step3.desc">何をどうやって実現するか、脚を固める</div>
           </div>
           <div class="step-card">
             <div class="step-card-num">Step 4</div>
             <div class="step-card-icon">🔍</div>
-            <div class="step-card-title">点検（矛盾検証）</div>
-            <div class="step-card-desc">論理のブレや矛盾を洗い出して解消する</div>
+            <div class="step-card-title" data-t="step4.title">点検（矛盾検証）</div>
+            <div class="step-card-desc"  data-t="step4.desc">論理のブレや矛盾を洗い出して解消する</div>
           </div>
           <div class="step-card">
             <div class="step-card-num">Step 5</div>
             <div class="step-card-icon">🎯</div>
-            <div class="step-card-title">頭・台座（合体）</div>
-            <div class="step-card-desc">イントロ＋クロージングで合体ロボ完成！</div>
+            <div class="step-card-title" data-t="step5.title">頭・台座（合体）</div>
+            <div class="step-card-desc"  data-t="step5.desc">イントロ＋クロージングで合体ロボ完成！</div>
           </div>
         </div>
       </div>
@@ -85,24 +98,24 @@
     <section class="start-section">
       <div class="container">
         <div class="start-tabs" role="tablist">
-          <button class="start-tab active" data-tab="quick" role="tab" aria-selected="true">
-            ✏️ テーマ名だけ入れて一問一答で始める
-          </button>
-          <button class="start-tab" data-tab="bulk" role="tab" aria-selected="false">
-            📋 メモをまとめて貼り付けて仮組みする
-          </button>
+          <button class="start-tab active" data-tab="quick" role="tab" aria-selected="true"
+            data-t="start.tab.quick">✏️ テーマ名だけ入れて一問一答で始める</button>
+          <button class="start-tab" data-tab="bulk" role="tab" aria-selected="false"
+            data-t="start.tab.bulk">📋 メモをまとめて貼り付けて仮組みする</button>
         </div>
 
         <!-- Quick start panel -->
         <div class="start-panel" id="panelQuick" role="tabpanel">
           <div class="start-form">
-            <label class="form-label" for="titleInput">プレゼンのテーマ・プロジェクト名</label>
+            <label class="form-label" for="titleInput" data-t="start.label.title">プレゼンのテーマ・プロジェクト名</label>
             <input class="form-input" id="titleInput" type="text"
+              data-t-attr="placeholder:start.ph.title"
               placeholder="例：新製品ローンチ計画、営業プロセス改善提案" maxlength="100"
               autocomplete="off">
-            <p class="form-hint">テーマ名だけでOK。一問一答で5ステップを進めながら、AIがMermaid図を組み立てます。</p>
+            <p class="form-hint" data-t="start.hint.quick">テーマ名だけでOK。一問一答で5ステップを進めながら、AIがMermaid図を組み立てます。</p>
             <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-              <button class="btn btn-primary btn-lg" id="startQuickBtn">▶ 一問一答で始める</button>
+              <button class="btn btn-primary btn-lg" id="startQuickBtn"
+                data-t="start.btn.quick">▶ 一問一答で始める</button>
             </div>
           </div>
         </div>
@@ -110,20 +123,23 @@
         <!-- Bulk start panel -->
         <div class="start-panel" id="panelBulk" role="tabpanel" hidden>
           <div class="start-form">
-            <label class="form-label" for="bulkTitle">プレゼンのテーマ・プロジェクト名</label>
+            <label class="form-label" for="bulkTitle"
+              data-t="start.label.bulkTitle">プレゼンのテーマ・プロジェクト名</label>
             <input class="form-input" id="bulkTitle" type="text"
+              data-t-attr="placeholder:start.ph.bulkTitle"
               placeholder="例：社内情報共有ツール刷新計画" maxlength="100"
               autocomplete="off">
 
-            <label class="form-label" for="bulkInput" style="margin-top:4px">
-              企画メモ・議事録・箇条書きをここにドサッと貼り付け
-            </label>
+            <label class="form-label" for="bulkInput" style="margin-top:4px"
+              data-t="start.label.bulkMemo">企画メモ・議事録・箇条書きをここにドサッと貼り付け</label>
             <textarea class="form-textarea" id="bulkInput" rows="9"
               placeholder="ここに企画メモ・箇条書き・議事録などをそのまま貼り付けてください。&#10;AIが自動的に図解パーツに仮組みします。&#10;&#10;例:&#10;・現状：社内の情報共有ツールが古く、部門間の連携が非効率&#10;・理想：リアルタイムで情報が共有され、意思決定が迅速&#10;・提案：Slack と Notion を統合した新しいワークフロー導入"></textarea>
 
             <div class="bulk-actions">
-              <button class="btn btn-ghost btn-sm" id="loadSampleBtn">📄 サンプルを読み込む</button>
-              <button class="btn btn-primary btn-lg" id="startBulkBtn">🚀 まとめて仮組みする</button>
+              <button class="btn btn-ghost btn-sm" id="loadSampleBtn"
+                data-t="start.btn.sample">📄 サンプルを読み込む</button>
+              <button class="btn btn-primary btn-lg" id="startBulkBtn"
+                data-t="start.btn.bulk">🚀 まとめて仮組みする</button>
             </div>
           </div>
         </div>
@@ -139,14 +155,142 @@
     </div>
   </footer>
 
+  <!-- ── Info モーダル ── -->
+  <div class="modal-overlay" id="infoModal" hidden role="dialog" aria-modal="true" aria-labelledby="infoModalTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="infoModalTitle" data-t="info.modal.title">logi-bot について</h3>
+        <button class="btn btn-ghost btn-sm btn-icon modal-close" id="infoModalClose"
+          data-t-attr="aria-label:info.close">✕</button>
+      </div>
+      <div class="info-modal-body">
+
+        <!-- JA コンテンツ -->
+        <div data-lang="ja">
+          <div class="info-section-heading">logi-bot とは</div>
+          <div class="info-section-body">
+            <p>5ステップの対話とドリルダウンで、バラバラなアイデアからプレゼンの全体構想（合体ロボ図）を組み立てる思考整理パートナーアプリです。</p>
+            <p>各ステップで AI と一問一答しながら Mermaid 図を自動生成。最終的に「合体ロボ（全体シナリオ図）」が完成したら、Markdown としてエクスポートできます。</p>
+          </div>
+        </div>
+        <div data-lang="ja">
+          <div class="info-section-heading">図解思考メソッドへのリスペクトと出典</div>
+          <div class="info-section-body">
+            <p>本アプリの思考ステップおよび「合体ロボ作戦」のフレームワークは、永田豊志氏の著書および解説記事にインスパイアされて開発しました。より深い図解思考の技術については、ぜひ原著および元記事をご覧ください。</p>
+            <div class="info-ref-list">
+              <div class="info-ref-item">
+                <span class="info-ref-icon">📘</span>
+                <div>
+                  <strong>書籍</strong><br>
+                  <a href="https://www.amazon.co.jp/%E3%83%97%E3%83%AC%E3%82%BC%E3%83%B3%E3%81%8C%E3%81%86%E3%81%BE%E3%81%84%E4%BA%BA%E3%81%AE%E3%80%8C%E5%9B%B3%E8%A7%A3%E6%80%9D%E8%80%83%E3%80%8D%E3%81%AE%E6%8A%80%E8%A1%93-%E6%B0%B8%E7%94%B0-%E8%B1%8A%E5%BF%97/dp/4806139033" target="_blank" rel="noopener noreferrer">
+                    永田豊志 著『プレゼンがうまい人の「図解思考」の技術』（Amazon）
+                  </a>
+                </div>
+              </div>
+              <div class="info-ref-item">
+                <span class="info-ref-icon">📰</span>
+                <div>
+                  <strong>解説記事</strong><br>
+                  <a href="https://www.itmedia.co.jp/bizid/articles/1012/20/news037.html" target="_blank" rel="noopener noreferrer">
+                    ITmedia Biz.ID：頭、体、台座で考える――プレゼンの「合体ロボ作戦」とは
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EN コンテンツ -->
+        <div data-lang="en" hidden>
+          <div class="info-section-heading">What is logi-bot?</div>
+          <div class="info-section-body">
+            <p>logi-bot is a thinking-partner app that helps you build a complete presentation outline (the "Combo-Robot diagram") from scattered ideas through 5-step guided Q&A with AI.</p>
+            <p>Each step generates a Mermaid diagram automatically. Once all steps are complete, you can export the full scenario as Markdown.</p>
+          </div>
+        </div>
+        <div data-lang="en" hidden>
+          <div class="info-section-heading">Framework Credits &amp; References</div>
+          <div class="info-section-body">
+            <p>The thinking steps and "Combo-Robot Strategy" framework in this app are inspired by the work of Toyoshi Nagata. For a deeper dive into visual thinking techniques, please refer to the original book and article below.</p>
+            <div class="info-ref-list">
+              <div class="info-ref-item">
+                <span class="info-ref-icon">📘</span>
+                <div>
+                  <strong>Book</strong><br>
+                  <a href="https://www.amazon.co.jp/%E3%83%97%E3%83%AC%E3%82%BC%E3%83%B3%E3%81%8C%E3%81%86%E3%81%BE%E3%81%84%E4%BA%BA%E3%81%AE%E3%80%8C%E5%9B%B3%E8%A7%A3%E6%80%9D%E8%80%83%E3%80%8D%E3%81%AE%E6%8A%80%E8%A1%93-%E6%B0%B8%E7%94%B0-%E8%B1%8A%E5%BF%97/dp/4806139033" target="_blank" rel="noopener noreferrer">
+                    Toyoshi Nagata — "Visual Thinking Techniques for Great Presentations" (Amazon JP)
+                  </a>
+                </div>
+              </div>
+              <div class="info-ref-item">
+                <span class="info-ref-icon">📰</span>
+                <div>
+                  <strong>Article (Japanese)</strong><br>
+                  <a href="https://www.itmedia.co.jp/bizid/articles/1012/20/news037.html" target="_blank" rel="noopener noreferrer">
+                    ITmedia Biz.ID: The "Combo-Robot Strategy" for presentations
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="js/index-app.js"></script>
   <script type="module">
     import { initSettings, renderBadge } from "./js/settings.js";
+    import { initLang, applyStatic, toggleLang, onLangChange } from "./js/i18n.js";
+    import { APP_VERSION } from "./config.js";
+
     document.addEventListener("DOMContentLoaded", () => {
+      // 言語初期化
+      initLang();
+      applyStatic();
+
+      // 設定モーダル初期化（バッジも言語適用後に描画）
       initSettings();
-      // バッジクリックでもモーダルを開く
-      document.getElementById("modeBadge").addEventListener("click", () => document.getElementById("settingsGearBtn").click());
+      document.getElementById("modeBadge").addEventListener("click", () =>
+        document.getElementById("settingsGearBtn").click());
+
+      // 言語切り替えボタン
+      document.getElementById("langToggleBtn").addEventListener("click", () => {
+        toggleLang();
+        applyStatic();
+        renderBadge();
+        document.dispatchEvent(new CustomEvent("subu:langchange"));
+      });
+
+      // 言語変更を監視して動的に再適用
+      onLangChange(() => { applyStatic(); renderBadge(); });
+
+      // Info モーダル
+      const infoModal = document.getElementById("infoModal");
+      document.getElementById("infoBtn").addEventListener("click", () => { infoModal.hidden = false; });
+      document.getElementById("infoModalClose").addEventListener("click", () => { infoModal.hidden = true; });
+      infoModal.addEventListener("click", (e) => { if (e.target === infoModal) infoModal.hidden = true; });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !infoModal.hidden) infoModal.hidden = true; });
+
+      // バージョン表示
+      const vd = document.getElementById("versionDisplay");
+      if (vd) vd.textContent = `v${APP_VERSION}`;
+      window.SUBUTOMO_FOOTER_VERSION = APP_VERSION;
+      if (window.__suBadgeApplyVersion) window.__suBadgeApplyVersion();
     });
   </script>
+
+  <!-- Subutomo バッジ（左下フローティング） -->
+  <script>
+    window.SUBUTOMO_BADGE_CONFIG = {
+      currentSiteId: "logi-bot",
+      sitesJsonPath: "config/subutomo-sites.json",
+      logoPath: "assets/logo.png",
+      theme: "light-bg",
+      privacy: { localStorage: true, analytics: false },
+    };
+  </script>
+  <script src="assets/subutomo-badge.js"></script>
 </body>
 </html>

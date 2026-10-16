@@ -429,3 +429,36 @@ select.form-input { background: var(--c-bg); cursor: pointer; }
   .step-indicator { padding: 0 var(--sp-3); }
   .header-title { font-size: .8rem; }
 }
+
+/* ── Lang toggle ────────────────────────────────────────────────── */
+.btn-lang {
+  background: none; border: 1px solid var(--c-border); border-radius: 999px;
+  padding: 3px 10px; cursor: pointer; flex-shrink: 0;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 11px; letter-spacing: .05em; color: var(--c-text-sub);
+  transition: color var(--ease), border-color var(--ease);
+}
+.btn-lang:hover { color: var(--c-primary); border-color: var(--c-primary); }
+
+/* ── Info Modal ─────────────────────────────────────────────────── */
+.info-modal-body {
+  padding: var(--sp-4) var(--sp-5); overflow-y: auto; display: flex; flex-direction: column; gap: var(--sp-5);
+}
+.info-section-heading {
+  font-size: .9rem; font-weight: 700; color: var(--c-text); margin-bottom: var(--sp-2);
+  padding-bottom: var(--sp-2); border-bottom: 1px solid var(--c-border);
+}
+.info-section-body {
+  font-size: .85rem; color: var(--c-text-sub); line-height: 1.7;
+}
+.info-section-body p + p { margin-top: var(--sp-2); }
+.info-ref-list { display: flex; flex-direction: column; gap: var(--sp-3); margin-top: var(--sp-3); }
+.info-ref-item { display: flex; gap: var(--sp-2); align-items: flex-start; }
+.info-ref-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 2px; }
+.info-ref-item a {
+  color: var(--c-primary); text-decoration: none; font-size: .85rem; line-height: 1.5;
+}
+.info-ref-item a:hover { text-decoration: underline; }
+
+/* mode-badge: 長いテキストに対応 */
+.mode-badge { font-size: .72rem; max-width: 12rem; overflow: hidden; text-overflow: ellipsis; }
