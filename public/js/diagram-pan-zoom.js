@@ -50,6 +50,8 @@ export function initPanZoom(containerEl) {
 
   // ── フィット実装（layout 確定後に実行）──────────────────────────
   function fitInner() {
+    console.log("[PanZoom Debug] fit() called");
+
     const v = vp();
     if (!v) return;
     const svgEl = v.querySelector("svg");
@@ -57,8 +59,15 @@ export function initPanZoom(containerEl) {
       scale = 1; tx = 0; ty = 0; applyTransform(); return;
     }
 
-    const cw = containerEl.clientWidth;
-    const ch = containerEl.clientHeight;
+    // clientWidth/Height が 0 の場合は getBoundingClientRect でフォールバック
+    let cw = containerEl.clientWidth;
+    let ch = containerEl.clientHeight;
+    if (cw <= 0 || ch <= 0) {
+      const r = containerEl.getBoundingClientRect();
+      cw = r.width;
+      ch = r.height;
+    }
+    console.log("[PanZoom Debug] Container:", { cw, ch });
     if (cw <= 0 || ch <= 0) return;
 
     // transform をリセットして自然サイズを測定
@@ -69,6 +78,7 @@ export function initPanZoom(containerEl) {
     const svgRect = svgEl.getBoundingClientRect();
     const svgW = svgRect.width;
     const svgH = svgRect.height;
+    console.log("[PanZoom Debug] SVG BoundingBox:", { svgW, svgH });
 
     if (svgW <= 0 || svgH <= 0) return;
 
@@ -76,14 +86,12 @@ export function initPanZoom(containerEl) {
     const availW = cw - FIT_MARGIN * 2;
     const availH = ch - FIT_MARGIN * 2;
     const newScale = clampScale(Math.min(availW / svgW, availH / svgH));
+    console.log("[PanZoom Debug] Calculated Scale:", newScale);
 
-    // コンテナ中央に配置
-    // viewport の origin=(0,0) → SVG top-left。
-    // transform: translate(tx,ty) scale(s) を適用すると
-    // SVG の左上は (tx, ty) に、SVG 中心は (tx + svgW*s/2, ty + svgH*s/2) になる。
     scale = newScale;
     tx = (cw - svgW * scale) / 2;
     ty = Math.max(FIT_MARGIN, (ch - svgH * scale) / 2);
+    console.log("[PanZoom Debug] Calculated Translate:", { tx, ty });
     applyTransform();
   }
 

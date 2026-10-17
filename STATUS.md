@@ -1,10 +1,10 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.8.6`
+`0.8.7`
 
 ## 最終更新
-2026-10-17
+2026-10-18
 
 ## 現在地
 - v0.8.1 main マージ・GitHub push・Cloudflare Pages デプロイ済み
@@ -106,8 +106,16 @@
 - **SVG スタイルの確実な適用**: CSS で `.pz-viewport svg { max-width: none !important; height: auto; }` を追加
 - `session-app.js`: `setTimeout(..., 60)` を廃止し `panZoom.fit()` を直接呼び出し（rAF は内部）
 
+## v0.8.7 追加修正（2026-10-18）
+
+- **パン・ズーム `fit()` デバッグログ追加 & フェイルセーフ強化**:
+  - `fitInner()` に詳細ログ追加（`[PanZoom Debug]` プレフィックス）:
+    - `fit() called` / `Container: {cw, ch}` / `SVG BoundingBox: {svgW, svgH}` / `Calculated Scale:` / `Calculated Translate: {tx, ty}`
+  - フェイルセーフ: `containerEl.clientWidth/Height` が 0 の場合、`getBoundingClientRect()` でフォールバック取得
+  - 原因特定後は `console.log` を除去予定
+
 ## 次の一手
-- ユーザーが https://logi-bot.pages.dev で動作確認
-  1. 合体ロボ図が初期表示でコンテナ中央に正しく収まるか（scale ≒ 0.5〜0.7 程度）
-  2. ⊡ ボタンで中央フィットに戻るか
-  3. ドラッグ・スクロール・ピンチが正常に動作するか
+- ユーザーが https://logi-bot.pages.dev で動作確認し、DevTools Console で `[PanZoom Debug]` ログを確認
+  1. `Container: {cw, ch}` の値が正しいか（cw/ch が 0 でないか）
+  2. `SVG BoundingBox: {svgW, svgH}` の値が正しいか（0 でないか）
+  3. `Calculated Scale:` が MIN_SCALE=0.1 より大きいか
