@@ -177,17 +177,48 @@ function detectStep(systemPrompt: string): string {
   return "onboarding";
 }
 
-function stepMockResponse(step: string, message: string): ClaudeResponse {
+function detectStep1Substep(systemPrompt: string): "reality" | "ideal" | "proposal" | "done" {
+  if (systemPrompt.includes("step1_substep:reality"))  return "reality";
+  if (systemPrompt.includes("step1_substep:ideal"))    return "ideal";
+  if (systemPrompt.includes("step1_substep:proposal")) return "proposal";
+  return "done";
+}
+
+function stepMockResponse(step: string, message: string, systemPrompt: string = ""): ClaudeResponse {
   const short = message.slice(0, 40);
   switch (step) {
     case "step1": {
-      const core = extractCore(message);
-      const filled = [core.reality && "✅ 現実", core.ideal && "✅ 理想", core.proposal && "✅ 提案"].filter(Boolean);
-      const missing = [!core.reality && "現実", !core.ideal && "理想", !core.proposal && "提案"].filter(Boolean);
-      const reply = filled.length
-        ? `「${short}…」を受け取りました。\n\n${filled.join("\n")}\n\n${missing.length ? `⚠️ まだ **${missing.join("・")}** が確認できていません。\n${missing[0] === "理想" ? "理想の状態はどんなイメージですか？" : "提案・解決策は何ですか？"}` : "3要素が揃いました。「次へ」ボタンでStep 2へ進めます。"}`
-        : `「${short}…」を受け取りました。\n\n現在の状況（現実）として記録しました。\n\n**理想の状態**はどんなイメージですか？`;
-      return { reply, extracted: { core } };
+      const substep = detectStep1Substep(systemPrompt);
+      switch (substep) {
+        case "reality": {
+          const reality = getLines(message)[0] || message.slice(0, 200);
+          return {
+            reply: `「${reality.slice(0, 40)}…」を**現実の状況**として記録しました。✅\n\n次に、**理想の状態**を教えてください。\nそれが実現したとき、どんな状況になっていますか？`,
+            extracted: { core: { reality, ideal: "", proposal: "" } },
+          };
+        }
+        case "ideal": {
+          const ideal = getLines(message)[0] || message.slice(0, 200);
+          return {
+            reply: `「${ideal.slice(0, 40)}…」を**理想の状態**として記録しました。✅\n\n最後に、**解決策・提案**を教えてください。\nどんなアプローチでこの理想を実現しますか？`,
+            extracted: { core: { reality: "", ideal, proposal: "" } },
+          };
+        }
+        case "proposal": {
+          const proposal = getLines(message)[0] || message.slice(0, 200);
+          return {
+            reply: `「${proposal.slice(0, 40)}…」を**提案・解決策**として記録しました。✅\n\n**3要素（現実・理想・提案）が揃いました！🎉**\n「次へ」ボタンで Step 2（両腕・ドリルダウン）へ進めます。`,
+            extracted: { core: { reality: "", ideal: "", proposal } },
+          };
+        }
+        default: {
+          const core = extractCore(message);
+          return {
+            reply: `補足を受け取りました。\n\n内容を更新しました。「次へ」ボタンで Step 2 へ進めます。`,
+            extracted: { core },
+          };
+        }
+      }
     }
     case "step2": {
       const d = extractDrilldown(message);
@@ -264,7 +295,7 @@ function bulkExtractMock(message: string): ClaudeResponse {
 
 function getMockResponse(req: ClaudeRequest): ClaudeResponse {
   if (req.forceTool) return bulkExtractMock(req.message);
-  return stepMockResponse(detectStep(req.systemPrompt), req.message);
+  return stepMockResponse(detectStep(req.systemPrompt), req.message, req.systemPrompt);
 }
 
 // ── 公開エントリポイント ──────────────────────────────────────────

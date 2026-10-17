@@ -184,9 +184,11 @@ ul { list-style: none; }
 .step-item.done .step-dot { background: var(--c-step-done); border-color: var(--c-step-done); color: #fff; }
 .step-item.done .step-dot::after { content: "✓"; font-size: .75rem; }
 .step-item.active .step-dot { background: var(--c-step-active); border-color: var(--c-step-active); color: #fff; }
-.step-name { font-size: .68rem; color: var(--c-text-mute); text-align: center; line-height: 1.2; white-space: nowrap; }
+.step-name { font-size: .68rem; color: var(--c-text-mute); text-align: center; line-height: 1.2; display: flex; flex-direction: column; align-items: center; gap: 1px; }
 .step-item.active .step-name { color: var(--c-step-active); font-weight: 700; }
 .step-item.done .step-name { color: var(--c-step-done); }
+.sn-main { font-size: .68rem; font-weight: inherit; }
+.sn-sub { font-size: .57rem; opacity: .75; white-space: nowrap; }
 .step-connector {
   flex: 1 1 12px; height: 2px; background: var(--c-step-todo); min-width: 12px; max-width: 60px;
   transition: background var(--ease); align-self: center; margin-bottom: 16px;
@@ -462,3 +464,26 @@ select.form-input { background: var(--c-bg); cursor: pointer; }
 
 /* mode-badge: 長いテキストに対応 */
 .mode-badge { font-size: .72rem; max-width: 12rem; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Subutomo Badge ─ バッジのテキストを非表示にしてアイコンのみ表示 ── */
+.su-badge span { display: none !important; }
+
+/* ── Substep Indicator (Step 1 のみ) ────────────────────────────── */
+.substep-indicator {
+  display: flex; align-items: center; gap: 0; padding: 6px var(--sp-4);
+  background: var(--c-surface); border-top: 1px solid var(--c-border);
+  overflow-x: auto; scrollbar-width: none;
+}
+.substep-indicator::-webkit-scrollbar { display: none; }
+.substep-item { display: flex; flex-direction: column; align-items: center; gap: 3px; flex-shrink: 0; min-width: 52px; }
+.substep-dot {
+  width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--c-step-todo);
+  background: var(--c-surface); transition: all var(--ease);
+}
+.substep-item.done .substep-dot { background: var(--c-step-done); border-color: var(--c-step-done); }
+.substep-item.active .substep-dot { background: var(--c-step-active); border-color: var(--c-step-active); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-step-active) 20%, transparent); }
+.substep-label { font-size: .6rem; color: var(--c-text-mute); }
+.substep-item.active .substep-label { color: var(--c-step-active); font-weight: 700; }
+.substep-item.done .substep-label { color: var(--c-step-done); }
+.substep-connector { flex: 1 1 12px; height: 2px; background: var(--c-step-todo); min-width: 10px; max-width: 40px; transition: background var(--ease); align-self: center; margin-bottom: 16px; }
+.substep-item.done + .substep-connector { background: var(--c-step-done); }

@@ -16,5 +16,23 @@
     "title_ja": "cloudflare-ai-lab",
     "description": "Edge AI playground",
     "description_ja": "エッジ AI 検証ラボ"
+  },
+  {
+    "id": "donation-site",
+    "status": "visible",
+    "url": "https://ko-fi.com/subutomo",
+    "title": "☕ Donation (Ko-fi)",
+    "title_ja": "☕ サポート (Ko-fi)",
+    "description": "Buy me a coffee!",
+    "description_ja": "コーヒーをごちそうさまです！"
+  },
+  {
+    "id": "contact-site",
+    "status": "visible",
+    "url": "mailto:subutomo@gmail.com",
+    "title": "✉️ Contact",
+    "title_ja": "✉️ お問い合わせ",
+    "description": "Send a message",
+    "description_ja": "メッセージを送る"
   }
 ]

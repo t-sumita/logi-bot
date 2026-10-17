@@ -7,14 +7,14 @@ import { copyMarkdown, downloadMarkdown } from "./export.js";
 
 // ── ステップ定義 ──────────────────────────────────────────────────
 const STEP_META = {
-  idle:            { label: "初期化中", diagramKey: null, index: -1 },
-  onboarding:      { label: "準備",     diagramKey: null, index: 0 },
-  step1_core:      { label: "Step 1 / 5 — 胸・腹（コア）",        diagramKey: "step1", index: 1 },
-  step2_drilldown: { label: "Step 2 / 5 — 両腕（ドリルダウン）",  diagramKey: "step2", index: 2 },
-  step3_what_how:  { label: "Step 3 / 5 — 両脚（What/How）",       diagramKey: "step3", index: 3 },
-  step4_verify:    { label: "Step 4 / 5 — 点検（矛盾検証）",       diagramKey: "step4", index: 4 },
-  step5_combine:   { label: "Step 5 / 5 — 頭・台座",               diagramKey: "step5", index: 5 },
-  complete:        { label: "合体完了 🎉",                          diagramKey: "final", index: 6 },
+  idle:            { label: "初期化中",                               diagramKey: null,    index: -1, placeholder: "" },
+  onboarding:      { label: "準備（全体入力）",                        diagramKey: null,    index: 0,  placeholder: "テーマ名・企画メモを入力してください。例：「新製品ローンチ計画の課題がある」" },
+  step1_core:      { label: "Step 1 / 5 — 胸・腹（現実→理想→提案）", diagramKey: "step1", index: 1,  placeholder: "現在の状況・問題点（現実）を教えてください。例：「月次売上が目標比-30%が続いています」" },
+  step2_drilldown: { label: "Step 2 / 5 — 両腕（現実・理想の深掘り）", diagramKey: "step2", index: 2,  placeholder: "例：「原因は①顧客単価の低下 ②新規開拓停滞 ③競合参入の3つです」" },
+  step3_what_how:  { label: "Step 3 / 5 — 両脚（What/How）",          diagramKey: "step3", index: 3,  placeholder: "例：「What: 営業プロセス見直し / How: 3ヶ月でCRM導入＋週次レビュー」" },
+  step4_verify:    { label: "Step 4 / 5 — 点検（矛盾・ブレ検証）",    diagramKey: "step4", index: 4,  placeholder: "例：「予算とスケジュールに矛盾はないか確認お願いします」または「整合性OKです」" },
+  step5_combine:   { label: "Step 5 / 5 — 頭・台座（イントロ・締め）",diagramKey: "step5", index: 5,  placeholder: "例：「フック：今期売上-30%。今日転換点を作ります。CTA：来月からCRM試験導入の承認をお願いします」" },
+  complete:        { label: "合体完了 🎉",                             diagramKey: "final", index: 6,  placeholder: "" },
 };
 
 const STEP_ORDER = ["onboarding","step1_core","step2_drilldown","step3_what_how","step4_verify","step5_combine","complete"];
@@ -46,29 +46,30 @@ let currentDiagramSource = "";
 // ── DOM refs ─────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
 const el = {
-  title:           $("sessionTitle"),
-  stepIndicator:   $("stepIndicator"),
-  chatMessages:    $("chatMessages"),
-  guardNotice:     $("guardNotice"),
-  guardMissingList:$("guardMissingList"),
-  forceNextBtn:    $("forceNextBtn"),
-  chatForm:        $("chatForm"),
-  chatInput:       $("chatInput"),
-  chatSendBtn:     $("chatSendBtn"),
-  diagramContent:  $("diagramContent"),
-  diagramTabs:     $("diagramTabs"),
-  zoomDiagramBtn:  $("zoomDiagramBtn"),
-  showCodeBtn:     $("showCodeBtn"),
-  backBtn:         $("backBtn"),
-  nextBtn:         $("nextBtn"),
-  stepLabel:       $("stepLabel"),
-  zoomModal:       $("zoomModal"),
-  zoomModalTitle:  $("zoomModalTitle"),
-  zoomModalClose:  $("zoomModalClose"),
-  modalDiagram:    $("modalDiagram"),
-  modalCode:       $("modalCode"),
-  copyMdBtn:       $("copyMdBtn"),
-  downloadMdBtn:   $("downloadMdBtn"),
+  title:            $("sessionTitle"),
+  stepIndicator:    $("stepIndicator"),
+  substepIndicator: $("substepIndicator"),
+  chatMessages:     $("chatMessages"),
+  guardNotice:      $("guardNotice"),
+  guardMissingList: $("guardMissingList"),
+  forceNextBtn:     $("forceNextBtn"),
+  chatForm:         $("chatForm"),
+  chatInput:        $("chatInput"),
+  chatSendBtn:      $("chatSendBtn"),
+  diagramContent:   $("diagramContent"),
+  diagramTabs:      $("diagramTabs"),
+  zoomDiagramBtn:   $("zoomDiagramBtn"),
+  showCodeBtn:      $("showCodeBtn"),
+  backBtn:          $("backBtn"),
+  nextBtn:          $("nextBtn"),
+  stepLabel:        $("stepLabel"),
+  zoomModal:        $("zoomModal"),
+  zoomModalTitle:   $("zoomModalTitle"),
+  zoomModalClose:   $("zoomModalClose"),
+  modalDiagram:     $("modalDiagram"),
+  modalCode:        $("modalCode"),
+  copyMdBtn:        $("copyMdBtn"),
+  downloadMdBtn:    $("downloadMdBtn"),
 };
 
 // ── 初期化 ────────────────────────────────────────────────────────
@@ -85,12 +86,13 @@ async function init() {
     history.replaceState(null, "", `session.html?id=${encodeURIComponent(session.sessionId)}`);
   }
 
-  renderAll();
-
-  // idle → onboarding の自動遷移
+  // idle → onboarding の自動遷移はクライアントサイドで即時実施（API 呼び出し不要）
   if (session.step === "idle") {
-    await doAdvance("START");
+    session = { ...session, step: "onboarding", updatedAt: new Date().toISOString() };
+    saveSession(session);
   }
+
+  renderAll();
 
   // 会話履歴が空なら Welcome を表示
   if (session.history.length === 0 && session.step === "onboarding") {
@@ -125,6 +127,8 @@ function renderAll() {
   renderStepIndicator();
   renderNavButtons();
   updateDiagramPanel();
+  updateStep1SubstepIndicator();
+  updateChatPlaceholder();
 }
 
 function renderStepIndicator() {
@@ -156,6 +160,79 @@ function renderNavButtons() {
   else if (step === "onboarding") el.nextBtn.textContent = "Step 1 へ進む →";
   else if (step === "complete")   { el.nextBtn.textContent = "完成！"; el.nextBtn.disabled = true; }
   else el.nextBtn.textContent = "次のステップへ →";
+}
+
+// ── Step 1 サブステップ ────────────────────────────────────────────
+
+function getStep1Substep() {
+  const { reality, ideal, proposal } = session.parts.core;
+  if (!reality) return "reality";
+  if (!ideal)   return "ideal";
+  if (!proposal) return "proposal";
+  return "done";
+}
+
+function updateStep1SubstepIndicator() {
+  if (!el.substepIndicator) return;
+  const show = session.step === "step1_core";
+  el.substepIndicator.hidden = !show;
+  if (!show) return;
+
+  const substep = getStep1Substep();
+  const order = ["reality", "ideal", "proposal"];
+  const currentIdx = substep === "done" ? order.length : order.indexOf(substep);
+
+  el.substepIndicator.querySelectorAll(".substep-item").forEach((item, i) => {
+    item.classList.remove("done", "active", "todo");
+    if (i < currentIdx)            item.classList.add("done");
+    else if (i === currentIdx)     item.classList.add("active");
+    else                           item.classList.add("todo");
+  });
+
+  // コネクタの色を更新
+  el.substepIndicator.querySelectorAll(".substep-connector").forEach((c, i) => {
+    c.style.background = i < currentIdx ? "var(--c-step-done)" : "var(--c-step-todo)";
+  });
+}
+
+function escMermaid(str) {
+  return String(str).replace(/"/g, "'").replace(/\n/g, " ").replace(/[<>]/g, "");
+}
+
+/** Step 1 の入力状況から部分 Mermaid 図をクライアントサイドで生成する */
+function buildClientStep1Diagram(parts) {
+  const { reality, ideal, proposal } = parts.core;
+  if (!reality && !ideal && !proposal) return "";
+
+  const nodes = [];
+  const edges = [];
+
+  if (reality)  nodes.push(`  R["🔴 現実\\n${escMermaid(reality.slice(0, 40))}"]`);
+  if (ideal)    nodes.push(`  I["🟢 理想\\n${escMermaid(ideal.slice(0, 40))}"]`);
+  if (proposal) nodes.push(`  P["💡 提案\\n${escMermaid(proposal.slice(0, 40))}"]`);
+
+  if (reality && ideal)    edges.push("  R -->|ギャップ| I");
+  if (proposal && ideal)   edges.push("  P -->|橋渡し| I");
+  if (reality && proposal) edges.push("  R -.->|課題の源| P");
+
+  return `flowchart TB\n${nodes.join("\n")}\n${edges.join("\n")}`;
+}
+
+/** 現在のステップとサブステップに合わせてプレースホルダーを更新する */
+function updateChatPlaceholder() {
+  if (!el.chatInput) return;
+  if (session.step === "step1_core") {
+    const placeholders = {
+      reality:  "現在の状況・問題点（現実）を教えてください。例：「月次売上が目標比-30%が続いています」",
+      ideal:    "理想の状態はどんなイメージですか？例：「来期末までに売上120%達成、利益率15%」",
+      proposal: "解決策・提案を教えてください。例：「CRM導入と週次レビューで営業プロセスを改善」",
+      done:     "3要素が揃いました！補足・修正があれば入力してください。「次へ」ボタンで Step 2 へ進めます。",
+    };
+    el.chatInput.placeholder = placeholders[getStep1Substep()] || "";
+  } else {
+    const meta = STEP_META[session.step];
+    el.chatInput.placeholder = meta?.placeholder || "メッセージを入力… (Enter で送信、Shift+Enter で改行)";
+  }
 }
 
 // ── 図パネル ──────────────────────────────────────────────────────
@@ -228,6 +305,15 @@ async function sendChat() {
     // ファストトラック後: 最初の未完ステップへ自動遷移済み (session.step 更新済み)
     if (res.fast_track && res.first_incomplete_step) {
       addMessage("system", `⚡ ファストトラック: ${formatStep(res.first_incomplete_step)} から再開します`);
+    }
+
+    // Step 1 では回答のたびに部分図をクライアントサイドで即時更新
+    if (session.step === "step1_core") {
+      const partial = buildClientStep1Diagram(session.parts);
+      if (partial) {
+        session = { ...session, diagrams: { ...session.diagrams, step1: partial } };
+        saveSession(session);
+      }
     }
 
     renderAll();

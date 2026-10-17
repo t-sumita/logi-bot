@@ -172,6 +172,12 @@
     var head = document.createElement('div');
     head.className = 'su-head';
     head.textContent = 'Subutomo Dev';
+    var sub = document.createElement('div');
+    sub.style.cssText = 'font-size:11px;font-weight:normal;letter-spacing:0;color:rgba(200,200,210,0.6);margin-top:2px;';
+    var v = cfg.version || window.SUBUTOMO_FOOTER_VERSION;
+    var vStr = v ? 'v' + String(v).replace(/^v/i, '') + ' · ' : '';
+    sub.textContent = vStr + COPYRIGHT;
+    head.appendChild(sub);
     panel.appendChild(head);
   }
 

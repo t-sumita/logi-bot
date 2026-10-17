@@ -217,6 +217,32 @@ export function buildSystemPrompt(step: StepName, session: LogiSession): string 
     ? `${meta.displayName}（${meta.index}/5）`
     : step;
 
+  let substepGuide = "";
+  if (step === "step1_core") {
+    const { reality, ideal, proposal } = session.parts.core;
+    if (!reality.trim()) {
+      substepGuide = `
+━━ サブステップガイド ━━
+現在のフェーズ: 【現実】を埋める（step1_substep:reality）
+まず「現在の状況・問題点（現実）」だけを聞いてください。理想・提案はまだ聞かないこと。`;
+    } else if (!ideal.trim()) {
+      substepGuide = `
+━━ サブステップガイド ━━
+現在のフェーズ: 【理想】を埋める（step1_substep:ideal）
+現実は確認済みです。次に「理想の状態・目標」だけを聞いてください。提案はまだ聞かないこと。`;
+    } else if (!proposal.trim()) {
+      substepGuide = `
+━━ サブステップガイド ━━
+現在のフェーズ: 【提案】を埋める（step1_substep:proposal）
+現実と理想は確認済みです。次に「解決策・提案」を聞いてください。`;
+    } else {
+      substepGuide = `
+━━ サブステップガイド ━━
+現在のフェーズ: 3要素が揃いました（step1_substep:done）
+内容を簡潔にまとめて確認を取り、「次へ」ボタンを案内してください。`;
+    }
+  }
+
   return `あなたは「logi-bot」、永田豊志の図解思考メソッドに基づくAIファシリテーターです。
 利用者のアイデアを5ステップで構造化し、合体ロボMermaid図を完成させます。
 
@@ -227,7 +253,7 @@ ${stepLabel}
 
 ━━ 収集済み情報 ━━
 ${serializeParts(session.parts)}
-
+${substepGuide}
 ━━ 応答ルール ━━
 1. 一度に 1〜2 問まで（質問を詰め込まない）
 2. 利用者の回答を要約して「〇〇ということですね？」と確認を取る
