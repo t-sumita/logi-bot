@@ -1,15 +1,15 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.8.0`
+`0.8.1`
 
 ## 最終更新
 2026-10-17
 
 ## 現在地
-- feature/v0.8.0-dynamic-svg ブランチ実装完了
+- v0.8.1 main マージ・GitHub push・Cloudflare Pages デプロイ済み
+- 本番 URL: https://logi-bot.pages.dev
 - typecheck 0エラー / test:unit 34/34 全通過
-- ユーザーによる main マージ・デプロイ確認待ち
 
 ## 完了したこと
 
@@ -45,7 +45,12 @@
 4. **モバイルレイアウト**: 上40%図・下60%チャット (column-reverse)
 5. **STATUS.md出力**: 確定/AI案/未確認の分類エクスポート＋引き継ぎ指示
 
+## v0.8.1 追加修正（2026-10-17）
+
+- **Undo 機能追加**: 「↩ 1手戻す」ボタン（送信前スナップショット保存、セッション/履歴/図を1手前に復元、元テキストを入力欄に戻す）
+- **MOCKモード Step1 ループバグ修正**: `detectStep1Substep()` が旧マーカー（`【①現実】`等）を検索して常にデフォルト`"reality"`を返していた問題を修正。v0.8.0 の新マーカー(`**[1] 現実** を聞く`)に対応
+- **バッジ重なり解消**: `.page-session .su-badge` の `bottom` を `calc(--nav-h + 8px)` に上書き
+
 ## 次の一手
-1. ユーザーが動作確認（ブラウザで session.html を開いて全ステップを試す）
-2. 問題なければ `main` へ fast-forward マージ
-3. GitHub push → Cloudflare Pages 自動デプロイ
+- ユーザーが https://logi-bot.pages.dev で動作確認
+- 必要に応じて追加調整
