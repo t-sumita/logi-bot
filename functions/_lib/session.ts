@@ -32,6 +32,7 @@ export function createSession(sessionId: string, title: string): LogiSession {
     },
     diagrams: {},
     history: [],
+    nodeStatuses: {},
   };
 }
 

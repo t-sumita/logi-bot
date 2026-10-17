@@ -1,13 +1,14 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.7.0`
+`0.7.1`
 
 ## 最終更新
 2026-10-17
 
 ## 現在地
-- `feature/phase7-robot-refactor` ブランチで v0.7.0 実装完了。main へのマージ・デプロイ指示待ち。
+- v0.7.1 実装完了・main マージ・GitHub push・Cloudflare Pages デプロイ済み
+- 本番 URL: https://logi-bot.pages.dev
 
 ## 完了したこと
 
@@ -48,20 +49,20 @@
 - バッジ修正・ステップ表記2行化・Step 1 順次ガイド
 - 初期化バグ修正・動的プレースホルダー
 
-### フェーズ 7（ロボット部位再定義 v0.7.0）
-- **合体ロボ5パーツ全面刷新**: 旧5ステップ（胸・腹/両腕/両脚/点検/頭・台座）を廃止し、本来の合体ロボレイアウトに合わせた新5部位に再設計
-  - Step 1: 🧠 頭（ヘッド）— コンセプト・結論（head.concept + head.message）
-  - Step 2: 🫀 胴体（ボディ）— コアシステム（body.core_system）
-  - Step 3: 💪 右腕（ライトアーム）— 攻めの施策 2〜3項目（right_arm.items[]）
-  - Step 4: 🛡️ 左腕（レフトアーム）— 守りの施策 2〜3項目（left_arm.items[]）
-  - Step 5: 🦿 両足（レッグス）— 土台・基盤・ネクストアクション（legs.foundation + legs.next_action）
-- **合体ロボ図レイアウト**: H→B, B→RA & LA, RA→FL, LA→FR の flowchart TD
-- **セッション開始を step1_head から直接開始**（onboarding/idle 廃止）
-- **サブステップインジケーター廃止**（Step 1 の現実→理想→提案の3段階UI を削除）
-- **動的プレースホルダー**: 各ステップ固有の具体例テキスト
-- **モバイル CSS**: `100dvh` + `env(safe-area-inset-bottom)` でiOS Safari対応
-- `typecheck` 0エラー / `test:unit` 33/33 全通過
+### フェーズ 7a（ロボット部位誤実装 v0.7.0 → 修正 v0.7.1）
+- **v0.7.0 では誤った合体ロボ構成（step1_head/step2_body等）を実装してしまった**
+- **v0.7.1 で正しい図解思考5ステップに全面修正**:
+  - Step 1: 🫀 胴体（コア）— 現実・理想・提案（core.reality/ideal/proposal）
+  - Step 2: 💪🛡️ 左腕・右腕 — 現実・理想の深掘り（drilldown）
+  - Step 3: 🦿 両足（2本柱）— What/How（what_how）
+  - Step 4: 🔍 合体前の点検 — 矛盾・ブレ検証（verification）
+  - Step 5: 🧠🗂️ 頭・台座 — イントロ・クロージング（frame）
+- **セッション開始**: step1_core から直接開始（準備ステップ廃止）
+- **プレースホルダーバグ修正**: data-t-attr を textarea から削除、JS のみで制御
+- **サブステップインジケーター復活**: Step 1 の ①現実→②理想→③提案 を表示
+- **モバイルナビ修正**: stepLabel を max-width+ellipsis で1行省略
+- `typecheck` 0エラー / `test:unit` 34/34 / `smoke` 18/18 全通過
 
 ## 次の一手
-- ユーザーが `feature/phase7-robot-refactor` の動作確認後、main へ fast-forward マージ指示
-- GitHub push → Cloudflare Pages 自動デプロイ
+- ユーザーが https://logi-bot.pages.dev で動作確認
+- 必要に応じて追加調整

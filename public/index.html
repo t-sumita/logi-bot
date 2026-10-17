@@ -31,71 +31,8 @@
 
   <main class="index-main">
 
-    <!-- ── 前回セッション再開 ── -->
-    <section class="resume-section" id="resumeSection" hidden>
-      <div class="container">
-        <h2 class="resume-title" data-t="resume.title">🔄 前回の続きから再開する</h2>
-        <div class="session-list" id="sessionList"></div>
-        <button class="btn btn-ghost btn-sm" id="clearAllBtn"
-          data-t="resume.clearAll">すべてのセッションを削除</button>
-      </div>
-    </section>
-
-    <!-- ── Hero ── -->
-    <section class="hero">
-      <div class="container">
-        <div style="font-size:3rem;margin-bottom:16px">🤖</div>
-        <h1 class="hero-title">
-          <span data-t="hero.title.l1">図解思考で</span><br>
-          <span data-t="hero.title.l2">プレゼン構想を組み立てる</span>
-        </h1>
-        <p class="hero-sub" data-t="hero.sub">
-          5ステップの一問一答で、バラバラなアイデアを「合体ロボ（全体シナリオ図）」へと整理します。
-        </p>
-      </div>
-    </section>
-
-    <!-- ── 5ステップガイド ── -->
-    <section class="guide-section">
-      <div class="container">
-        <h2 class="guide-title" data-t="guide.title">合体ロボの5パーツ — どんな順番で組み立てる？</h2>
-        <div class="step-cards">
-          <div class="step-card">
-            <div class="step-card-num">Step 1</div>
-            <div class="step-card-icon">🧠</div>
-            <div class="step-card-title" data-t="step1.title">🧠 ① 頭（ヘッド）</div>
-            <div class="step-card-desc"  data-t="step1.desc">コンセプト・全体メッセージを1〜2文で</div>
-          </div>
-          <div class="step-card">
-            <div class="step-card-num">Step 2</div>
-            <div class="step-card-icon">🫀</div>
-            <div class="step-card-title" data-t="step2.title">🫀 ② 胴体（ボディ）</div>
-            <div class="step-card-desc"  data-t="step2.desc">コアシステム・本質的な仕組みを定義</div>
-          </div>
-          <div class="step-card">
-            <div class="step-card-num">Step 3</div>
-            <div class="step-card-icon">💪</div>
-            <div class="step-card-title" data-t="step3.title">💪 ③ 右腕（ライトアーム）</div>
-            <div class="step-card-desc"  data-t="step3.desc">攻めの施策を2〜3項目でドリルダウン</div>
-          </div>
-          <div class="step-card">
-            <div class="step-card-num">Step 4</div>
-            <div class="step-card-icon">🛡️</div>
-            <div class="step-card-title" data-t="step4.title">🛡️ ④ 左腕（レフトアーム）</div>
-            <div class="step-card-desc"  data-t="step4.desc">守りの施策を2〜3項目でドリルダウン</div>
-          </div>
-          <div class="step-card">
-            <div class="step-card-num">Step 5</div>
-            <div class="step-card-icon">🦿</div>
-            <div class="step-card-title" data-t="step5.title">🦿 ⑤ 両足（レッグス）</div>
-            <div class="step-card-desc"  data-t="step5.desc">土台・基盤・ネクストアクションを固める</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── スタート ── -->
-    <section class="start-section">
+    <!-- ── スタート（最上部） ── -->
+    <section class="start-section start-section--top">
       <div class="container">
         <div class="start-tabs" role="tablist">
           <button class="start-tab active" data-tab="quick" role="tab" aria-selected="true"
@@ -144,6 +81,65 @@
           </div>
         </div>
 
+      </div>
+    </section>
+
+    <!-- ── 前回セッション再開 ── -->
+    <section class="resume-section" id="resumeSection" hidden>
+      <div class="container">
+        <h2 class="resume-title" data-t="resume.title">🔄 前回の続きから再開する</h2>
+        <div class="session-list" id="sessionList"></div>
+        <button class="btn btn-ghost btn-sm" id="clearAllBtn"
+          data-t="resume.clearAll">すべてのセッションを削除</button>
+      </div>
+    </section>
+
+    <!-- ── Hero（コンパクト） ── -->
+    <section class="hero hero--compact">
+      <div class="container">
+        <h1 class="hero-title hero-title--sm">
+          🤖 <span data-t="hero.title.l1">図解思考で</span><span data-t="hero.title.l2">プレゼン構想を組み立てる</span>
+        </h1>
+        <p class="hero-sub" data-t="hero.sub">
+          5ステップの一問一答で、バラバラなアイデアを「合体ロボ（全体シナリオ図）」へと整理します。
+        </p>
+      </div>
+    </section>
+
+    <!-- ── 5ステップ（コンパクト横並び） ── -->
+    <section class="guide-section guide-section--compact">
+      <div class="container">
+        <div class="step-flow" aria-label="5ステップの流れ">
+          <div class="step-flow-item">
+            <span class="sf-num">1</span>
+            <span class="sf-icon">🫀</span>
+            <span class="sf-label">胴体（現実→理想→提案）</span>
+          </div>
+          <div class="step-flow-arrow">→</div>
+          <div class="step-flow-item">
+            <span class="sf-num">2</span>
+            <span class="sf-icon">💪🛡️</span>
+            <span class="sf-label">両腕（詳細ドリルダウン）</span>
+          </div>
+          <div class="step-flow-arrow">→</div>
+          <div class="step-flow-item">
+            <span class="sf-num">3</span>
+            <span class="sf-icon">🦿</span>
+            <span class="sf-label">両足（What / How）</span>
+          </div>
+          <div class="step-flow-arrow">→</div>
+          <div class="step-flow-item">
+            <span class="sf-num">4</span>
+            <span class="sf-icon">🔍</span>
+            <span class="sf-label">整合性チェック</span>
+          </div>
+          <div class="step-flow-arrow">→</div>
+          <div class="step-flow-item">
+            <span class="sf-num">5</span>
+            <span class="sf-icon">🧠🗂️</span>
+            <span class="sf-label">頭・台座（完成）</span>
+          </div>
+        </div>
       </div>
     </section>
 

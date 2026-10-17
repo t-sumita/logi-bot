@@ -148,27 +148,27 @@ function stepMockResponse(step: string, systemPrompt: string, message: string): 
       if (substep === "reality") {
         const reality = getLines(message)[0] || message.slice(0, 200);
         return {
-          reply: `「${reality.slice(0, 40)}」を**①現実（課題）**として記録しました。✅\n\n次に、**②理想（あるべき姿）**を教えてください。`,
+          reply: `**[1] 現実**として「${reality.slice(0, 40)}」を記録しました。✅\n\n次に、**[2] 理想（あるべき姿）**を教えてください。現実が変わったとき、どんな状態になっていますか？`,
           extracted: { core: { reality, ideal: "", proposal: "" } },
         };
       }
       if (substep === "ideal") {
         const ideal = getLines(message)[0] || message.slice(0, 200);
         return {
-          reply: `「${ideal.slice(0, 40)}」を**②理想（あるべき姿）**として記録しました。✅\n\n最後に、**③提案（解決策の核）**を教えてください。`,
+          reply: `**[2] 理想**として「${ideal.slice(0, 40)}」を記録しました。✅\n\n最後に、**[3] 提案（解決策の核）**を教えてください。[1]と[2]のギャップを埋めるアイデアは何ですか？`,
           extracted: { core: { reality: "", ideal, proposal: "" } },
         };
       }
       if (substep === "proposal") {
         const proposal = getLines(message)[0] || message.slice(0, 200);
         return {
-          reply: `「${proposal.slice(0, 40)}」を**③提案（解決策）**として記録しました。✅\n\n3要素が揃いました！「次へ」ボタンで Step 2 へ進めます。`,
+          reply: `**[3] 提案**として「${proposal.slice(0, 40)}」を記録しました。✅\n\n**[1]現実**・**[2]理想**・**[3]提案** の基本関係図ができました。意図と違う部分や修正したい点はありますか？\nOKなら「次のステップへ」で Step 2（左腕・右腕）へ進めます。`,
           extracted: { core: { reality: "", ideal: "", proposal } },
         };
       }
-      // done substep
+      // done — 確認フェーズの追記
       return {
-        reply: `ありがとうございます。補足を記録しました。「次へ」ボタンで Step 2（左腕・右腕）へ進めます。`,
+        reply: `ありがとうございます。補足を記録しました。「次のステップへ」で Step 2 へ進みます。`,
         extracted: undefined,
       };
     }
@@ -178,8 +178,10 @@ function stepMockResponse(step: string, systemPrompt: string, message: string): 
       const ideal_goals     = lines.slice(3, 6).filter(Boolean);
       const finalFactors = reality_factors.length > 0 ? reality_factors : [message.slice(0, 100)];
       const finalGoals   = ideal_goals.length > 0 ? ideal_goals : ["目標を達成した状態"];
+      const factorList = finalFactors.map((f, i) => `✅ [4-${i+1}] ${f}`).join("\n");
+      const goalList   = finalGoals.map((g, i) => `✅ [5-${i+1}] ${g}`).join("\n");
       return {
-        reply: `「${short}…」を受け取りました。\n\n✅ 現実の要因 ${finalFactors.length} 件・理想の目標 ${finalGoals.length} 件を記録しました。\n\n「次へ」ボタンで Step 3（両足）へ進めます。`,
+        reply: `受け取りました。\n\n${factorList}\n${goalList}\n\n「[4]と[5]の関係はどうですか？追加・削除したい番号はありますか？」\nOKなら「次のステップへ」で Step 3（両足）へ進めます。`,
         extracted: { drilldown: { reality_factors: finalFactors, ideal_goals: finalGoals, gap_summary: "" } },
       };
     }
@@ -191,14 +193,17 @@ function stepMockResponse(step: string, systemPrompt: string, message: string): 
       const finalWhat = what_items.length > 0 ? what_items : [message.slice(0, 100)];
       const finalHow  = how_items.length > 0 ? how_items : ["詳細は次のステップで確認"];
       const len = Math.min(finalWhat.length, finalHow.length);
+      const pairList = Array.from({ length: len }, (_, i) =>
+        `✅ [6-${i+1}] ${finalWhat[i]}  ／  [7-${i+1}] ${finalHow[i]}`
+      ).join("\n");
       return {
-        reply: `「${short}…」を受け取りました。\n\n✅ What/How を ${len} ペア記録しました。\n\n「次へ」ボタンで Step 4（合体前の点検）へ進めます。`,
+        reply: `受け取りました。\n\n${pairList}\n\n「[6]/[7] の関係を確認した図です。追加・削除したい番号はありますか？」\nOKなら「次のステップへ」で Step 4（合体前の点検）へ進めます。`,
         extracted: { what_how: { what_items: finalWhat.slice(0, len), how_items: finalHow.slice(0, len), who_when: [] } },
       };
     }
     case "step4_verify": {
       return {
-        reply: `ご確認ありがとうございます。✅ 論理整合性を確認しました。\n\n「次へ」ボタンで Step 5（頭・台座）へ進めます。`,
+        reply: `ご確認ありがとうございます。✅ **[1]〜[8]** の論理整合性を確認しました。\n\n「次のステップへ」で Step 5（頭・台座）へ進めます。`,
         extracted: { verification: { is_consistent: true, contradictions: [] } },
       };
     }
@@ -206,13 +211,13 @@ function stepMockResponse(step: string, systemPrompt: string, message: string): 
       const hook = extractByPrefix(message, ["イントロ","フック","冒頭","始め","頭"]) || getLines(message)[0] || message.slice(0, 100);
       const cta  = extractByPrefix(message, ["クロージング","CTA","締め","行動","次の行動"]) || getLines(message).slice(-1)[0] || "今すぐ始めましょう";
       return {
-        reply: `「${short}…」を受け取りました。\n\n✅ イントロとクロージングを記録しました。\n\n**「次へ」ボタンで合体ロボ図を完成させましょう！🤖**`,
+        reply: `✅ **[0] イントロ**と**[8] クロージング**を記録しました。\n\n**「次のステップへ」で合体ロボ図を完成させましょう！🤖**`,
         extracted: { frame: { intro: { audience: "", hook }, closing: { cta }, title: "" } },
       };
     }
     default: {
       return {
-        reply: `「${short}…」ありがとうございます。\n\nまずは**①現実（いま起きている課題）**を教えてください。`,
+        reply: `ありがとうございます。\n\nまずは**[1] 現実（いま起きている課題）**を教えてください。`,
         extracted: undefined,
       };
     }

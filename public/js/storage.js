@@ -75,6 +75,7 @@ export function createNewSession(title) {
     },
     diagrams: {},
     history:  [],
+    nodeStatuses: {},
   };
 }
 

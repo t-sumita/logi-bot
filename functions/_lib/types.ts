@@ -12,6 +12,12 @@ export type SessionStatus = "in_progress" | "complete" | "error";
 
 export type SessionEvent = "NEXT" | "BACK" | "RESET";
 
+/** 図ノードのステータス（未入力 / AI案 / 未確認 / 確定） */
+export type NodeStatus = "unset" | "ai_draft" | "unconfirmed" | "confirmed";
+
+/** ノード番号 → ステータスのマップ（例: { "1": "confirmed", "4-1": "ai_draft" }）*/
+export type SessionNodeStatuses = Record<string, NodeStatus>;
+
 // ── セッションパーツ ──────────────────────────────────────────────
 
 /** Step 1: 胴体（コア）— 現実・理想・提案 */
@@ -107,6 +113,8 @@ export interface LogiSession {
   parts: SessionParts;
   diagrams: SessionDiagrams;
   history: ConversationTurn[];
+  /** [0]〜[8] 番号付きノードのステータス管理 */
+  nodeStatuses: SessionNodeStatuses;
 }
 
 // ── API リクエスト / レスポンス ──────────────────────────────────

@@ -3,47 +3,52 @@
 import { loadSession, saveSession, createNewSession, consumePendingMessage } from "./storage.js";
 import { chat as apiChat, advance as apiAdvance } from "./api.js";
 import { renderDiagram, openZoomModal } from "./mermaid-renderer.js";
-import { copyMarkdown, downloadMarkdown } from "./export.js";
+import { copyMarkdown, downloadMarkdown, downloadStatusMd } from "./export.js";
+import { buildRobotDiagram, attachNodeClickHandlers } from "./mermaid-builder.js";
 
 // ── ステップ定義 ──────────────────────────────────────────────────
 const STEP_META = {
-  step1_core:      { label: "Step 1 / 5 — 🫀 胴体（コア）",        diagramKey: "step1", index: 1,
+  step1_core:      { label: "Step 1 / 5 — 🫀 胴体（コア）",   index: 1,
     placeholder: "" },
-  step2_drilldown: { label: "Step 2 / 5 — 💪🛡️ 左腕・右腕",        diagramKey: "step2", index: 2,
-    placeholder: "【現実の原因データ／理想の数値目標を入力】例：現実＝1日120通受信・月3件見落とし ／ 理想＝見落としゼロ・確認5分以内" },
-  step3_what_how:  { label: "Step 3 / 5 — 🦿 両足（2本柱）",        diagramKey: "step3", index: 3,
-    placeholder: "【What（何を）／How（体制・予算・時期）を入力】例：What＝自動フィルタと要約通知 ／ How＝開発2週間・予算0円・来月開始" },
-  step4_verify:    { label: "Step 4 / 5 — 🔍 合体前の点検",          diagramKey: "step4", index: 4,
-    placeholder: "【修正したい点や追加の補足があれば入力】（問題なければ「次のステップへ」をクリック）" },
-  step5_combine:   { label: "Step 5 / 5 — 🧠🗂️ 頭・台座",           diagramKey: "step5", index: 5,
-    placeholder: "【頭（イントロ）／台座（クロージング・次の行動）を入力】例：イントロ＝メール処理に追われていませんか？ ／ 締め＝今週テスト導入しましょう" },
-  complete:        { label: "合体完了 🎉",                            diagramKey: "final", index: 6,
+  step2_drilldown: { label: "Step 2 / 5 — 💪🛡️ 左腕・右腕",   index: 2,
+    placeholder: "【[4] 現実の詳細・[5] 理想の詳細を入力】例：現実＝1日120通受信・月3件見落とし ／ 理想＝見落としゼロ・確認5分以内" },
+  step3_what_how:  { label: "Step 3 / 5 — 🦿 両足（2本柱）",   index: 3,
+    placeholder: "【[6] What（何を）／[7] How（体制・予算・時期）を入力】例：What＝自動フィルタと要約通知 ／ How＝開発2週間・予算0円・来月開始" },
+  step4_verify:    { label: "Step 4 / 5 — 🔍 合体前の点検",     index: 4,
+    placeholder: "【[1]〜[7] を俯瞰し、修正したい点があれば入力】（問題なければ「次のステップへ」）" },
+  step5_combine:   { label: "Step 5 / 5 — 🧠🗂️ 頭・台座",       index: 5,
+    placeholder: "【[0] 頭（イントロ）／[8] 台座（クロージング）を入力】例：イントロ＝メール処理に追われていませんか？ ／ 締め＝今週テスト導入しましょう" },
+  complete:        { label: "合体完了 🎉",                       index: 6,
     placeholder: "" },
 };
 
 const STEP_ORDER = ["step1_core","step2_drilldown","step3_what_how","step4_verify","step5_combine","complete"];
 
 const WELCOME_MESSAGE = (title) =>
-`🤖 **logi-botへようこそ！**「${title}」を一緒に図解していきましょう。
+`🤖 **logi-botへようこそ！**「${title}」の構想を合体ロボ🤖で図解しましょう！
 
-これから合体ロボの **5ステップ** を組み立てていきます：
-
-　🫀 **① 胴体（コア）** → 現実・理想・提案
-　💪🛡️ **② 左腕・右腕** → 現実・理想の深掘り
-　🦿 **③ 両足（2本柱）** → 何を？ / どうやって？
-　🔍 **④ 合体前の点検** → 矛盾・ブレの検証
-　🧠🗂️ **⑤ 頭・台座** → イントロ・クロージング
+## 合体ロボの全パーツ（[0]〜[8]）
+| 番号 | パーツ | 役割 |
+|---|---|---|
+| [0] | 🧠 頭（イントロ） | フック・導入文 |
+| [1] | 🫀 胴体（現実） | 現状の課題 |
+| [2] | 🫀 胴体（理想） | あるべき姿 |
+| [3] | 🫀 胴体（提案） | 解決策の核 |
+| [4-N] | 💪 左腕 | 現実の詳細 |
+| [5-N] | 🛡️ 右腕 | 理想の詳細 |
+| [6-N] | 🦿 左足 | What（何を） |
+| [7-N] | ⚡ 右足 | How（どうやって） |
+| [8] | 🗂️ 台座（クロージング） | 次の行動・CTA |
 
 ---
 
-まず **Step 1: 胴体（コア）** から始めましょう。
+まず **Step 1** から始めましょう。
 
-まずはStep 1の **①現実（いま起きている課題）** を教えてください。`;
+**[1] 現実**（今、困っていること・課題の状況）を教えてください。`;
 
 // ── アプリ状態 ────────────────────────────────────────────────────
 let session = null;
 let isLoading = false;
-let currentDiagramTab = "current";
 let currentDiagramSource = "";
 
 // ── DOM refs ─────────────────────────────────────────────────────
@@ -60,7 +65,6 @@ const el = {
   chatInput:        $("chatInput"),
   chatSendBtn:      $("chatSendBtn"),
   diagramContent:   $("diagramContent"),
-  diagramTabs:      $("diagramTabs"),
   zoomDiagramBtn:   $("zoomDiagramBtn"),
   showCodeBtn:      $("showCodeBtn"),
   backBtn:          $("backBtn"),
@@ -73,6 +77,7 @@ const el = {
   modalCode:        $("modalCode"),
   copyMdBtn:        $("copyMdBtn"),
   downloadMdBtn:    $("downloadMdBtn"),
+  statusMdBtn:      $("statusMdBtn"),
 };
 
 // ── 初期化 ────────────────────────────────────────────────────────
@@ -198,10 +203,10 @@ function updateChatPlaceholder() {
   if (!el.chatInput) return;
   if (session.step === "step1_core") {
     const placeholders = {
-      reality:  "【① 現実（今の課題）を入力】例：毎日大量のメールが届き、大事な連絡を見落としている",
-      ideal:    "【② 理想（あるべき姿）を入力】例：重要メールだけを即座に把握し、確認時間を1日5分に短縮できている状態",
-      proposal: "【③ 提案（解決策の核）を入力】例：AIによる重要メール自動選別＆毎朝の要約通知システムの導入",
-      done:     "3要素が揃いました！補足・修正があれば入力してください。「次へ」ボタンで Step 2 へ進めます。",
+      reality:  "【[1] 現実（今の課題）を入力】例：毎日大量のメールが届き、大事な連絡を見落としている",
+      ideal:    "【[2] 理想（あるべき姿）を入力】例：重要メールだけを即座に把握し、確認時間を1日5分に短縮",
+      proposal: "【[3] 提案（解決策の核）を入力】例：AIによる重要メール自動選別＆毎朝の要約通知システムの導入",
+      done:     "[1][2][3] が揃いました！補足・修正があれば入力してください。「次へ」ボタンで Step 2 へ進めます。",
     };
     el.chatInput.placeholder = placeholders[getStep1Substep()] || "";
   } else {
@@ -211,16 +216,21 @@ function updateChatPlaceholder() {
 }
 
 // ── 図パネル ──────────────────────────────────────────────────────
+
+/** クライアントサイドで合体ロボ図を生成・描画し、クリックハンドラを付与する */
 async function updateDiagramPanel() {
-  const meta = STEP_META[session.step];
-  let source = "";
-  if (currentDiagramTab === "final") {
-    source = session.diagrams.final || "";
-  } else if (meta && meta.diagramKey) {
-    source = session.diagrams[meta.diagramKey] || "";
-  }
+  const source = buildRobotDiagram(session);
   currentDiagramSource = source;
   await renderDiagram(source, el.diagramContent);
+  attachNodeClickHandlers(el.diagramContent, onNodeClick);
+}
+
+/** ノードクリック時: チャット入力欄に番号付き修正テキストを挿入してフォーカス */
+function onNodeClick(nodeId, label) {
+  const insertText = `【[${nodeId}] ${label}の修正】 `;
+  el.chatInput.value = insertText + el.chatInput.value;
+  el.chatInput.focus();
+  el.chatInput.setSelectionRange(insertText.length, insertText.length);
 }
 
 // ── チャット ──────────────────────────────────────────────────────
@@ -240,6 +250,14 @@ function formatMessage(text) {
   return String(text)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/^#{1,3} (.+)$/gm, (_, t) => `<strong>${t}</strong>`)
+    .replace(/^\|(.+)\|$/gm, (row) => {
+      if (/^[\s|:-]+$/.test(row)) return "";
+      const cells = row.split("|").slice(1, -1);
+      return "<div style='display:flex;gap:8px;font-size:.8rem;color:var(--c-text-sub);flex-wrap:wrap'>" +
+        cells.map((c) => `<span style='white-space:nowrap'>${c.trim()}</span>`).join(" ") +
+        "</div>";
+    })
     .replace(/^✅ (.+)$/gm, '<span class="check-item">✅ $1</span>')
     .replace(/^⚠️ (.+)$/gm, '<span class="warn-item">⚠️ $1</span>')
     .replace(/━+/g, (m) => `<span style="color:var(--c-border)">${m}</span>`)
@@ -273,11 +291,6 @@ async function sendChat() {
     const res = await apiChat(session, message);
     typingEl.remove();
     session = res.session;
-
-    // バルク抽出で diagrams が返ってきた場合はマージ
-    if (res.diagrams) {
-      session = { ...session, diagrams: { ...session.diagrams, ...res.diagrams } };
-    }
     saveSession(session);
     addMessage("assistant", res.reply);
 
@@ -310,21 +323,11 @@ async function doAdvance(event) {
 
     const prevStep = session.step;
     session = res.session;
-
-    // advance で diagram が生成された場合
-    if (res.diagram) {
-      const key = stepToDiagramKey(prevStep);
-      if (key) {
-        session = { ...session, diagrams: { ...session.diagrams, [key]: res.diagram } };
-      }
-    }
     saveSession(session);
 
     // complete 遷移時に完成バナーを表示
     if (session.step === "complete" && prevStep !== "complete") {
-      addMessage("system", "🎉 合体ロボ図が完成しました！右パネルで「合体ロボ全体図」タブを確認してください。");
-      currentDiagramTab = "final";
-      el.diagramTabs.querySelectorAll(".diagram-tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === "final"));
+      addMessage("system", "🎉 合体ロボ図が完成しました！右パネルの図を確認してください。");
     }
 
     renderAll();
@@ -338,17 +341,6 @@ async function doAdvance(event) {
   } finally {
     setLoading(false);
   }
-}
-
-function stepToDiagramKey(step) {
-  const map = {
-    step1_core:      "step1",
-    step2_drilldown: "step2",
-    step3_what_how:  "step3",
-    step4_verify:    "step4",
-    step5_combine:   "step5",
-  };
-  return map[step] ?? null;
 }
 
 function showGuardNotice(missing) {
@@ -406,15 +398,6 @@ function bindEvents() {
   el.backBtn.addEventListener("click", () => doAdvance("BACK"));
   el.forceNextBtn.addEventListener("click", forceNextStep);
 
-  // 図タブ切り替え
-  el.diagramTabs.addEventListener("click", (e) => {
-    const tab = e.target.closest("[data-tab]");
-    if (!tab) return;
-    currentDiagramTab = tab.dataset.tab;
-    el.diagramTabs.querySelectorAll(".diagram-tab").forEach((t) => t.classList.toggle("active", t === tab));
-    updateDiagramPanel();
-  });
-
   // 図ズーム
   el.zoomDiagramBtn.addEventListener("click", () => openZoom("svg"));
   el.showCodeBtn.addEventListener("click", () => openZoom("code"));
@@ -436,6 +419,7 @@ function bindEvents() {
   // エクスポート
   el.copyMdBtn.addEventListener("click", () => copyMarkdown(session));
   el.downloadMdBtn.addEventListener("click", () => downloadMarkdown(session));
+  el.statusMdBtn?.addEventListener("click", () => downloadStatusMd(session));
 
   // キーボードショートカット
   document.addEventListener("keydown", (e) => {

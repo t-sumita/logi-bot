@@ -95,12 +95,33 @@ ul { list-style: none; }
 
 /* Hero */
 .hero { padding: var(--sp-10) 0 var(--sp-8); text-align: center; }
+.hero--compact { padding: var(--sp-4) 0 var(--sp-2); }
 .hero-title { font-size: clamp(1.5rem, 4vw, 2.4rem); font-weight: 900; line-height: 1.25; letter-spacing: -.02em; margin-bottom: var(--sp-4); }
+.hero-title--sm { font-size: clamp(1rem, 3vw, 1.4rem); margin-bottom: var(--sp-2); }
 .hero-sub { font-size: 1rem; color: var(--c-text-sub); line-height: 1.8; }
+.hero--compact .hero-sub { font-size: .85rem; }
 
 /* Guide section */
 .guide-section { padding: var(--sp-6) 0; }
+.guide-section--compact { padding: var(--sp-2) 0 var(--sp-4); }
 .guide-title { text-align: center; font-size: 1.125rem; font-weight: 700; margin-bottom: var(--sp-6); color: var(--c-text-sub); }
+
+/* 5ステップ横並びフロー */
+.step-flow {
+  display: flex; align-items: center; justify-content: center; gap: var(--sp-1);
+  flex-wrap: wrap; padding: var(--sp-2) 0;
+}
+.step-flow-item {
+  display: flex; align-items: center; gap: 4px; padding: 4px var(--sp-3);
+  background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-full);
+  font-size: .78rem; white-space: nowrap;
+}
+.sf-num { font-weight: 800; color: var(--c-primary); font-size: .7rem; }
+.sf-icon { font-size: .9rem; line-height: 1; }
+.sf-label { color: var(--c-text-sub); }
+.step-flow-arrow { color: var(--c-text-mute); font-size: .85rem; flex-shrink: 0; }
+
+/* Step cards (kept for possible reuse) */
 .step-cards {
   display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--sp-3);
 }
@@ -123,6 +144,7 @@ ul { list-style: none; }
 
 /* Start section */
 .start-section { padding: var(--sp-8) 0; }
+.start-section--top { padding-top: var(--sp-6); padding-bottom: var(--sp-4); }
 .start-section .container { max-width: 680px; }
 .start-tabs {
   display: flex; gap: var(--sp-2); margin-bottom: var(--sp-5);
@@ -424,13 +446,28 @@ select.form-input { background: var(--c-bg); cursor: pointer; }
 .skill-copy-title { font-size: .875rem; font-weight: 700; margin-bottom: 4px; }
 .skill-copy-desc { font-size: .78rem; color: var(--c-text-sub); margin-bottom: var(--sp-3); }
 
+/* ── Diagram label (replaces tabs in v0.8.0) ─── */
+.diagram-label {
+  font-size: .8rem; font-weight: 700; color: var(--c-text-sub);
+  padding: var(--sp-1) var(--sp-2);
+}
+
+/* ── Clickable node hover ─── */
+.logi-clickable-node { cursor: pointer !important; }
+.logi-clickable-node:hover rect,
+.logi-clickable-node:hover polygon,
+.logi-clickable-node:hover circle { opacity: .8; }
+
 /* ── Mobile adjustments ─── */
 @media (max-width: 720px) {
-  .session-body { flex-direction: column; overflow: auto; }
-  .chat-pane { border-right: none; border-bottom: 1px solid var(--c-border); min-height: 50vh; }
-  .diagram-pane { flex: 0 0 auto; min-height: 300px; }
+  /* column-reverse: chat-pane (DOM first) → bottom, diagram-pane (DOM second) → top */
+  .session-body { flex-direction: column-reverse; overflow: hidden; }
+  .diagram-pane { flex: 0 0 40%; border-bottom: 1px solid var(--c-border); min-height: 0; }
+  .chat-pane { flex: 1 1 0; border-right: none; min-height: 0; }
   .step-indicator { padding: 0 var(--sp-3); }
   .header-title { font-size: .8rem; }
+  /* ヘッダーボタンを最小化 */
+  #statusMdBtn { display: none; }
 }
 
 /* ── Lang toggle ────────────────────────────────────────────────── */

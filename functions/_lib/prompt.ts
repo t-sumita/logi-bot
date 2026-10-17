@@ -108,22 +108,23 @@ function serializeParts(parts: SessionParts): string {
   const lines: string[] = [];
 
   const { core, drilldown, what_how, verification, frame } = parts;
-  if (core.reality)   lines.push(`【現実（胴体コア①）】${core.reality}`);
-  if (core.ideal)     lines.push(`【理想（胴体コア②）】${core.ideal}`);
-  if (core.proposal)  lines.push(`【提案（胴体コア③）】${core.proposal}`);
+  // 番号付きノードで表記（図と一致させる）
+  if (core.reality)   lines.push(`【[1] 現実】${core.reality}`);
+  if (core.ideal)     lines.push(`【[2] 理想】${core.ideal}`);
+  if (core.proposal)  lines.push(`【[3] 提案】${core.proposal}`);
 
   if (drilldown.reality_factors.length > 0)
-    lines.push(`【現実の要因（左腕）】\n${drilldown.reality_factors.map((f) => `  - ${f}`).join("\n")}`);
+    lines.push(`【[4] 現実の詳細（左腕）】\n${drilldown.reality_factors.map((f, i) => `  [4-${i+1}] ${f}`).join("\n")}`);
   if (drilldown.ideal_goals.length > 0)
-    lines.push(`【理想の成果（右腕）】\n${drilldown.ideal_goals.map((g) => `  - ${g}`).join("\n")}`);
+    lines.push(`【[5] 理想の詳細（右腕）】\n${drilldown.ideal_goals.map((g, i) => `  [5-${i+1}] ${g}`).join("\n")}`);
   if (drilldown.gap_summary)
     lines.push(`【ギャップ】${drilldown.gap_summary}`);
 
   if (what_how.what_items.length > 0) {
     const pairs = what_how.what_items.map(
-      (w, i) => `  - What: ${w}  ／  How: ${what_how.how_items[i] ?? "（未入力）"}`
+      (w, i) => `  [6-${i+1}] What: ${w}  ／  [7-${i+1}] How: ${what_how.how_items[i] ?? "（未入力）"}`
     );
-    lines.push(`【What/How（両足）】\n${pairs.join("\n")}`);
+    lines.push(`【[6]/[7] What/How（両足）】\n${pairs.join("\n")}`);
   }
 
   if (verification.contradictions.length > 0) {
@@ -135,8 +136,8 @@ function serializeParts(parts: SessionParts): string {
   }
   if (verification.is_consistent) lines.push("【整合性】✅ 確認済み");
 
-  if (frame.intro.hook)   lines.push(`【イントロ/フック（頭）】${frame.intro.hook}`);
-  if (frame.closing.cta)  lines.push(`【クロージング/CTA（台座）】${frame.closing.cta}`);
+  if (frame.intro.hook)   lines.push(`【[0] イントロ/フック（頭）】${frame.intro.hook}`);
+  if (frame.closing.cta)  lines.push(`【[8] クロージング/CTA（台座）】${frame.closing.cta}`);
   if (frame.title)        lines.push(`【タイトル】${frame.title}`);
 
   return lines.length > 0 ? lines.join("\n") : "（まだ情報はありません）";
@@ -155,33 +156,33 @@ interface StepMeta {
 const STEP_META: Partial<Record<StepName, StepMeta>> = {
   step1_core: {
     displayName: "Step 1: 胴体（コア）", index: 1,
-    purpose: "現実・理想・提案の3要素を 1〜2 文で抽出する。①現実→②理想→③提案 の順に1つずつ確認する",
-    requirements: "core.reality（①現実） / core.ideal（②理想） / core.proposal（③提案）",
-    nextHint: "3要素が揃ったら「次へ」ボタンを案内する。",
+    purpose: "現実・理想・提案の3要素を1〜2文で抽出する。**[1]現実 → [2]理想 → [3]提案** の順に1つずつ確認する（一度にまとめて聞かない）",
+    requirements: "[1]core.reality / [2]core.ideal / [3]core.proposal",
+    nextHint: "3要素が揃ったら「[1]現実・[2]理想・[3]提案の関係で意図と違う部分はありますか？」と途中確認し、OKなら「次へ」ボタンを案内する。",
   },
   step2_drilldown: {
     displayName: "Step 2: 左腕・右腕", index: 2,
-    purpose: "現実の問題・制約と理想の成果を具体化・数値化する（ドリルダウン）",
-    requirements: "drilldown.reality_factors（≥1）/ drilldown.ideal_goals（≥1）",
-    nextHint: "具体的な数値や原因が揃ったら「次へ」を案内する。",
+    purpose: "[4-N]現実の詳細（事実・原因・数値）と[5-N]理想の詳細（達成判断基準・数値目標）を引き出す。件数は動的に増減する",
+    requirements: "[4]drilldown.reality_factors（≥1）/ [5]drilldown.ideal_goals（≥1）",
+    nextHint: "詳細が揃ったら「[4]と[5]の関係を確認した図です。関係の誤りや追加・削除したい番号はありますか？」と途中確認する。",
   },
   step3_what_how: {
     displayName: "Step 3: 両足（2本柱）", index: 3,
-    purpose: "提案の実現手段（何を・どうやって）を対にして具体化する",
-    requirements: "what_how.what_items / what_how.how_items（同数・各≥1）",
-    nextHint: "What と How が揃ったら「次へ」を案内する。",
+    purpose: "[6-N]What（何をするか：具体施策）と[7-N]How（どう実現するか：ヒト・モノ・カネ・時期）を引き出す",
+    requirements: "[6]what_how.what_items / [7]what_how.how_items（同数・各≥1）",
+    nextHint: "What と How が揃ったら「詳細を加えた図です。関係の誤りや追加・削除したい番号はありますか？」と途中確認する。",
   },
   step4_verify: {
     displayName: "Step 4: 合体前の点検", index: 4,
-    purpose: "ステップ1〜3 の要素間の矛盾・ブレを洗い出し解消する",
+    purpose: "[1]〜[8] 全要素の論理整合性を確認。課題の原因モレ・課題と提案のブレ・提案で理想の数値に届くかを点検する",
     requirements: "verification.is_consistent = true",
     nextHint: "整合性確認が取れたら「次へ」を案内する。",
   },
   step5_combine: {
     displayName: "Step 5: 頭・台座", index: 5,
-    purpose: "イントロ（フック・頭）とクロージング（CTA・台座）を加えてシナリオを完成させる",
-    requirements: "frame.intro.hook（イントロ） / frame.closing.cta（クロージング）",
-    nextHint: "イントロとクロージングが揃ったら「完成」を案内する。",
+    purpose: "[0]イントロ（フック）と[8]クロージング（CTA）を加えて合体ロボを完成させる",
+    requirements: "[0]frame.intro.hook / [8]frame.closing.cta",
+    nextHint: "[0]と[8]が揃ったら「完成」を案内する。",
   },
 };
 
@@ -217,50 +218,58 @@ export function buildSystemPrompt(step: StepName, session: LogiSession): string 
     if (!reality.trim()) {
       substepGuide = `
 ━━ サブステップガイド ━━
-現在のフェーズ: 【①現実】を埋める
-まず「現在の状況・問題点（現実）」だけを聞いてください。理想・提案はまだ聞かないこと。`;
+現在のフェーズ: **[1] 現実** を聞く
+「今、どんな状況や問題がありますか？」と聞いてください。
+数値・頻度・規模感があれば深掘りしてください。[2]理想・[3]提案はまだ聞かないこと。`;
     } else if (!ideal.trim()) {
       substepGuide = `
 ━━ サブステップガイド ━━
-現在のフェーズ: 【②理想】を埋める
-現実は確認済みです。次に「理想の状態・目標」だけを聞いてください。提案はまだ聞かないこと。`;
+現在のフェーズ: **[2] 理想** を聞く
+[1]現実は確認済みです。「理想の状態はどんなイメージですか？なぜ変えたいですか？」と聞いてください。
+[3]提案はまだ聞かないこと。`;
     } else if (!proposal.trim()) {
       substepGuide = `
 ━━ サブステップガイド ━━
-現在のフェーズ: 【③提案】を埋める
-現実と理想は確認済みです。次に「解決策・提案」を聞いてください。`;
+現在のフェーズ: **[3] 提案** を聞く
+[1]現実と[2]理想は確認済みです。「そのギャップを埋める解決策の核は？」と聞いてください。`;
     } else {
       substepGuide = `
 ━━ サブステップガイド ━━
-現在のフェーズ: 3要素が揃いました
-内容を簡潔にまとめて確認を取り、「次へ」ボタンを案内してください。`;
+現在のフェーズ: **3要素が揃いました — 途中確認**
+「**[1]現実**・**[2]理想**・**[3]提案** の関係図ができました。意図と違う部分や修正したい点はありますか？」
+と確認を取ってください。OKなら「次へ」ボタンで Step 2 に進めると案内してください。`;
     }
   }
 
   return `あなたは「logi-bot」、永田豊志の図解思考メソッドに基づくAIファシリテーターです。
 利用者のアイデアを5ステップで構造化し、合体ロボMermaid図を完成させます。
 
-【合体ロボの5ステップ構成】
-① 胴体（コア）: 現実→理想→提案
-② 左腕・右腕: 現実と理想の深掘り（ドリルダウン）
-③ 両足（2本柱）: 何を？ / どうやって？
-④ 合体前の点検: 矛盾・ブレの検証
-⑤ 頭・台座: イントロ・クロージング
+【合体ロボの9ノード（番号で参照）】
+[0] 頭（イントロ）   → frame.intro.hook
+[1] 現実（課題）     → core.reality
+[2] 理想（ゴール）   → core.ideal
+[3] 提案（解決策核） → core.proposal
+[4-N] 左腕: 現実の詳細   → drilldown.reality_factors[]
+[5-N] 右腕: 理想の詳細   → drilldown.ideal_goals[]
+[6-N] 左足: What（施策） → what_how.what_items[]
+[7-N] 右足: How（実現）  → what_how.how_items[]
+[8] 台座（クロージング） → frame.closing.cta
 
 ━━ 現在のステップ ━━
 ${stepLabel}
 目的: ${meta?.purpose ?? "対話を進める"}
-このステップで収集すべき情報: ${meta?.requirements ?? ""}
+収集すべき情報: ${meta?.requirements ?? ""}
 
 ━━ 収集済み情報 ━━
 ${serializeParts(session.parts)}
 ${substepGuide}
 ━━ 応答ルール ━━
-1. 一度に 1〜2 問まで（質問を詰め込まない）
-2. 利用者の回答を要約して「〇〇ということですね？」と確認を取る
+1. **1ターンにつき1〜2問まで**（質問を詰め込まない）
+2. 利用者の回答を「[番号]〇〇ということですね？」と番号付きで確認する
 3. 確認できた情報は必ず update_session_parts ツールで返す
-4. 次のステップへの準備が整ったら「準備ができました。「次へ」ボタンを押してください」と伝える
-5. ${meta?.nextHint ?? ""}
+4. **AIが推測した内容には「（AI案）」と明記する**
+5. ユーザーが「まだ分からない」「未定」と言った項目は「（未確認）」とテキストに付記する
+6. ${meta?.nextHint ?? ""}
 
 ${DRILLDOWN_GUIDANCE}`;
 }
@@ -317,19 +326,20 @@ export const SESSION_UPDATE_DESCRIPTION = SESSION_UPDATE_TOOL.description;
 export function getWelcomeMessage(title: string): string {
   return `🤖 **logi-botへようこそ！**「${title || "新しいアイデア"}」を一緒に図解していきましょう。
 
-これから合体ロボの **5ステップ** を組み立てていきます：
+右の図に **[0]〜[8]** の9つのパーツが表示されています。対話が進むたびにリアルタイムで更新されます。
+図の各ボックスをクリックすると、その番号の修正指示を入力欄に挿入できます。
 
-| # | パーツ | 役割 |
-|---|---|---|
-| 🫀 ① | 胴体（コア） | 現実・理想・提案 |
-| 💪🛡️ ② | 左腕・右腕 | 現実・理想の深掘り |
-| 🦿 ③ | 両足（2本柱） | 何を？ / どうやって？ |
-| 🔍 ④ | 合体前の点検 | 矛盾・ブレの検証 |
-| 🧠🗂️ ⑤ | 頭・台座 | イントロ・クロージング |
+| 番号 | パーツ | 役割 |
+|------|--------|------|
+| [1][2][3] | 🫀 胴体（コア） | 現実→理想→提案 |
+| [4-N][5-N] | 💪🛡️ 左腕・右腕 | 現実・理想の深掘り |
+| [6-N][7-N] | 🦿 両足（2本柱） | What / How |
+| — | 🔍 合体前の点検 | 矛盾・ブレの検証 |
+| [0][8] | 🧠🗂️ 頭・台座 | イントロ・クロージング |
 
 ---
 
-まず **Step 1: 胴体（コア）** から始めましょう。
+まず **Step 1: 胴体（コア）** から始めます。
 
-まずはStep 1の **①現実（いま起きている課題）** を教えてください。`;
+**[1] 現実（いま起きている課題）** を教えてください。数値・頻度・規模感があればぜひ。`;
 }
