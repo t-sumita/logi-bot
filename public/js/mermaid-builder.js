@@ -9,6 +9,7 @@
  * - 実際の改行 → スペース
  * - " → ' (ラベル境界保護)
  * - ` → ' (バックティック保護)
+ * - [ ] { } → 全角に変換（Mermaid パーサー干渉回避）
  * - 長さ上限 maxLen 文字
  */
 function sanitizeNode(text, maxLen = 28) {
@@ -17,25 +18,25 @@ function sanitizeNode(text, maxLen = 28) {
     .replace(/[\r\n\t]+/g, " ")
     .replace(/"/g, "'")
     .replace(/`/g, "'")
+    .replace(/\[/g, "［").replace(/\]/g, "］")
+    .replace(/\{/g, "｛").replace(/\}/g, "｝")
     .slice(0, maxLen);
 }
 
-// ── ノードラベル生成 ──────────────────────────────────────────────
-
 /**
- * 番号付きノードラベルを生成する。
+ * 番号付きノードラベルを ["..."] 形式で生成する。
  * @param {string} nodeId  - 番号文字列 ("0"〜"8" または "4-1" 等)
  * @param {string} label   - 日本語ラベル
  * @param {string} value   - 現在の値（空なら"未入力"表示）
  * @param {string} status  - NodeStatus
- * @returns {string}       - Mermaid ノードラベル文字列（ダブルクォート含む）
+ * @returns {string} Mermaid ノード定義文字列 ["..."]
  */
 function nodeLabel(nodeId, label, value, status) {
-  const prefix = `[${nodeId}] ${sanitizeNode(label, 10)}`;
-  let body = value ? sanitizeNode(value, 22) : "（未入力）";
+  const prefix = `[${nodeId}] ${sanitizeNode(label, 8)}`;
+  let body = value ? sanitizeNode(value, 20) : "（未入力）";
   if (status === "ai_draft")    body += "\\n（AI案）";
   if (status === "unconfirmed") body += "\\n（未確認）";
-  return `"${prefix}\\n${body}"`;
+  return `["${prefix}\\n${body}"]`;
 }
 
 // ── 現在ターゲットノードの計算 ────────────────────────────────────
@@ -84,8 +85,6 @@ function getCurrentTargetSet(step, parts) {
   }
 }
 
-// ── ステータス解決 ────────────────────────────────────────────────
-
 /**
  * ノードのステータスを解決する。
  */
@@ -100,14 +99,18 @@ function resolveStatus(nodeId, hasValue, currentSet, nodeStatuses) {
 
 /**
  * セッション状態から合体ロボの完全な Mermaid flowchart TB を生成する。
- * 配置ルール:
- *   - [0] 頭（最上部）
- *   - CORE サブグラフ（direction LR）: [1]現実 --なぜ?--> [2]理想（横並び）
- *   - [4-N] 左腕: CORE の外側左に配置, [1]現実に直接 --- 接続
- *   - [5-N] 右腕: CORE の外側右に配置, [2]理想に直接 --- 接続
- *   - [3] 提案: CORE の下から縦に接続
- *   - LLEG（[6-N] What）と RLEG（[7-N] How）: [3]から二股
- *   - [8] 台座: LLEG・RLEG の最下部から接続
+ *
+ * 構造:
+ *   INTRO（頭）
+ *     └─ UPPER_BODY（透明枠）
+ *          ├─ LEFT_ARM（左腕: [4-x]）─── REAL
+ *          ├─ CORE: REAL──>[2]IDEAL, REAL/IDEAL─.─>PROP
+ *          └─ IDEAL ─── RIGHT_ARM（右腕: [5-x]）
+ *     └─ PROP → LEGS（透明枠）
+ *          ├─ LEFT_LEG（左足: [6-x]）
+ *          └─ RIGHT_LEG（右足: [7-x]）
+ *     └─ BASE（台座: [8]）
+ *
  * @param {object} session - LogiSession
  * @returns {string} Mermaid ソース
  */
@@ -124,130 +127,151 @@ export function buildRobotDiagram(session) {
   // ── ヘッダー ──
   L.push("flowchart TB");
   L.push("");
-  L.push("classDef unset fill:#F1F5F9,stroke:#CBD5E1,stroke-dasharray:5 5,color:#94A3B8");
-  L.push("classDef ai_draft fill:#FFFBEB,stroke:#D97706,stroke-width:2px,color:#92400E");
-  L.push("classDef unconfirmed fill:#FFF7ED,stroke:#EA580C,stroke-dasharray:5 5,stroke-width:2px,color:#9A3412");
-  L.push("classDef confirmed fill:#DBEAFE,stroke:#2563EB,stroke-width:2px,color:#1E40AF");
-  L.push("classDef done fill:#DCFCE7,stroke:#16A34A,stroke-width:2px,color:#15803D");
-  L.push("classDef current fill:#EEF2FF,stroke:#4F46E5,stroke-width:3px,color:#3730A3");
+  L.push('classDef unset fill:#F1F5F9,stroke:#CBD5E1,stroke-dasharray:5 5,color:#94A3B8');
+  L.push('classDef ai_draft fill:#FFFBEB,stroke:#D97706,stroke-width:2px,color:#92400E');
+  L.push('classDef unconfirmed fill:#FFF7ED,stroke:#EA580C,stroke-dasharray:5 5,stroke-width:2px,color:#9A3412');
+  L.push('classDef confirmed fill:#DBEAFE,stroke:#2563EB,stroke-width:2px,color:#1E40AF');
+  L.push('classDef done fill:#DCFCE7,stroke:#16A34A,stroke-width:2px,color:#15803D');
+  L.push('classDef current fill:#EEF2FF,stroke:#4F46E5,stroke-width:3px,color:#3730A3');
   L.push("");
 
-  // ── [0] 頭（イントロ）── standalone（サブグラフなし）
+  // ── [0] 頭（イントロ）──
   const hook = parts.frame.intro.hook;
   const s0 = st("0", !!hook.trim());
-  L.push(`  nn0[${nodeLabel("0", "🧠イントロ", hook, s0)}]:::${s0}`);
+  L.push(`    INTRO${nodeLabel("0", "🧠 イントロ", hook, s0)}:::${s0}`);
   L.push("");
 
-  // ── [4-N] 左腕（現実の詳細）── CORE の前に宣言してサブグラフ外を保証
+  // ── UPPER_BODY（透明外枠: 胴体と左右の腕を横並びに）──
+  L.push('    subgraph UPPER_BODY[" "]');
+  L.push("        direction LR");
+
+  // LEFT_ARM（左腕: 現実の詳細 [4-x]）
+  L.push('        subgraph LEFT_ARM["💪 左腕"]');
+  L.push("            direction TB");
   const rf = parts.drilldown.reality_factors.filter((x) => x.trim());
   if (rf.length === 0) {
     const s4 = st("4", false);
-    L.push(`  nn4_0[${nodeLabel("4", "現実の詳細", "", s4)}]:::${s4}`);
+    L.push(`            nn4_0${nodeLabel("4", "現実詳細", "", s4)}:::${s4}`);
   } else {
     rf.forEach((f, i) => {
       const nid = `4-${i + 1}`;
       const s4i = st(nid, true);
-      L.push(`  nn4_${i + 1}[${nodeLabel(nid, "現実の詳細", f, s4i)}]:::${s4i}`);
+      L.push(`            nn4_${i + 1}${nodeLabel(nid, "現実詳細", f, s4i)}:::${s4i}`);
     });
+    // 縦直列接続
+    for (let i = 1; i < rf.length; i++) {
+      L.push(`            nn4_${i} --> nn4_${i + 1}`);
+    }
   }
-  L.push("");
+  L.push("        end");
 
-  // ── [5-N] 右腕（理想の詳細）── CORE の前に宣言してサブグラフ外を保証
+  // CORE（胴体）
+  const reality  = parts.core.reality;
+  const ideal    = parts.core.ideal;
+  const proposal = parts.core.proposal;
+  const s1 = st("1", !!reality.trim());
+  const s2 = st("2", !!ideal.trim());
+  const s3 = st("3", !!proposal.trim());
+  L.push('        subgraph CORE["🫀 胴体（コア）"]');
+  L.push("            direction TB");
+  L.push(`            REAL${nodeLabel("1", "現実", reality, s1)}:::${s1}`);
+  L.push(`            IDEAL${nodeLabel("2", "理想", ideal, s2)}:::${s2}`);
+  L.push(`            PROP${nodeLabel("3", "提案", proposal, s3)}:::${s3}`);
+  L.push('            REAL -->|"なぜ？"| IDEAL');
+  L.push("            REAL -.-> PROP");
+  L.push("            IDEAL -.-> PROP");
+  L.push("        end");
+
+  // RIGHT_ARM（右腕: 理想の詳細 [5-x]）
+  L.push('        subgraph RIGHT_ARM["🛡️ 右腕"]');
+  L.push("            direction TB");
   const ig = parts.drilldown.ideal_goals.filter((x) => x.trim());
   if (ig.length === 0) {
     const s5 = st("5", false);
-    L.push(`  nn5_0[${nodeLabel("5", "理想の詳細", "", s5)}]:::${s5}`);
+    L.push(`            nn5_0${nodeLabel("5", "理想詳細", "", s5)}:::${s5}`);
   } else {
     ig.forEach((g, i) => {
       const nid = `5-${i + 1}`;
       const s5i = st(nid, true);
-      L.push(`  nn5_${i + 1}[${nodeLabel(nid, "理想の詳細", g, s5i)}]:::${s5i}`);
+      L.push(`            nn5_${i + 1}${nodeLabel(nid, "理想詳細", g, s5i)}:::${s5i}`);
     });
+    for (let i = 1; i < ig.length; i++) {
+      L.push(`            nn5_${i} --> nn5_${i + 1}`);
+    }
   }
+  L.push("        end");
+
+  // UPPER_BODY 内の腕接続
+  L.push("        LEFT_ARM --- REAL");
+  L.push("        IDEAL --- RIGHT_ARM");
+  L.push("    end");
   L.push("");
 
-  // ── [3] 提案 ── standalone（CORE の下 T 字接続）
-  const proposal = parts.core.proposal;
-  const s3 = st("3", !!proposal.trim());
-  L.push(`  nn3[${nodeLabel("3", "提案", proposal, s3)}]:::${s3}`);
+  // INTRO → CORE
+  L.push("    INTRO --> CORE");
   L.push("");
 
-  // ── [8] 台座（クロージング）── standalone
-  const cta = parts.frame.closing.cta;
-  const s8 = st("8", !!cta.trim());
-  L.push(`  nn8[${nodeLabel("8", "🗂️台座", cta, s8)}]:::${s8}`);
-  L.push("");
+  // ── LEGS（透明外枠: 両足を横並びに）──
+  L.push('    subgraph LEGS[" "]');
+  L.push("        direction LR");
 
-  // ── CORE サブグラフ: direction LR で [1][2] を横並びに ──
-  const reality = parts.core.reality;
-  const ideal   = parts.core.ideal;
-  const s1 = st("1", !!reality.trim());
-  const s2 = st("2", !!ideal.trim());
-  L.push('subgraph CORE["🫀 胴体（コア）"]');
-  L.push("  direction LR");
-  L.push(`  nn1[${nodeLabel("1", "現実", reality, s1)}]:::${s1}`);
-  L.push(`  nn2[${nodeLabel("2", "理想", ideal, s2)}]:::${s2}`);
-  L.push('  nn1 -->|"なぜ？"| nn2');
-  L.push("end");
-  L.push("");
-
-  // ── [6-N] 左足（What）サブグラフ ──
+  // LEFT_LEG（左足: What [6-x]）
+  L.push('        subgraph LEFT_LEG["🦿 左足（What）"]');
+  L.push("            direction TB");
   const wh = parts.what_how.what_items.filter((x) => x.trim());
-  L.push('subgraph LLEG["🦿 左足（What）"]');
-  L.push("  direction TB");
   if (wh.length === 0) {
     const s6 = st("6", false);
-    L.push(`  nn6_0[${nodeLabel("6", "What", "", s6)}]:::${s6}`);
+    L.push(`            nn6_0${nodeLabel("6", "What", "", s6)}:::${s6}`);
   } else {
     wh.forEach((w, i) => {
       const nid = `6-${i + 1}`;
       const s6i = st(nid, true);
-      L.push(`  nn6_${i + 1}[${nodeLabel(nid, "What", w, s6i)}]:::${s6i}`);
+      L.push(`            nn6_${i + 1}${nodeLabel(nid, "What", w, s6i)}:::${s6i}`);
     });
+    for (let i = 1; i < wh.length; i++) {
+      L.push(`            nn6_${i} --> nn6_${i + 1}`);
+    }
   }
-  L.push("end");
-  L.push("");
+  L.push("        end");
 
-  // ── [7-N] 右足（How）サブグラフ ──
+  // RIGHT_LEG（右足: How [7-x]）
+  L.push('        subgraph RIGHT_LEG["⚡ 右足（How）"]');
+  L.push("            direction TB");
   const hw = parts.what_how.how_items.filter((x) => x.trim());
-  L.push('subgraph RLEG["⚡ 右足（How）"]');
-  L.push("  direction TB");
   if (hw.length === 0) {
     const s7 = st("7", false);
-    L.push(`  nn7_0[${nodeLabel("7", "How", "", s7)}]:::${s7}`);
+    L.push(`            nn7_0${nodeLabel("7", "How", "", s7)}:::${s7}`);
   } else {
     hw.forEach((h, i) => {
       const nid = `7-${i + 1}`;
       const s7i = st(nid, true);
-      L.push(`  nn7_${i + 1}[${nodeLabel(nid, "How", h, s7i)}]:::${s7i}`);
+      L.push(`            nn7_${i + 1}${nodeLabel(nid, "How", h, s7i)}:::${s7i}`);
     });
+    for (let i = 1; i < hw.length; i++) {
+      L.push(`            nn7_${i} --> nn7_${i + 1}`);
+    }
   }
-  L.push("end");
+  L.push("        end");
+
+  L.push("    end");
   L.push("");
 
-  // ── 接続 ──
-  // 頭 → 胴体
-  L.push("nn0 --> CORE");
-  // 胴体 → 提案（T字下方向）
-  L.push('CORE -->|"解決策"| nn3');
-  // 左腕 → [1]現実（左外側から接続）
-  if (rf.length === 0) {
-    L.push("nn4_0 --- nn1");
-  } else {
-    rf.forEach((_, i) => L.push(`nn4_${i + 1} --- nn1`));
-  }
-  // [2]理想 → 右腕（右外側へ接続）
-  if (ig.length === 0) {
-    L.push("nn2 --- nn5_0");
-  } else {
-    ig.forEach((_, i) => L.push(`nn2 --- nn5_${i + 1}`));
-  }
-  // 提案 → 両足（二股）
-  L.push("nn3 --> LLEG");
-  L.push("nn3 --> RLEG");
-  // 両足 → 台座
-  L.push("LLEG --> nn8");
-  L.push("RLEG --> nn8");
+  // PROP → 両足
+  L.push("    PROP --> LEFT_LEG");
+  L.push("    PROP --> RIGHT_LEG");
+  L.push("");
+
+  // ── [8] 台座（クロージング）──
+  const cta = parts.frame.closing.cta;
+  const s8 = st("8", !!cta.trim());
+  L.push(`    BASE${nodeLabel("8", "🗂️ 台座", cta, s8)}:::${s8}`);
+  L.push("    LEFT_LEG --> BASE");
+  L.push("    RIGHT_LEG --> BASE");
+  L.push("");
+
+  // 外枠を非表示（純粋なロボットシルエットのみ表示）
+  L.push("    style UPPER_BODY fill:none,stroke:none");
+  L.push("    style LEGS fill:none,stroke:none");
 
   return L.join("\n");
 }
@@ -255,12 +279,14 @@ export function buildRobotDiagram(session) {
 // ── SVGノードクリックハンドラー ───────────────────────────────────
 
 /**
- * Mermaid ID → logi-bot 番号ID に変換する。
- * nn0 → "0", nn4_1 → "4-1", nn4_0 → "4" (プレースホルダー)
+ * Mermaid ノード DOM ID → logi-bot 番号ID に変換する。
+ * 対応: INTRO→"0", REAL→"1", IDEAL→"2", PROP→"3", BASE→"8"
+ *      nn4_1→"4-1", nn4_0→"4", nn5_2→"5-2", nn6_1→"6-1", nn7_1→"7-1"
  */
 function mermaidIdToNodeId(mId) {
-  const simple = mId.match(/^nn(\d)$/);
-  if (simple) return simple[1];
+  const namedMap = { INTRO: "0", REAL: "1", IDEAL: "2", PROP: "3", BASE: "8" };
+  if (namedMap[mId]) return namedMap[mId];
+  // nn4_1 → "4-1", nn4_0 → "4"（プレースホルダー）
   const compound = mId.match(/^nn(\d+)_(\d+)$/);
   if (compound) {
     const group = compound[1];

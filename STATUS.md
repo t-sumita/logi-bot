@@ -1,7 +1,7 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.8.4`
+`0.8.5`
 
 ## 最終更新
 2026-10-17
@@ -83,8 +83,21 @@
   - Step 3: [6]What→[7]How を順番に収集（メッセージ分割方式を廃止）
   - Step 5: [0]イントロ→[8]クロージングを順番に収集
 
+## v0.8.5 追加修正（2026-10-18）
+
+- **Mermaid図 構文エラー修正（真っ白バグ解消）**: v0.8.4 で LARM/RARM をサブグラフ外ノードと接続していた構造を廃止。ユーザー指定の新構造に刷新:
+  - `UPPER_BODY`（透明枠, direction LR）内に `LEFT_ARM`・`CORE`・`RIGHT_ARM` を横並び
+  - `LEGS`（透明枠, direction LR）内に `LEFT_LEG`・`RIGHT_LEG` を横並び
+  - `INTRO → CORE → PROP → LEGS → BASE` の縦主軸
+  - 外枠サブグラフを `style ... fill:none,stroke:none` で非表示化
+  - `[` `]` `{` `}` をサニタイズで全角変換（Mermaid パーサー干渉回避）
+- **mermaid-renderer.js エラーハンドリング強化**: `mermaid.render()` に try-catch 追加。エラー時に `console.error` で原因出力 + 画面に `<pre class="diagram-error-code">` でソース表示。`renderDiagram` が `{ ok: boolean }` を返すように変更
+- **パン・ズーム安全初期化**: `renderDiagram` の戻り値 `ok` が `false` のときはラップ・初期化をスキップ。DOM 未確定時のクラッシュを防止
+- **単体テスト拡充**: `buildRobotDiagram` を `mermaid-builder.js` から直接 import し、空/途中/全入力/特殊文字の 9 件テスト追加。54/54 全通過
+
 ## 次の一手
 - ユーザーが https://logi-bot.pages.dev で動作確認
-  1. Mermaid 図が手描きロボ形状（横T字胴体・左右腕・下二股足・台座）になっているか
+  1. 合体ロボ図が手描き図のシルエット（横並び腕・縦T字胴体・二股足・台座）で描画されるか
   2. 図をドラッグ・スクロール・ピンチでパン・ズーム操作できるか
-  3. MOCKモードで Step 1〜5 を1問ずつ答えると正しいパーツに格納されるか
+  3. MOCKモードで Step 1〜5 を 1 問ずつ答えると正しいパーツに格納されるか
+  4. エラー時（DevTools で LOGI_MOCK=0 でAPIキーなし等）に図が真っ白にならず Mermaid コードが表示されるか

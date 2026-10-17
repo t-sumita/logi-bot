@@ -337,7 +337,13 @@ ul { list-style: none; }
 .diagram-placeholder { text-align: center; color: var(--c-text-mute); padding: var(--sp-10) var(--sp-4); }
 .placeholder-icon { font-size: 2.5rem; margin-bottom: var(--sp-3); }
 .placeholder-text { font-size: .875rem; }
-.diagram-error { color: var(--c-error); font-size: .8rem; padding: var(--sp-4); text-align: center; }
+.diagram-error { color: var(--c-error); font-size: .8rem; padding: var(--sp-4); }
+.diagram-error-msg { margin-bottom: var(--sp-2); font-weight: 600; }
+.diagram-error-code {
+  font-size: .7rem; background: var(--c-surface-2); border-radius: var(--r-sm);
+  padding: var(--sp-2); overflow: auto; max-height: 200px;
+  white-space: pre; color: var(--c-text-sub); text-align: left;
+}
 
 /* ── パン・ズームコントローラー ─── */
 .diagram-zoom-controls {

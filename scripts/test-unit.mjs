@@ -10,6 +10,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { buildRobotDiagram } from "../public/js/mermaid-builder.js";
 
 // ── session.ts の純粋ロジックをインライン再現 ─────────────────────
 
@@ -583,6 +584,140 @@ test("parseImportText — Markdown から frame parts を抽出する", () => {
   const result = parseImportText(MD_EXPORT_SAMPLE);
   assert.equal(result.parts.frame.intro.hook,  "mdフック");
   assert.equal(result.parts.frame.closing.cta, "mdCTA");
+});
+
+// ── テスト: buildRobotDiagram — Mermaid 構文検証 ─────────────────
+
+/** テスト用ダミーセッション生成 */
+function makeSession(overrides = {}) {
+  return {
+    sessionId: "test-s",
+    title: "テスト",
+    step: "step1_core",
+    status: "in_progress",
+    nodeStatuses: {},
+    parts: {
+      core:         { reality: "", ideal: "", proposal: "" },
+      drilldown:    { reality_factors: [], ideal_goals: [], gap_summary: "" },
+      what_how:     { what_items: [], how_items: [], who_when: [] },
+      verification: { contradictions: [], is_consistent: false },
+      frame:        { intro: { audience: "", hook: "" }, closing: { cta: "" }, title: "" },
+    },
+    diagrams: {}, history: [],
+    ...overrides,
+  };
+}
+
+test("buildRobotDiagram — 空セッション時に flowchart TB で始まる", () => {
+  const src = buildRobotDiagram(makeSession());
+  assert.ok(src.startsWith("flowchart TB"), `先頭が flowchart TB でない: ${src.slice(0, 30)}`);
+});
+
+test("buildRobotDiagram — 空セッション時に必要なサブグラフ ID が全て含まれる", () => {
+  const src = buildRobotDiagram(makeSession());
+  for (const id of ["UPPER_BODY", "CORE", "LEFT_ARM", "RIGHT_ARM", "LEGS", "LEFT_LEG", "RIGHT_LEG"]) {
+    assert.ok(src.includes(`subgraph ${id}`), `${id} が見つからない`);
+  }
+});
+
+test("buildRobotDiagram — 空セッション時に主要ノード（INTRO/REAL/IDEAL/PROP/BASE）が含まれる", () => {
+  const src = buildRobotDiagram(makeSession());
+  for (const id of ["INTRO", "REAL", "IDEAL", "PROP", "BASE"]) {
+    assert.ok(src.includes(`${id}[`), `ノード ${id} が見つからない`);
+  }
+});
+
+test("buildRobotDiagram — 空セッション時に classDef 宣言が含まれる", () => {
+  const src = buildRobotDiagram(makeSession());
+  assert.ok(src.includes("classDef unset"), "classDef unset が見つからない");
+  assert.ok(src.includes("classDef current"), "classDef current が見つからない");
+  assert.ok(src.includes("classDef confirmed"), "classDef confirmed が見つからない");
+});
+
+test("buildRobotDiagram — 外枠サブグラフを非表示にする style 宣言が含まれる", () => {
+  const src = buildRobotDiagram(makeSession());
+  assert.ok(src.includes("style UPPER_BODY fill:none,stroke:none"), "UPPER_BODY style が見つからない");
+  assert.ok(src.includes("style LEGS fill:none,stroke:none"), "LEGS style が見つからない");
+});
+
+test("buildRobotDiagram — core データが入力されるとノードラベルに反映される", () => {
+  const session = makeSession({
+    step: "step2_drilldown",
+    parts: {
+      core:         { reality: "課題テキスト", ideal: "理想テキスト", proposal: "提案テキスト" },
+      drilldown:    { reality_factors: [], ideal_goals: [], gap_summary: "" },
+      what_how:     { what_items: [], how_items: [], who_when: [] },
+      verification: { contradictions: [], is_consistent: false },
+      frame:        { intro: { audience: "", hook: "" }, closing: { cta: "" }, title: "" },
+    },
+  });
+  const src = buildRobotDiagram(session);
+  assert.ok(src.includes("課題テキスト"), "現実テキストがラベルに含まれない");
+  assert.ok(src.includes("理想テキスト"), "理想テキストがラベルに含まれない");
+  assert.ok(src.includes("提案テキスト"), "提案テキストがラベルに含まれない");
+});
+
+test("buildRobotDiagram — drilldown データが配列ノードとして展開される", () => {
+  const session = makeSession({
+    step: "step3_what_how",
+    parts: {
+      core:         { reality: "現実", ideal: "理想", proposal: "提案" },
+      drilldown:    { reality_factors: ["要因A", "要因B"], ideal_goals: ["目標X"], gap_summary: "" },
+      what_how:     { what_items: [], how_items: [], who_when: [] },
+      verification: { contradictions: [], is_consistent: false },
+      frame:        { intro: { audience: "", hook: "" }, closing: { cta: "" }, title: "" },
+    },
+  });
+  const src = buildRobotDiagram(session);
+  assert.ok(src.includes("nn4_1"), "[4-1] ノードが見つからない");
+  assert.ok(src.includes("nn4_2"), "[4-2] ノードが見つからない");
+  assert.ok(src.includes("nn5_1"), "[5-1] ノードが見つからない");
+  assert.ok(src.includes("要因A"), "要因A がラベルに含まれない");
+  assert.ok(src.includes("目標X"), "目標X がラベルに含まれない");
+  // 縦直列接続が含まれる
+  assert.ok(src.includes("nn4_1 --> nn4_2"), "腕ノードの縦直列接続が見つからない");
+});
+
+test("buildRobotDiagram — 全データ入力時（Step 5）に全ノードが値を持つ", () => {
+  const session = makeSession({
+    step: "complete",
+    parts: {
+      core:         { reality: "現実値", ideal: "理想値", proposal: "提案値" },
+      drilldown:    { reality_factors: ["要因1"], ideal_goals: ["目標1"], gap_summary: "" },
+      what_how:     { what_items: ["What1"], how_items: ["How1"], who_when: [] },
+      verification: { contradictions: [], is_consistent: true },
+      frame:        { intro: { audience: "", hook: "フック" }, closing: { cta: "CTA" }, title: "" },
+    },
+  });
+  const src = buildRobotDiagram(session);
+  // 全主要値が含まれる
+  for (const v of ["現実値", "理想値", "提案値", "要因1", "目標1", "What1", "How1", "フック", "CTA"]) {
+    assert.ok(src.includes(v), `値「${v}」がラベルに含まれない`);
+  }
+  // ノードラベル内にダブルクォートが露出しない（サニタイズ確認）
+  const labelRegex = /\["([^"]*)"\]/g;
+  for (const m of src.matchAll(labelRegex)) {
+    assert.ok(!m[1].includes('"'), `ラベル内にエスケープされていない " が含まれる: ${m[0]}`);
+  }
+});
+
+test("buildRobotDiagram — 特殊文字（\" [ ] { }）を含む入力が安全にサニタイズされる", () => {
+  const session = makeSession({
+    parts: {
+      core:         { reality: '課題"テスト"[重要]{必須}', ideal: "理想", proposal: "提案" },
+      drilldown:    { reality_factors: [], ideal_goals: [], gap_summary: "" },
+      what_how:     { what_items: [], how_items: [], who_when: [] },
+      verification: { contradictions: [], is_consistent: false },
+      frame:        { intro: { audience: "", hook: "" }, closing: { cta: "" }, title: "" },
+    },
+  });
+  const src = buildRobotDiagram(session);
+  // ノードラベル境界を壊す " が残っていないことを確認
+  // ["..."] 形式のラベル内に生の " がないこと
+  const lines = src.split("\n").filter((l) => l.includes("REAL["));
+  assert.ok(lines.length > 0, "REAL ノードが見つからない");
+  const inner = lines[0].replace(/^.*REAL\["/, "").replace(/".*$/, "");
+  assert.ok(!inner.includes('"'), `サニタイズ後もラベル内に " が残っている: ${lines[0]}`);
 });
 
 console.log("\n✅ 全テスト完了");

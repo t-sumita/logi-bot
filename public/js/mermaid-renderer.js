@@ -24,6 +24,7 @@ function initMermaid() {
 /**
  * Mermaid ソースを container 内に SVG としてレンダリングする。
  * ソースが空の場合はプレースホルダーを表示する。
+ * @returns {{ ok: boolean }} — ok=true で SVG が挿入済み、ok=false でエラー
  */
 export async function renderDiagram(source, container) {
   initMermaid();
@@ -33,11 +34,11 @@ export async function renderDiagram(source, container) {
         <div class="placeholder-icon">📊</div>
         <div class="placeholder-text">このステップが完了すると図が生成されます</div>
       </div>`;
-    return;
+    return { ok: false };
   }
   if (typeof mermaid === "undefined") {
     container.innerHTML = '<div class="diagram-error">Mermaid.js が読み込めていません</div>';
-    return;
+    return { ok: false };
   }
   const id = `mm-${++renderSeq}`;
   try {
@@ -47,36 +48,35 @@ export async function renderDiagram(source, container) {
     if (svgEl) {
       svgEl.removeAttribute("width");
       svgEl.removeAttribute("height");
-      svgEl.style.maxWidth = "100%";
+      svgEl.style.maxWidth = "none";
       svgEl.style.height = "auto";
     }
+    return { ok: true };
   } catch (e) {
-    container.innerHTML = `<div class="diagram-error">レンダリングエラー: ${escHtml(e.message)}</div>`;
+    console.error("[mermaid] render error:", e.message);
+    console.error("[mermaid] source:\n", source);
+    container.innerHTML = `
+      <div class="diagram-error">
+        <div class="diagram-error-msg">⚠️ レンダリングエラー: ${escHtml(e.message)}</div>
+        <pre class="diagram-error-code">${escHtml(source)}</pre>
+      </div>`;
+    return { ok: false };
   }
 }
 
 /**
  * ズームモーダルを開く。
- * modal — .modal-overlay 要素
- * svgContainer — SVG を挿入する要素
- * codeEl — コードを表示する &lt;pre&gt; 要素
- * titleEl — モーダルタイトル要素
- * initialMode — "svg" | "code"
  */
 export async function openZoomModal(source, modal, svgContainer, codeEl, titleEl, initialMode = "svg") {
   if (!modal) return;
   initMermaid();
 
-  // コードを設定
   codeEl.textContent = source || "（図がありません）";
 
-  // SVG をレンダリング
   await renderDiagram(source, svgContainer);
 
-  // タイトル
   if (titleEl) titleEl.textContent = initialMode === "code" ? "Mermaid コード" : "図の拡大表示";
 
-  // タブ切り替え
   const svgMode = initialMode === "svg";
   svgContainer.hidden = !svgMode;
   codeEl.hidden = svgMode;

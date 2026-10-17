@@ -282,16 +282,16 @@ function updateChatPlaceholder() {
 async function updateDiagramPanel() {
   const source = buildRobotDiagram(session);
   currentDiagramSource = source;
-  await renderDiagram(source, el.diagramContent);
-  // SVG を pz-viewport でラップしてパン・ズームを有効化
+  const { ok } = await renderDiagram(source, el.diagramContent);
+  // SVG の挿入が成功した場合のみパン・ズームを初期化する
+  if (!ok) return;
   wrapForPanZoom(el.diagramContent);
   attachNodeClickHandlers(el.diagramContent, onNodeClick);
-  // 初回のみコントローラーを初期化
   if (!panZoom) {
     panZoom = initPanZoom(el.diagramContent);
   }
-  // 描画後に全体フィット
-  setTimeout(() => panZoom?.fit(), 50);
+  // DOM 確定後にフィット実行
+  setTimeout(() => panZoom?.fit(), 60);
 }
 
 /** ノードクリック時: チャット入力欄に番号付き修正テキストを挿入してフォーカス */
