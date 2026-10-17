@@ -1,7 +1,7 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.8.1`
+`0.8.2`
 
 ## 最終更新
 2026-10-17
@@ -51,6 +51,15 @@
 - **MOCKモード Step1 ループバグ修正**: `detectStep1Substep()` が旧マーカー（`【①現実】`等）を検索して常にデフォルト`"reality"`を返していた問題を修正。v0.8.0 の新マーカー(`**[1] 現実** を聞く`)に対応
 - **バッジ重なり解消**: `.page-session .su-badge` の `bottom` を `calc(--nav-h + 8px)` に上書き
 
+## v0.8.2 追加修正（2026-10-17）
+
+- **バッジポップオーバーのリンク構成を標準仕様に整理**
+  - github-site・cloudflare-ai-lab-site を削除
+  - spctrl-site / strata-site / subuta-site を `{description:{en,ja}}` 標準形式に統一
+  - Ko-fi（donation-site）・GitHub Sponsors（sponsors-site）を追加
+  - contact-site を `mailto:` → Google Forms URL に変更
+  - CONTACT_URL も Google Forms に更新
+
 ## 次の一手
-- ユーザーが https://logi-bot.pages.dev で動作確認
+- ユーザーが https://logi-bot.pages.dev でバッジポップオーバーを確認
 - 必要に応じて追加調整
