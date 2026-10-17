@@ -54,7 +54,6 @@ function getCurrentTargetSet(step, parts) {
       if (!reality.trim())  { s.add("1"); return s; }
       if (!ideal.trim())    { s.add("2"); return s; }
       if (!proposal.trim()) { s.add("3"); return s; }
-      // 3要素揃い: 全体確認フェーズ
       s.add("1"); s.add("2"); s.add("3");
       return s;
     }
@@ -73,7 +72,7 @@ function getCurrentTargetSet(step, parts) {
       return s;
     }
     case "step4_verify":
-      return s; // 全体俯瞰 — 特定ノードをハイライトしない
+      return s;
     case "step5_combine": {
       if (!parts.frame.intro.hook.trim())  s.add("0");
       if (!parts.frame.closing.cta.trim()) s.add("8");
@@ -89,11 +88,6 @@ function getCurrentTargetSet(step, parts) {
 
 /**
  * ノードのステータスを解決する。
- * @param {string} nodeId
- * @param {boolean} hasValue
- * @param {Set<string>} currentSet
- * @param {object} nodeStatuses
- * @returns {string} NodeStatus
  */
 function resolveStatus(nodeId, hasValue, currentSet, nodeStatuses) {
   if (currentSet.has(nodeId)) return "current";
@@ -106,6 +100,14 @@ function resolveStatus(nodeId, hasValue, currentSet, nodeStatuses) {
 
 /**
  * セッション状態から合体ロボの完全な Mermaid flowchart TB を生成する。
+ * 配置ルール:
+ *   - [0] 頭（最上部）
+ *   - CORE サブグラフ（direction LR）: [1]現実 --なぜ?--> [2]理想（横並び）
+ *   - [4-N] 左腕: CORE の外側左に配置, [1]現実に直接 --- 接続
+ *   - [5-N] 右腕: CORE の外側右に配置, [2]理想に直接 --- 接続
+ *   - [3] 提案: CORE の下から縦に接続
+ *   - LLEG（[6-N] What）と RLEG（[7-N] How）: [3]から二股
+ *   - [8] 台座: LLEG・RLEG の最下部から接続
  * @param {object} session - LogiSession
  * @returns {string} Mermaid ソース
  */
@@ -117,7 +119,7 @@ export function buildRobotDiagram(session) {
     return resolveStatus(nodeId, hasValue, cur, nodeStatuses);
   }
 
-  const L = []; // lines
+  const L = [];
 
   // ── ヘッダー ──
   L.push("flowchart TB");
@@ -130,35 +132,14 @@ export function buildRobotDiagram(session) {
   L.push("classDef current fill:#EEF2FF,stroke:#4F46E5,stroke-width:3px,color:#3730A3");
   L.push("");
 
-  // ── [0] 頭（イントロ） ──
+  // ── [0] 頭（イントロ）── standalone（サブグラフなし）
   const hook = parts.frame.intro.hook;
   const s0 = st("0", !!hook.trim());
-  L.push('subgraph HEAD["🧠 頭（イントロ）"]');
-  L.push(`  nn0[${nodeLabel("0", "イントロ", hook, s0)}]:::${s0}`);
-  L.push("end");
+  L.push(`  nn0[${nodeLabel("0", "🧠イントロ", hook, s0)}]:::${s0}`);
   L.push("");
 
-  // ── [1][2][3] 胴体（コア） ──
-  const reality = parts.core.reality;
-  const ideal   = parts.core.ideal;
-  const proposal = parts.core.proposal;
-  const s1 = st("1", !!reality.trim());
-  const s2 = st("2", !!ideal.trim());
-  const s3 = st("3", !!proposal.trim());
-  L.push('subgraph BODY["🫀 胴体（コア）"]');
-  L.push(`  nn1[${nodeLabel("1", "現実", reality, s1)}]:::${s1}`);
-  L.push(`  nn2[${nodeLabel("2", "理想", ideal, s2)}]:::${s2}`);
-  L.push(`  nn3[${nodeLabel("3", "提案", proposal, s3)}]:::${s3}`);
-  L.push('  nn1 -->|"ギャップ"| nn2');
-  L.push('  nn3 -->|"橋渡し"| nn2');
-  L.push('  nn1 -.->|"課題の源"| nn3');
-  L.push("end");
-  L.push("");
-
-  // ── [4-N] 左腕（現実の詳細） ──
+  // ── [4-N] 左腕（現実の詳細）── CORE の前に宣言してサブグラフ外を保証
   const rf = parts.drilldown.reality_factors.filter((x) => x.trim());
-  L.push('subgraph LARM["💪 左腕（現実の詳細）"]');
-  L.push("  direction TB");
   if (rf.length === 0) {
     const s4 = st("4", false);
     L.push(`  nn4_0[${nodeLabel("4", "現実の詳細", "", s4)}]:::${s4}`);
@@ -169,13 +150,10 @@ export function buildRobotDiagram(session) {
       L.push(`  nn4_${i + 1}[${nodeLabel(nid, "現実の詳細", f, s4i)}]:::${s4i}`);
     });
   }
-  L.push("end");
   L.push("");
 
-  // ── [5-N] 右腕（理想の詳細） ──
+  // ── [5-N] 右腕（理想の詳細）── CORE の前に宣言してサブグラフ外を保証
   const ig = parts.drilldown.ideal_goals.filter((x) => x.trim());
-  L.push('subgraph RARM["🛡️ 右腕（理想の詳細）"]');
-  L.push("  direction TB");
   if (ig.length === 0) {
     const s5 = st("5", false);
     L.push(`  nn5_0[${nodeLabel("5", "理想の詳細", "", s5)}]:::${s5}`);
@@ -186,10 +164,34 @@ export function buildRobotDiagram(session) {
       L.push(`  nn5_${i + 1}[${nodeLabel(nid, "理想の詳細", g, s5i)}]:::${s5i}`);
     });
   }
+  L.push("");
+
+  // ── [3] 提案 ── standalone（CORE の下 T 字接続）
+  const proposal = parts.core.proposal;
+  const s3 = st("3", !!proposal.trim());
+  L.push(`  nn3[${nodeLabel("3", "提案", proposal, s3)}]:::${s3}`);
+  L.push("");
+
+  // ── [8] 台座（クロージング）── standalone
+  const cta = parts.frame.closing.cta;
+  const s8 = st("8", !!cta.trim());
+  L.push(`  nn8[${nodeLabel("8", "🗂️台座", cta, s8)}]:::${s8}`);
+  L.push("");
+
+  // ── CORE サブグラフ: direction LR で [1][2] を横並びに ──
+  const reality = parts.core.reality;
+  const ideal   = parts.core.ideal;
+  const s1 = st("1", !!reality.trim());
+  const s2 = st("2", !!ideal.trim());
+  L.push('subgraph CORE["🫀 胴体（コア）"]');
+  L.push("  direction LR");
+  L.push(`  nn1[${nodeLabel("1", "現実", reality, s1)}]:::${s1}`);
+  L.push(`  nn2[${nodeLabel("2", "理想", ideal, s2)}]:::${s2}`);
+  L.push('  nn1 -->|"なぜ？"| nn2');
   L.push("end");
   L.push("");
 
-  // ── [6-N] 左足（What） ──
+  // ── [6-N] 左足（What）サブグラフ ──
   const wh = parts.what_how.what_items.filter((x) => x.trim());
   L.push('subgraph LLEG["🦿 左足（What）"]');
   L.push("  direction TB");
@@ -206,7 +208,7 @@ export function buildRobotDiagram(session) {
   L.push("end");
   L.push("");
 
-  // ── [7-N] 右足（How） ──
+  // ── [7-N] 右足（How）サブグラフ ──
   const hw = parts.what_how.how_items.filter((x) => x.trim());
   L.push('subgraph RLEG["⚡ 右足（How）"]');
   L.push("  direction TB");
@@ -223,22 +225,29 @@ export function buildRobotDiagram(session) {
   L.push("end");
   L.push("");
 
-  // ── [8] 台座（クロージング） ──
-  const cta = parts.frame.closing.cta;
-  const s8 = st("8", !!cta.trim());
-  L.push('subgraph BASE["🗂️ 台座（クロージング）"]');
-  L.push(`  nn8[${nodeLabel("8", "クロージング", cta, s8)}]:::${s8}`);
-  L.push("end");
-  L.push("");
-
   // ── 接続 ──
-  L.push("HEAD --> BODY");
-  L.push("BODY --> LARM");
-  L.push("BODY --> RARM");
-  L.push("LARM --> LLEG");
-  L.push("RARM --> RLEG");
-  L.push("LLEG --> BASE");
-  L.push("RLEG --> BASE");
+  // 頭 → 胴体
+  L.push("nn0 --> CORE");
+  // 胴体 → 提案（T字下方向）
+  L.push('CORE -->|"解決策"| nn3');
+  // 左腕 → [1]現実（左外側から接続）
+  if (rf.length === 0) {
+    L.push("nn4_0 --- nn1");
+  } else {
+    rf.forEach((_, i) => L.push(`nn4_${i + 1} --- nn1`));
+  }
+  // [2]理想 → 右腕（右外側へ接続）
+  if (ig.length === 0) {
+    L.push("nn2 --- nn5_0");
+  } else {
+    ig.forEach((_, i) => L.push(`nn2 --- nn5_${i + 1}`));
+  }
+  // 提案 → 両足（二股）
+  L.push("nn3 --> LLEG");
+  L.push("nn3 --> RLEG");
+  // 両足 → 台座
+  L.push("LLEG --> nn8");
+  L.push("RLEG --> nn8");
 
   return L.join("\n");
 }
@@ -248,8 +257,6 @@ export function buildRobotDiagram(session) {
 /**
  * Mermaid ID → logi-bot 番号ID に変換する。
  * nn0 → "0", nn4_1 → "4-1", nn4_0 → "4" (プレースホルダー)
- * @param {string} mId
- * @returns {string|null}
  */
 function mermaidIdToNodeId(mId) {
   const simple = mId.match(/^nn(\d)$/);
@@ -304,8 +311,8 @@ export function attachNodeClickHandlers(container, onNodeClick) {
     nodeEl.style.cursor = "pointer";
     nodeEl.classList.add("logi-clickable-node");
     nodeEl.setAttribute("title", `[${logiBotId}] をクリックして修正`);
-    nodeEl.addEventListener("click", (e) => {
-      e.stopPropagation();
+    nodeEl.addEventListener("click", (ev) => {
+      ev.stopPropagation();
       onNodeClick(logiBotId, nodeIdToLabel(logiBotId));
     });
   });

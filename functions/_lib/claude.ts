@@ -181,32 +181,61 @@ function stepMockResponse(step: string, systemPrompt: string, message: string): 
       };
     }
     case "step2_drilldown": {
+      // systemPrompt に収集済みデータが含まれているかで現在のサブステップを判定
+      const hasFactors = systemPrompt.includes("【[4] 現実の詳細");
+      const hasGoals   = systemPrompt.includes("【[5] 理想の詳細");
       const lines = getLines(message);
-      const reality_factors = lines.slice(0, 3).filter(Boolean);
-      const ideal_goals     = lines.slice(3, 6).filter(Boolean);
-      const finalFactors = reality_factors.length > 0 ? reality_factors : [message.slice(0, 100)];
-      const finalGoals   = ideal_goals.length > 0 ? ideal_goals : ["目標を達成した状態"];
-      const factorList = finalFactors.map((f, i) => `✅ [4-${i+1}] ${f}`).join("\n");
-      const goalList   = finalGoals.map((g, i) => `✅ [5-${i+1}] ${g}`).join("\n");
+
+      if (!hasFactors) {
+        // ① 現実の詳細を収集
+        const reality_factors = lines.length > 0 ? lines.slice(0, 6) : [message.slice(0, 100)];
+        const factorList = reality_factors.map((f, i) => `✅ [4-${i+1}] ${f}`).join("\n");
+        return {
+          reply: `**[4] 現実の詳細**として ${reality_factors.length} 件を記録しました。✅\n\n${factorList}\n\n次に、**[5] 理想の詳細**を教えてください。理想が実現したときの具体的な成果・数値目標を教えてください。`,
+          extracted: { drilldown: { reality_factors, ideal_goals: [], gap_summary: "" } },
+        };
+      }
+      if (!hasGoals) {
+        // ② 理想の詳細を収集
+        const ideal_goals = lines.length > 0 ? lines.slice(0, 6) : [message.slice(0, 100)];
+        const goalList = ideal_goals.map((g, i) => `✅ [5-${i+1}] ${g}`).join("\n");
+        return {
+          reply: `**[5] 理想の詳細**として ${ideal_goals.length} 件を記録しました。✅\n\n${goalList}\n\n「[4]と[5]の関係を確認した図です。修正や追加があれば入力してください。」\nOKなら「次のステップへ」で Step 3（両足）へ進めます。`,
+          extracted: { drilldown: { reality_factors: [], ideal_goals, gap_summary: "" } },
+        };
+      }
+      // 両方揃っている場合は確認・補足
       return {
-        reply: `受け取りました。\n\n${factorList}\n${goalList}\n\n「[4]と[5]の関係はどうですか？追加・削除したい番号はありますか？」\nOKなら「次のステップへ」で Step 3（両足）へ進めます。`,
-        extracted: { drilldown: { reality_factors: finalFactors, ideal_goals: finalGoals, gap_summary: "" } },
+        reply: `ありがとうございます。補足を記録しました。「次のステップへ」で Step 3 へ進みます。`,
+        extracted: undefined,
       };
     }
     case "step3_what_how": {
+      const hasWhat = systemPrompt.includes("【[6]/[7] What/How");
+      const hasHow  = hasWhat && !systemPrompt.includes("How: （未入力）");
       const lines = getLines(message);
-      const half = Math.ceil(lines.length / 2);
-      const what_items = lines.slice(0, half).filter(Boolean);
-      const how_items  = lines.slice(half).filter(Boolean);
-      const finalWhat = what_items.length > 0 ? what_items : [message.slice(0, 100)];
-      const finalHow  = how_items.length > 0 ? how_items : ["詳細は次のステップで確認"];
-      const len = Math.min(finalWhat.length, finalHow.length);
-      const pairList = Array.from({ length: len }, (_, i) =>
-        `✅ [6-${i+1}] ${finalWhat[i]}  ／  [7-${i+1}] ${finalHow[i]}`
-      ).join("\n");
+
+      if (!hasWhat) {
+        // ① What を収集
+        const what_items = lines.length > 0 ? lines.slice(0, 6) : [message.slice(0, 100)];
+        const whatList = what_items.map((w, i) => `✅ [6-${i+1}] What: ${w}`).join("\n");
+        return {
+          reply: `**[6] What**（何をするか）として ${what_items.length} 件を記録しました。✅\n\n${whatList}\n\n次に、**[7] How**（どうやって実現するか：体制・予算・時期など）を、同じ件数で対応させて教えてください。`,
+          extracted: { what_how: { what_items, how_items: [], who_when: [] } },
+        };
+      }
+      if (!hasHow) {
+        // ② How を収集
+        const how_items = lines.length > 0 ? lines.slice(0, 6) : [message.slice(0, 100)];
+        const howList = how_items.map((h, i) => `✅ [7-${i+1}] How: ${h}`).join("\n");
+        return {
+          reply: `**[7] How**（実現手段）として ${how_items.length} 件を記録しました。✅\n\n${howList}\n\nOKなら「次のステップへ」で Step 4（合体前の点検）へ進めます。`,
+          extracted: { what_how: { what_items: [], how_items, who_when: [] } },
+        };
+      }
       return {
-        reply: `受け取りました。\n\n${pairList}\n\n「[6]/[7] の関係を確認した図です。追加・削除したい番号はありますか？」\nOKなら「次のステップへ」で Step 4（合体前の点検）へ進めます。`,
-        extracted: { what_how: { what_items: finalWhat.slice(0, len), how_items: finalHow.slice(0, len), who_when: [] } },
+        reply: `ありがとうございます。補足を記録しました。「次のステップへ」で Step 4 へ進みます。`,
+        extracted: undefined,
       };
     }
     case "step4_verify": {
@@ -216,11 +245,28 @@ function stepMockResponse(step: string, systemPrompt: string, message: string): 
       };
     }
     case "step5_combine": {
-      const hook = extractByPrefix(message, ["イントロ","フック","冒頭","始め","頭"]) || getLines(message)[0] || message.slice(0, 100);
-      const cta  = extractByPrefix(message, ["クロージング","CTA","締め","行動","次の行動"]) || getLines(message).slice(-1)[0] || "今すぐ始めましょう";
+      const hasHook = systemPrompt.includes("【[0] イントロ/フック");
+      const hasCTA  = systemPrompt.includes("【[8] クロージング/CTA");
+
+      if (!hasHook) {
+        // ① イントロ（フック）を収集
+        const hook = extractByPrefix(message, ["イントロ","フック","冒頭","始め","頭"]) || getLines(message)[0] || message.slice(0, 100);
+        return {
+          reply: `✅ **[0] イントロ**として「${hook.slice(0, 40)}」を記録しました。\n\n次に、**[8] クロージング（Call to Action）**を教えてください。プレゼン後に聴衆にしてほしい次のアクションを 1 文で。`,
+          extracted: { frame: { intro: { audience: "", hook }, closing: { cta: "" }, title: "" } },
+        };
+      }
+      if (!hasCTA) {
+        // ② クロージング（CTA）を収集
+        const cta = extractByPrefix(message, ["クロージング","CTA","締め","行動","次の行動"]) || getLines(message)[0] || message.slice(0, 100);
+        return {
+          reply: `✅ **[8] クロージング**として「${cta.slice(0, 40)}」を記録しました。\n\n**「次のステップへ」で合体ロボ図を完成させましょう！🤖**`,
+          extracted: { frame: { intro: { audience: "", hook: "" }, closing: { cta }, title: "" } },
+        };
+      }
       return {
-        reply: `✅ **[0] イントロ**と**[8] クロージング**を記録しました。\n\n**「次のステップへ」で合体ロボ図を完成させましょう！🤖**`,
-        extracted: { frame: { intro: { audience: "", hook }, closing: { cta }, title: "" } },
+        reply: `ありがとうございます。補足を記録しました。「次のステップへ」で合体ロボ図を完成させましょう！🤖`,
+        extracted: undefined,
       };
     }
     default: {
