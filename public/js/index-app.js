@@ -79,11 +79,11 @@ function renderResumeSection() {
 
 function formatStep(step) {
   const map = {
-    step1_head:      "Step 1",
-    step2_body:      "Step 2",
-    step3_right_arm: "Step 3",
-    step4_left_arm:  "Step 4",
-    step5_legs:      "Step 5",
+    step1_core:      "Step 1: 胴体（コア）",
+    step2_drilldown: "Step 2: 左腕・右腕",
+    step3_what_how:  "Step 3: 両足（2本柱）",
+    step4_verify:    "Step 4: 合体前の点検",
+    step5_combine:   "Step 5: 頭・台座",
     complete:        "✅ 完成",
   };
   return map[step] ?? step;

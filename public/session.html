@@ -37,43 +37,43 @@
 
   <!-- ── Step Indicator ── -->
   <div class="step-indicator" id="stepIndicator" role="progressbar" aria-label="進行ステップ">
-    <div class="step-item" data-step="step1_head">
+    <div class="step-item" data-step="step1_core">
       <div class="step-dot">1</div>
       <div class="step-name">
-        <span class="sn-main" data-t="step.step1_head.main">① 頭</span>
-        <span class="sn-sub" data-t="step.step1_head.sub">コンセプト・結論</span>
+        <span class="sn-main" data-t="step.step1_core.main">① 胴体（コア）</span>
+        <span class="sn-sub" data-t="step.step1_core.sub">現実→理想→提案</span>
       </div>
     </div>
     <div class="step-connector"></div>
-    <div class="step-item" data-step="step2_body">
+    <div class="step-item" data-step="step2_drilldown">
       <div class="step-dot">2</div>
       <div class="step-name">
-        <span class="sn-main" data-t="step.step2_body.main">② 胴体</span>
-        <span class="sn-sub" data-t="step.step2_body.sub">コアシステム</span>
+        <span class="sn-main" data-t="step.step2_drilldown.main">② 左腕・右腕</span>
+        <span class="sn-sub" data-t="step.step2_drilldown.sub">現実・理想の深掘り</span>
       </div>
     </div>
     <div class="step-connector"></div>
-    <div class="step-item" data-step="step3_right_arm">
+    <div class="step-item" data-step="step3_what_how">
       <div class="step-dot">3</div>
       <div class="step-name">
-        <span class="sn-main" data-t="step.step3_right_arm.main">③ 右腕</span>
-        <span class="sn-sub" data-t="step.step3_right_arm.sub">攻めの施策</span>
+        <span class="sn-main" data-t="step.step3_what_how.main">③ 両足（2本柱）</span>
+        <span class="sn-sub" data-t="step.step3_what_how.sub">何を？/ どうやって？</span>
       </div>
     </div>
     <div class="step-connector"></div>
-    <div class="step-item" data-step="step4_left_arm">
+    <div class="step-item" data-step="step4_verify">
       <div class="step-dot">4</div>
       <div class="step-name">
-        <span class="sn-main" data-t="step.step4_left_arm.main">④ 左腕</span>
-        <span class="sn-sub" data-t="step.step4_left_arm.sub">守りの施策</span>
+        <span class="sn-main" data-t="step.step4_verify.main">④ 合体前の点検</span>
+        <span class="sn-sub" data-t="step.step4_verify.sub">矛盾・ブレ検証</span>
       </div>
     </div>
     <div class="step-connector"></div>
-    <div class="step-item" data-step="step5_legs">
+    <div class="step-item" data-step="step5_combine">
       <div class="step-dot">5</div>
       <div class="step-name">
-        <span class="sn-main" data-t="step.step5_legs.main">⑤ 両足</span>
-        <span class="sn-sub" data-t="step.step5_legs.sub">土台・基盤</span>
+        <span class="sn-main" data-t="step.step5_combine.main">⑤ 頭・台座</span>
+        <span class="sn-sub" data-t="step.step5_combine.sub">イントロ・クロージング</span>
       </div>
     </div>
     <div class="step-connector"></div>
@@ -81,7 +81,7 @@
       <div class="step-dot">🤖</div>
       <div class="step-name">
         <span class="sn-main" data-t="step.complete.main">完成</span>
-        <span class="sn-sub" data-t="step.complete.sub">合体ロボ</span>
+        <span class="sn-sub" data-t="step.complete.sub">合体ロボ🤖</span>
       </div>
     </div>
   </div>
@@ -96,6 +96,24 @@
       </div>
 
       <div class="chat-input-area">
+        <!-- サブステップインジケーター（Step 1 胴体コア のみ表示） -->
+        <div class="substep-indicator" id="substepIndicator" hidden aria-label="Step 1 進行状況">
+          <div class="substep-item" data-substep="reality">
+            <div class="substep-dot"></div>
+            <div class="substep-label" data-t="substep.reality">①現実</div>
+          </div>
+          <div class="substep-connector"></div>
+          <div class="substep-item" data-substep="ideal">
+            <div class="substep-dot"></div>
+            <div class="substep-label" data-t="substep.ideal">②理想</div>
+          </div>
+          <div class="substep-connector"></div>
+          <div class="substep-item" data-substep="proposal">
+            <div class="substep-dot"></div>
+            <div class="substep-label" data-t="substep.proposal">③提案</div>
+          </div>
+        </div>
+
         <!-- ガード条件 未達通知 -->
         <div class="guard-notice" id="guardNotice" hidden role="alert">
           <div class="guard-notice-inner">
@@ -113,7 +131,6 @@
         <form class="chat-form" id="chatForm" autocomplete="off">
           <textarea
             class="chat-input" id="chatInput" rows="2"
-            data-t-attr="placeholder:chat.ph"
             placeholder="メッセージを入力… (Enter で送信、Shift+Enter で改行)"
             maxlength="4000" aria-label="メッセージ入力"></textarea>
           <button class="chat-send" id="chatSendBtn" type="submit" aria-label="送信">↑</button>

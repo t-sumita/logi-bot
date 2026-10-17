@@ -14,17 +14,21 @@ export function createSession(sessionId: string, title: string): LogiSession {
   return {
     sessionId,
     title,
-    step: "step1_head",
+    step: "step1_core",
     status: "in_progress",
     fast_track: false,
     createdAt: now,
     updatedAt: now,
     parts: {
-      head:      { concept: "", message: "" },
-      body:      { core_system: "" },
-      right_arm: { items: [] },
-      left_arm:  { items: [] },
-      legs:      { foundation: "", next_action: "" },
+      core:         { reality: "", ideal: "", proposal: "" },
+      drilldown:    { reality_factors: [], ideal_goals: [], gap_summary: "" },
+      what_how:     { what_items: [], how_items: [], who_when: [] },
+      verification: { contradictions: [], is_consistent: false },
+      frame: {
+        intro:   { audience: "", hook: "" },
+        closing: { cta: "" },
+        title:   "",
+      },
     },
     diagrams: {},
     history: [],
@@ -34,28 +38,47 @@ export function createSession(sessionId: string, title: string): LogiSession {
 // ── ガード条件 ─────────────────────────────────────────────────────
 
 function guardStep1(parts: SessionParts): string[] {
-  if (!parts.head.concept.trim()) return ["parts.head.concept"];
-  return [];
+  const missing: string[] = [];
+  if (!parts.core.reality.trim())  missing.push("parts.core.reality（①現実）");
+  if (!parts.core.ideal.trim())    missing.push("parts.core.ideal（②理想）");
+  if (!parts.core.proposal.trim()) missing.push("parts.core.proposal（③提案）");
+  return missing;
 }
 
 function guardStep2(parts: SessionParts): string[] {
-  if (!parts.body.core_system.trim()) return ["parts.body.core_system"];
-  return [];
+  const missing: string[] = [];
+  if (parts.drilldown.reality_factors.length < 1)
+    missing.push("parts.drilldown.reality_factors（現実の要因）");
+  if (parts.drilldown.ideal_goals.length < 1)
+    missing.push("parts.drilldown.ideal_goals（理想の目標）");
+  return missing;
 }
 
 function guardStep3(parts: SessionParts): string[] {
-  if (parts.right_arm.items.length < 1) return ["parts.right_arm.items"];
-  return [];
+  const missing: string[] = [];
+  if (parts.what_how.what_items.length < 1)
+    missing.push("parts.what_how.what_items（What）");
+  if (parts.what_how.how_items.length < 1)
+    missing.push("parts.what_how.how_items（How）");
+  return missing;
 }
 
 function guardStep4(parts: SessionParts): string[] {
-  if (parts.left_arm.items.length < 1) return ["parts.left_arm.items"];
+  if (!parts.verification.is_consistent)
+    return ["parts.verification.is_consistent（整合性確認）"];
+  const unresolved = parts.verification.contradictions.filter(
+    (c) => !c.resolution.trim()
+  );
+  if (unresolved.length > 0)
+    return [`矛盾 ${unresolved.length} 件が未解決です`];
   return [];
 }
 
 function guardStep5(parts: SessionParts): string[] {
-  if (!parts.legs.foundation.trim()) return ["parts.legs.foundation"];
-  return [];
+  const missing: string[] = [];
+  if (!parts.frame.intro.hook.trim())   missing.push("parts.frame.intro.hook（イントロ）");
+  if (!parts.frame.closing.cta.trim())  missing.push("parts.frame.closing.cta（クロージング）");
+  return missing;
 }
 
 export function checkGuard(
@@ -64,12 +87,12 @@ export function checkGuard(
 ): { ok: true } | { ok: false; missing: string[] } {
   let missing: string[] = [];
   switch (step) {
-    case "step1_head":     missing = guardStep1(parts); break;
-    case "step2_body":     missing = guardStep2(parts); break;
-    case "step3_right_arm": missing = guardStep3(parts); break;
-    case "step4_left_arm":  missing = guardStep4(parts); break;
-    case "step5_legs":     missing = guardStep5(parts); break;
-    default:               return { ok: true };
+    case "step1_core":      missing = guardStep1(parts); break;
+    case "step2_drilldown": missing = guardStep2(parts); break;
+    case "step3_what_how":  missing = guardStep3(parts); break;
+    case "step4_verify":    missing = guardStep4(parts); break;
+    case "step5_combine":   missing = guardStep5(parts); break;
+    default:                return { ok: true };
   }
   return missing.length === 0 ? { ok: true } : { ok: false, missing };
 }
@@ -77,28 +100,28 @@ export function checkGuard(
 // ── ファストトラック: 最初の不足ステップを計算 ────────────────────
 
 export function firstIncompleteStep(parts: SessionParts): StepName {
-  if (guardStep1(parts).length > 0) return "step1_head";
-  if (guardStep2(parts).length > 0) return "step2_body";
-  if (guardStep3(parts).length > 0) return "step3_right_arm";
-  if (guardStep4(parts).length > 0) return "step4_left_arm";
-  if (guardStep5(parts).length > 0) return "step5_legs";
+  if (guardStep1(parts).length > 0) return "step1_core";
+  if (guardStep2(parts).length > 0) return "step2_drilldown";
+  if (guardStep3(parts).length > 0) return "step3_what_how";
+  if (guardStep4(parts).length > 0) return "step4_verify";
+  if (guardStep5(parts).length > 0) return "step5_combine";
   return "complete";
 }
 
 // ── ステップ順序 ───────────────────────────────────────────────────
 
 const STEP_ORDER: StepName[] = [
-  "step1_head",
-  "step2_body",
-  "step3_right_arm",
-  "step4_left_arm",
-  "step5_legs",
+  "step1_core",
+  "step2_drilldown",
+  "step3_what_how",
+  "step4_verify",
+  "step5_combine",
   "complete",
 ];
 
 function prevStep(step: StepName): StepName | null {
   const idx = STEP_ORDER.indexOf(step);
-  // step1_head には戻れない
+  // step1_core には戻れない
   if (idx <= 0) return null;
   return STEP_ORDER[idx - 1];
 }
@@ -177,6 +200,7 @@ export function isBulkInput(message: string): boolean {
  * Claude が抽出した Partial<SessionParts> を既存セッションにマージする。
  * - 文字列: 非空の場合のみ上書き
  * - 配列: 非空の場合のみ上書き（追記ではなく置換）
+ * - boolean: undefined でない場合のみ上書き
  */
 export function mergeExtracted(
   session: LogiSession,
@@ -188,22 +212,41 @@ export function mergeExtracted(
   const e = extracted;
 
   const parts: typeof p = {
-    head: {
-      concept: e.head?.concept?.trim() || p.head.concept,
-      message: e.head?.message?.trim() || p.head.message,
+    core: {
+      reality:  e.core?.reality?.trim()  || p.core.reality,
+      ideal:    e.core?.ideal?.trim()    || p.core.ideal,
+      proposal: e.core?.proposal?.trim() || p.core.proposal,
     },
-    body: {
-      core_system: e.body?.core_system?.trim() || p.body.core_system,
+    drilldown: {
+      reality_factors: e.drilldown?.reality_factors?.length
+        ? e.drilldown.reality_factors : p.drilldown.reality_factors,
+      ideal_goals: e.drilldown?.ideal_goals?.length
+        ? e.drilldown.ideal_goals : p.drilldown.ideal_goals,
+      gap_summary: e.drilldown?.gap_summary?.trim() || p.drilldown.gap_summary,
     },
-    right_arm: {
-      items: e.right_arm?.items?.length ? e.right_arm.items : p.right_arm.items,
+    what_how: {
+      what_items: e.what_how?.what_items?.length
+        ? e.what_how.what_items : p.what_how.what_items,
+      how_items: e.what_how?.how_items?.length
+        ? e.what_how.how_items : p.what_how.how_items,
+      who_when: e.what_how?.who_when?.length
+        ? e.what_how.who_when : p.what_how.who_when,
     },
-    left_arm: {
-      items: e.left_arm?.items?.length ? e.left_arm.items : p.left_arm.items,
+    verification: {
+      contradictions: e.verification?.contradictions?.length
+        ? e.verification.contradictions : p.verification.contradictions,
+      is_consistent: e.verification?.is_consistent !== undefined
+        ? e.verification.is_consistent : p.verification.is_consistent,
     },
-    legs: {
-      foundation:  e.legs?.foundation?.trim()  || p.legs.foundation,
-      next_action: e.legs?.next_action?.trim() || p.legs.next_action,
+    frame: {
+      intro: {
+        audience: e.frame?.intro?.audience?.trim() || p.frame.intro.audience,
+        hook:     e.frame?.intro?.hook?.trim()     || p.frame.intro.hook,
+      },
+      closing: {
+        cta: e.frame?.closing?.cta?.trim() || p.frame.closing.cta,
+      },
+      title: e.frame?.title?.trim() || p.frame.title,
     },
   };
 

@@ -101,7 +101,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     return err(400, "invalid_input", "message が空です");
 
   // バルク抽出モード判定
-  const isBulk = body.step === "step1_head" && isBulkInput(body.message) && !body.session.parts.head.concept;
+  const isBulk = body.step === "step1_core" && isBulkInput(body.message) && !body.session.parts.core.reality;
   const systemPrompt = isBulk
     ? buildBulkSystemPrompt(body.session)
     : buildSystemPrompt(body.step, body.session);

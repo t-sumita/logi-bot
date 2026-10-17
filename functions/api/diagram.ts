@@ -9,8 +9,8 @@ function err(status: number, code: string, message: string): Response {
 }
 
 const VALID_STEPS: (StepName | "final")[] = [
-  "step1_head", "step2_body", "step3_right_arm",
-  "step4_left_arm", "step5_legs", "final",
+  "step1_core", "step2_drilldown", "step3_what_how",
+  "step4_verify", "step5_combine", "final",
 ];
 
 export const onRequest: PagesFunction<Env> = async (context) => {

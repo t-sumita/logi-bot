@@ -1,11 +1,11 @@
 // logi-bot の型定義。セッション状態・ステートマシン・API の共通型
 
 export type StepName =
-  | "step1_head"
-  | "step2_body"
-  | "step3_right_arm"
-  | "step4_left_arm"
-  | "step5_legs"
+  | "step1_core"
+  | "step2_drilldown"
+  | "step3_what_how"
+  | "step4_verify"
+  | "step5_combine"
   | "complete";
 
 export type SessionStatus = "in_progress" | "complete" | "error";
@@ -14,39 +14,67 @@ export type SessionEvent = "NEXT" | "BACK" | "RESET";
 
 // ── セッションパーツ ──────────────────────────────────────────────
 
-/** ① 頭（ヘッド）: コンセプト・結論 */
-export interface HeadPart {
-  concept: string;
-  message: string;
+/** Step 1: 胴体（コア）— 現実・理想・提案 */
+export interface CorePart {
+  reality: string;
+  ideal: string;
+  proposal: string;
 }
 
-/** ② 胴体（ボディ）: コアシステム・本質 */
-export interface BodyPart {
-  core_system: string;
+/** Step 2: 左腕・右腕（ドリルダウン）*/
+export interface DrilldownPart {
+  reality_factors: string[];
+  ideal_goals: string[];
+  gap_summary: string;
 }
 
-/** ③ 右腕（ライトアーム）: 攻めの施策 */
-export interface RightArmPart {
-  items: string[];
+export interface WhoWhen {
+  what_index: number;
+  who?: string;
+  when?: string;
 }
 
-/** ④ 左腕（レフトアーム）: 守りの施策 */
-export interface LeftArmPart {
-  items: string[];
+/** Step 3: 両足（What/How）*/
+export interface WhatHowPart {
+  what_items: string[];
+  how_items: string[];
+  who_when: WhoWhen[];
 }
 
-/** ⑤ 両足（レッグス）: 土台・基盤 */
-export interface LegsPart {
-  foundation: string;
-  next_action: string;
+export interface Contradiction {
+  description: string;
+  location: string;
+  resolution: string;
+}
+
+/** Step 4: 合体前の点検（検証）*/
+export interface VerifyPart {
+  contradictions: Contradiction[];
+  is_consistent: boolean;
+}
+
+export interface IntroPart {
+  audience: string;
+  hook: string;
+}
+
+export interface ClosingPart {
+  cta: string;
+}
+
+/** Step 5: 頭・台座（フレーム）*/
+export interface FramePart {
+  intro: IntroPart;
+  closing: ClosingPart;
+  title: string;
 }
 
 export interface SessionParts {
-  head: HeadPart;
-  body: BodyPart;
-  right_arm: RightArmPart;
-  left_arm: LeftArmPart;
-  legs: LegsPart;
+  core: CorePart;
+  drilldown: DrilldownPart;
+  what_how: WhatHowPart;
+  verification: VerifyPart;
+  frame: FramePart;
 }
 
 export interface SessionDiagrams {

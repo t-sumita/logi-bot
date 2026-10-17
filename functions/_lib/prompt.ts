@@ -17,49 +17,85 @@ export const SESSION_UPDATE_TOOL: Tool = {
   input_schema: {
     type: "object",
     properties: {
-      head: {
+      core: {
         type: "object",
-        description: "Step 1: 頭（ヘッド）— コンセプト・全体メッセージ",
+        description: "Step 1: 胴体（コア）— 現実・理想・提案（各 1〜2 文・最大 200 文字）",
         properties: {
-          concept: { type: "string", description: "全体のコンセプト・方向性（最大 200 文字）" },
-          message: { type: "string", description: "最も伝えたいメッセージ（最大 200 文字）" },
+          reality:  { type: "string", description: "現実の状況・課題" },
+          ideal:    { type: "string", description: "理想の状態・目標" },
+          proposal: { type: "string", description: "提案・解決策の核" },
         },
       },
-      body: {
+      drilldown: {
         type: "object",
-        description: "Step 2: 胴体（ボディ）— コアシステム・本質的な仕組み",
+        description: "Step 2: 左腕・右腕（ドリルダウン）— 各要素最大 100 文字・配列最大 6 個",
         properties: {
-          core_system: { type: "string", description: "ビジネスモデルの根幹・主要データ（最大 300 文字）" },
-        },
-      },
-      right_arm: {
-        type: "object",
-        description: "Step 3: 右腕（ライトアーム）— 攻めの施策（2〜3 項目）",
-        properties: {
-          items: {
+          reality_factors: {
             type: "array",
             items: { type: "string" },
-            description: "マーケティング・新規顧客開拓など攻めの施策（各最大 100 文字・2〜3 項目）",
+            description: "現実の問題点・制約・根本原因",
+          },
+          ideal_goals: {
+            type: "array",
+            items: { type: "string" },
+            description: "理想達成時の具体的成果・数値目標",
+          },
+          gap_summary: { type: "string", description: "現実と理想の最大のギャップ（最大 150 文字）" },
+        },
+      },
+      what_how: {
+        type: "object",
+        description: "Step 3: 両足（2本柱）— what_items と how_items は同数・各要素最大 100 文字",
+        properties: {
+          what_items: {
+            type: "array",
+            items: { type: "string" },
+            description: "変えること・作ること・やめること（What）",
+          },
+          how_items: {
+            type: "array",
+            items: { type: "string" },
+            description: "実行手段・体制・予算・時期（How、what_items と対応・同数）",
           },
         },
       },
-      left_arm: {
+      verification: {
         type: "object",
-        description: "Step 4: 左腕（レフトアーム）— 守りの施策（2〜3 項目）",
+        description: "Step 4: 合体前の点検 — 矛盾・ブレの検証結果",
         properties: {
-          items: {
+          is_consistent: { type: "boolean", description: "全体の論理整合性" },
+          contradictions: {
             type: "array",
-            items: { type: "string" },
-            description: "リスク管理・既存顧客維持など守りの施策（各最大 100 文字・2〜3 項目）",
+            items: {
+              type: "object",
+              properties: {
+                description: { type: "string" },
+                location:    { type: "string" },
+                resolution:  { type: "string" },
+              },
+              required: ["description", "location", "resolution"],
+            },
           },
         },
       },
-      legs: {
+      frame: {
         type: "object",
-        description: "Step 5: 両足（レッグス）— 土台・基盤・ネクストアクション",
+        description: "Step 5: 頭・台座 — イントロとクロージング",
         properties: {
-          foundation:  { type: "string", description: "企業理念・技術基盤・前提条件（最大 200 文字）" },
-          next_action: { type: "string", description: "ネクストアクション・次のステップ（最大 200 文字）" },
+          intro: {
+            type: "object",
+            properties: {
+              audience: { type: "string", description: "対象聴衆・読者" },
+              hook:     { type: "string", description: "イントロ・フック・冒頭の一文（最大 150 文字）" },
+            },
+          },
+          closing: {
+            type: "object",
+            properties: {
+              cta: { type: "string", description: "クロージング・Call to Action（最大 150 文字）" },
+            },
+          },
+          title: { type: "string", description: "全体タイトル・キャッチコピー（最大 60 文字）" },
         },
       },
     },
@@ -71,21 +107,37 @@ export const SESSION_UPDATE_TOOL: Tool = {
 function serializeParts(parts: SessionParts): string {
   const lines: string[] = [];
 
-  const { head, body, right_arm, left_arm, legs } = parts;
+  const { core, drilldown, what_how, verification, frame } = parts;
+  if (core.reality)   lines.push(`【現実（胴体コア①）】${core.reality}`);
+  if (core.ideal)     lines.push(`【理想（胴体コア②）】${core.ideal}`);
+  if (core.proposal)  lines.push(`【提案（胴体コア③）】${core.proposal}`);
 
-  if (head.concept)  lines.push(`【コンセプト（頭）】${head.concept}`);
-  if (head.message)  lines.push(`【メッセージ（頭）】${head.message}`);
+  if (drilldown.reality_factors.length > 0)
+    lines.push(`【現実の要因（左腕）】\n${drilldown.reality_factors.map((f) => `  - ${f}`).join("\n")}`);
+  if (drilldown.ideal_goals.length > 0)
+    lines.push(`【理想の成果（右腕）】\n${drilldown.ideal_goals.map((g) => `  - ${g}`).join("\n")}`);
+  if (drilldown.gap_summary)
+    lines.push(`【ギャップ】${drilldown.gap_summary}`);
 
-  if (body.core_system) lines.push(`【コアシステム（胴体）】${body.core_system}`);
+  if (what_how.what_items.length > 0) {
+    const pairs = what_how.what_items.map(
+      (w, i) => `  - What: ${w}  ／  How: ${what_how.how_items[i] ?? "（未入力）"}`
+    );
+    lines.push(`【What/How（両足）】\n${pairs.join("\n")}`);
+  }
 
-  if (right_arm.items.length > 0)
-    lines.push(`【攻めの施策（右腕）】\n${right_arm.items.map((f) => `  - ${f}`).join("\n")}`);
+  if (verification.contradictions.length > 0) {
+    lines.push(
+      `【矛盾・ブレ（点検）】\n${verification.contradictions
+        .map((c) => `  - ${c.description}（解決: ${c.resolution || "未解決"}）`)
+        .join("\n")}`
+    );
+  }
+  if (verification.is_consistent) lines.push("【整合性】✅ 確認済み");
 
-  if (left_arm.items.length > 0)
-    lines.push(`【守りの施策（左腕）】\n${left_arm.items.map((f) => `  - ${f}`).join("\n")}`);
-
-  if (legs.foundation)  lines.push(`【土台・基盤（両足）】${legs.foundation}`);
-  if (legs.next_action) lines.push(`【ネクストアクション（両足）】${legs.next_action}`);
+  if (frame.intro.hook)   lines.push(`【イントロ/フック（頭）】${frame.intro.hook}`);
+  if (frame.closing.cta)  lines.push(`【クロージング/CTA（台座）】${frame.closing.cta}`);
+  if (frame.title)        lines.push(`【タイトル】${frame.title}`);
 
   return lines.length > 0 ? lines.join("\n") : "（まだ情報はありません）";
 }
@@ -101,35 +153,35 @@ interface StepMeta {
 }
 
 const STEP_META: Partial<Record<StepName, StepMeta>> = {
-  step1_head: {
-    displayName: "Step 1: 頭（ヘッド）", index: 1,
-    purpose: "プレゼン全体のコンセプトと最も伝えたいメッセージを 1〜2 文で定義する",
-    requirements: "head.concept（コンセプト）",
-    nextHint: "コンセプトが明確になったら「次へ」ボタンを案内する。",
+  step1_core: {
+    displayName: "Step 1: 胴体（コア）", index: 1,
+    purpose: "現実・理想・提案の3要素を 1〜2 文で抽出する。①現実→②理想→③提案 の順に1つずつ確認する",
+    requirements: "core.reality（①現実） / core.ideal（②理想） / core.proposal（③提案）",
+    nextHint: "3要素が揃ったら「次へ」ボタンを案内する。",
   },
-  step2_body: {
-    displayName: "Step 2: 胴体（ボディ）", index: 2,
-    purpose: "ビジネスモデルの根幹・コアシステムの本質的な仕組みを定義する",
-    requirements: "body.core_system",
-    nextHint: "コアシステムの説明が揃ったら「次へ」を案内する。",
+  step2_drilldown: {
+    displayName: "Step 2: 左腕・右腕", index: 2,
+    purpose: "現実の問題・制約と理想の成果を具体化・数値化する（ドリルダウン）",
+    requirements: "drilldown.reality_factors（≥1）/ drilldown.ideal_goals（≥1）",
+    nextHint: "具体的な数値や原因が揃ったら「次へ」を案内する。",
   },
-  step3_right_arm: {
-    displayName: "Step 3: 右腕（ライトアーム）", index: 3,
-    purpose: "攻めの施策（マーケティング・新規顧客開拓など）を 2〜3 項目でドリルダウンする",
-    requirements: "right_arm.items（≥1 項目）",
-    nextHint: "攻めの施策が 2〜3 項目揃ったら「次へ」を案内する。",
+  step3_what_how: {
+    displayName: "Step 3: 両足（2本柱）", index: 3,
+    purpose: "提案の実現手段（何を・どうやって）を対にして具体化する",
+    requirements: "what_how.what_items / what_how.how_items（同数・各≥1）",
+    nextHint: "What と How が揃ったら「次へ」を案内する。",
   },
-  step4_left_arm: {
-    displayName: "Step 4: 左腕（レフトアーム）", index: 4,
-    purpose: "守りの施策（リスク管理・既存顧客維持など）を 2〜3 項目でドリルダウンする",
-    requirements: "left_arm.items（≥1 項目）",
-    nextHint: "守りの施策が 2〜3 項目揃ったら「次へ」を案内する。",
+  step4_verify: {
+    displayName: "Step 4: 合体前の点検", index: 4,
+    purpose: "ステップ1〜3 の要素間の矛盾・ブレを洗い出し解消する",
+    requirements: "verification.is_consistent = true",
+    nextHint: "整合性確認が取れたら「次へ」を案内する。",
   },
-  step5_legs: {
-    displayName: "Step 5: 両足（レッグス）", index: 5,
-    purpose: "プレゼンの土台となる企業理念・技術基盤・前提条件とネクストアクションを固める",
-    requirements: "legs.foundation（土台・基盤）",
-    nextHint: "土台とネクストアクションが揃ったら「完成」を案内する。",
+  step5_combine: {
+    displayName: "Step 5: 頭・台座", index: 5,
+    purpose: "イントロ（フック・頭）とクロージング（CTA・台座）を加えてシナリオを完成させる",
+    requirements: "frame.intro.hook（イントロ） / frame.closing.cta（クロージング）",
+    nextHint: "イントロとクロージングが揃ったら「完成」を案内する。",
   },
 };
 
@@ -159,15 +211,41 @@ export function buildSystemPrompt(step: StepName, session: LogiSession): string 
     ? `${meta.displayName}（${meta.index}/5）`
     : step;
 
-  return `あなたは「logi-bot」、永田豊志の図解思考メソッドに基づくAIファシリテーターです。
-利用者のアイデアを5パーツで構造化し、合体ロボMermaid図を完成させます。
+  let substepGuide = "";
+  if (step === "step1_core") {
+    const { reality, ideal, proposal } = session.parts.core;
+    if (!reality.trim()) {
+      substepGuide = `
+━━ サブステップガイド ━━
+現在のフェーズ: 【①現実】を埋める
+まず「現在の状況・問題点（現実）」だけを聞いてください。理想・提案はまだ聞かないこと。`;
+    } else if (!ideal.trim()) {
+      substepGuide = `
+━━ サブステップガイド ━━
+現在のフェーズ: 【②理想】を埋める
+現実は確認済みです。次に「理想の状態・目標」だけを聞いてください。提案はまだ聞かないこと。`;
+    } else if (!proposal.trim()) {
+      substepGuide = `
+━━ サブステップガイド ━━
+現在のフェーズ: 【③提案】を埋める
+現実と理想は確認済みです。次に「解決策・提案」を聞いてください。`;
+    } else {
+      substepGuide = `
+━━ サブステップガイド ━━
+現在のフェーズ: 3要素が揃いました
+内容を簡潔にまとめて確認を取り、「次へ」ボタンを案内してください。`;
+    }
+  }
 
-【合体ロボの5パーツ構成】
-① 頭（ヘッド）: コンセプト・結論 — 全体の方向性と最も伝えたいメッセージ
-② 胴体（ボディ）: コアシステム — ビジネスモデルの根幹・本質的な仕組み
-③ 右腕（ライトアーム）: 攻めの施策 — マーケティング・新規顧客開拓（2〜3項目）
-④ 左腕（レフトアーム）: 守りの施策 — リスク管理・既存顧客維持（2〜3項目）
-⑤ 両足（レッグス）: 土台・基盤 — 企業理念・技術基盤・ネクストアクション
+  return `あなたは「logi-bot」、永田豊志の図解思考メソッドに基づくAIファシリテーターです。
+利用者のアイデアを5ステップで構造化し、合体ロボMermaid図を完成させます。
+
+【合体ロボの5ステップ構成】
+① 胴体（コア）: 現実→理想→提案
+② 左腕・右腕: 現実と理想の深掘り（ドリルダウン）
+③ 両足（2本柱）: 何を？ / どうやって？
+④ 合体前の点検: 矛盾・ブレの検証
+⑤ 頭・台座: イントロ・クロージング
 
 ━━ 現在のステップ ━━
 ${stepLabel}
@@ -176,7 +254,7 @@ ${stepLabel}
 
 ━━ 収集済み情報 ━━
 ${serializeParts(session.parts)}
-
+${substepGuide}
 ━━ 応答ルール ━━
 1. 一度に 1〜2 問まで（質問を詰め込まない）
 2. 利用者の回答を要約して「〇〇ということですね？」と確認を取る
@@ -195,17 +273,17 @@ ${DRILLDOWN_GUIDANCE}`;
  */
 export function buildBulkSystemPrompt(session: LogiSession): string {
   return `あなたは「logi-bot」、図解思考AIファシリテーターです。
-ユーザーが貼り付けた長文・メモから、合体ロボの5パーツを一括で抽出します。
+ユーザーが貼り付けた長文・メモから、合体ロボの5ステップを一括で抽出します。
 
-【合体ロボの5パーツ構成】
-① 頭（ヘッド）: コンセプト・全体メッセージ
-② 胴体（ボディ）: コアシステム・本質的な仕組み
-③ 右腕（ライトアーム）: 攻めの施策（2〜3項目）
-④ 左腕（レフトアーム）: 守りの施策（2〜3項目）
-⑤ 両足（レッグス）: 土台・基盤・ネクストアクション
+【合体ロボの5ステップ構成】
+① 胴体（コア）: 現実・理想・提案
+② 左腕・右腕: 現実の問題点・理想の成果（ドリルダウン）
+③ 両足（2本柱）: What（何を）/ How（どうやって）
+④ 合体前の点検: 矛盾・ブレの検証
+⑤ 頭・台座: イントロ（フック）・クロージング（CTA）
 
 ━━ タスク ━━
-1. 入力テキストを解析し、5パーツの各 JSON フィールドに埋められる情報を全て抽出する
+1. 入力テキストを解析し、Step 1〜5 の各 JSON フィールドに埋められる情報を全て抽出する
 2. 推測・創作は一切しない。テキストに明記されている内容のみ抽出する
 3. update_session_parts ツールで抽出結果を返す（必須）
 4. 応答テキストでは以下を簡潔に伝える:
@@ -239,19 +317,19 @@ export const SESSION_UPDATE_DESCRIPTION = SESSION_UPDATE_TOOL.description;
 export function getWelcomeMessage(title: string): string {
   return `🤖 **logi-botへようこそ！**「${title || "新しいアイデア"}」を一緒に図解していきましょう。
 
-これから合体ロボの **5パーツ** を組み立てていきます。
+これから合体ロボの **5ステップ** を組み立てていきます：
 
 | # | パーツ | 役割 |
 |---|---|---|
-| 🧠 ① | 頭（ヘッド） | コンセプト・全体メッセージ |
-| 🫀 ② | 胴体（ボディ） | コアシステム・本質的な仕組み |
-| 💪 ③ | 右腕（ライトアーム） | 攻めの施策（2〜3項目） |
-| 🛡️ ④ | 左腕（レフトアーム） | 守りの施策（2〜3項目） |
-| 🦿 ⑤ | 両足（レッグス） | 土台・基盤・ネクストアクション |
+| 🫀 ① | 胴体（コア） | 現実・理想・提案 |
+| 💪🛡️ ② | 左腕・右腕 | 現実・理想の深掘り |
+| 🦿 ③ | 両足（2本柱） | 何を？ / どうやって？ |
+| 🔍 ④ | 合体前の点検 | 矛盾・ブレの検証 |
+| 🧠🗂️ ⑤ | 頭・台座 | イントロ・クロージング |
 
 ---
 
-まず **① 頭（ヘッド）** から始めましょう。
+まず **Step 1: 胴体（コア）** から始めましょう。
 
-「${title || "このプレゼン"}」で **最も伝えたいコンセプト・結論** を 1〜2 文で教えてください。`;
+まずはStep 1の **①現実（いま起きている課題）** を教えてください。`;
 }

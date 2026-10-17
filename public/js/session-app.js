@@ -7,38 +7,38 @@ import { copyMarkdown, downloadMarkdown } from "./export.js";
 
 // ── ステップ定義 ──────────────────────────────────────────────────
 const STEP_META = {
-  step1_head:     { label: "Step 1 / 5 — 🧠 頭（ヘッド）",        diagramKey: "step1", index: 1,
-    placeholder: "【① 頭：コンセプト・結論】例：重要メールだけをAIが自動選別し、確認時間を1日5分にする仕組み" },
-  step2_body:     { label: "Step 2 / 5 — 🫀 胴体（ボディ）",        diagramKey: "step2", index: 2,
-    placeholder: "【② 胴体：コアシステム・本質】例：受信メールの自動スコアリングと毎朝1回の要約ダイジェスト通知" },
-  step3_right_arm:{ label: "Step 3 / 5 — 💪 右腕（ライトアーム）",  diagramKey: "step3", index: 3,
-    placeholder: "【③ 右腕：攻めの施策】例：VIP顧客からの問い合わせ即応、商談メールの自動タスク化" },
-  step4_left_arm: { label: "Step 4 / 5 — 🛡️ 左腕（レフトアーム）", diagramKey: "step4", index: 4,
-    placeholder: "【④ 左腕：守りの施策】例：誤判定防止のホワイトリスト、セキュリティ・個人情報保護、週次見直し" },
-  step5_legs:     { label: "Step 5 / 5 — 🦿 両足（レッグス）",      diagramKey: "step5", index: 5,
-    placeholder: "【⑤ 両足：土台・前提条件】例：Gmail API＋Cloudflare Workers基盤、月額コスト500円以内、来月テスト開始" },
-  complete:       { label: "合体完了 🎉",                            diagramKey: "final", index: 6,
+  step1_core:      { label: "Step 1 / 5 — 🫀 胴体（コア）",        diagramKey: "step1", index: 1,
+    placeholder: "" },
+  step2_drilldown: { label: "Step 2 / 5 — 💪🛡️ 左腕・右腕",        diagramKey: "step2", index: 2,
+    placeholder: "【現実の原因データ／理想の数値目標を入力】例：現実＝1日120通受信・月3件見落とし ／ 理想＝見落としゼロ・確認5分以内" },
+  step3_what_how:  { label: "Step 3 / 5 — 🦿 両足（2本柱）",        diagramKey: "step3", index: 3,
+    placeholder: "【What（何を）／How（体制・予算・時期）を入力】例：What＝自動フィルタと要約通知 ／ How＝開発2週間・予算0円・来月開始" },
+  step4_verify:    { label: "Step 4 / 5 — 🔍 合体前の点検",          diagramKey: "step4", index: 4,
+    placeholder: "【修正したい点や追加の補足があれば入力】（問題なければ「次のステップへ」をクリック）" },
+  step5_combine:   { label: "Step 5 / 5 — 🧠🗂️ 頭・台座",           diagramKey: "step5", index: 5,
+    placeholder: "【頭（イントロ）／台座（クロージング・次の行動）を入力】例：イントロ＝メール処理に追われていませんか？ ／ 締め＝今週テスト導入しましょう" },
+  complete:        { label: "合体完了 🎉",                            diagramKey: "final", index: 6,
     placeholder: "" },
 };
 
-const STEP_ORDER = ["step1_head","step2_body","step3_right_arm","step4_left_arm","step5_legs","complete"];
+const STEP_ORDER = ["step1_core","step2_drilldown","step3_what_how","step4_verify","step5_combine","complete"];
 
 const WELCOME_MESSAGE = (title) =>
 `🤖 **logi-botへようこそ！**「${title}」を一緒に図解していきましょう。
 
-これから合体ロボの **5パーツ** を組み立てていきます：
+これから合体ロボの **5ステップ** を組み立てていきます：
 
-　🧠 **① 頭（ヘッド）** → コンセプト・全体メッセージ
-　🫀 **② 胴体（ボディ）** → コアシステム・本質的な仕組み
-　💪 **③ 右腕（ライトアーム）** → 攻めの施策（2〜3項目）
-　🛡️ **④ 左腕（レフトアーム）** → 守りの施策（2〜3項目）
-　🦿 **⑤ 両足（レッグス）** → 土台・基盤・ネクストアクション
+　🫀 **① 胴体（コア）** → 現実・理想・提案
+　💪🛡️ **② 左腕・右腕** → 現実・理想の深掘り
+　🦿 **③ 両足（2本柱）** → 何を？ / どうやって？
+　🔍 **④ 合体前の点検** → 矛盾・ブレの検証
+　🧠🗂️ **⑤ 頭・台座** → イントロ・クロージング
 
 ---
 
-まず **① 頭（ヘッド）** から始めましょう。
+まず **Step 1: 胴体（コア）** から始めましょう。
 
-「${title}」で **最も伝えたいコンセプト・結論** を 1〜2 文で教えてください。`;
+まずはStep 1の **①現実（いま起きている課題）** を教えてください。`;
 
 // ── アプリ状態 ────────────────────────────────────────────────────
 let session = null;
@@ -51,6 +51,7 @@ const $ = (id) => document.getElementById(id);
 const el = {
   title:            $("sessionTitle"),
   stepIndicator:    $("stepIndicator"),
+  substepIndicator: $("substepIndicator"),
   chatMessages:     $("chatMessages"),
   guardNotice:      $("guardNotice"),
   guardMissingList: $("guardMissingList"),
@@ -121,6 +122,7 @@ function renderAll() {
   el.title.textContent = session.title;
   document.title = `${session.title} — logi-bot`;
   renderStepIndicator();
+  updateStep1SubstepIndicator();
   renderNavButtons();
   updateDiagramPanel();
   updateChatPlaceholder();
@@ -148,22 +150,64 @@ function renderStepIndicator() {
 
 function renderNavButtons() {
   const step = session.step;
-  const canBack = ["step2_body","step3_right_arm","step4_left_arm","step5_legs"].includes(step);
-  const canNext = ["step1_head","step2_body","step3_right_arm","step4_left_arm","step5_legs"].includes(step);
+  const canBack = ["step2_drilldown","step3_what_how","step4_verify","step5_combine"].includes(step);
+  const canNext = ["step1_core","step2_drilldown","step3_what_how","step4_verify","step5_combine"].includes(step);
 
   el.backBtn.disabled = !canBack || isLoading;
   el.nextBtn.disabled = !canNext || isLoading;
 
-  if (step === "step5_legs")  el.nextBtn.textContent = "合体ロボを完成させる 🤖";
+  if (step === "step5_combine") el.nextBtn.textContent = "合体ロボを完成させる 🤖";
   else if (step === "complete") { el.nextBtn.textContent = "完成！"; el.nextBtn.disabled = true; }
   else                          el.nextBtn.textContent = "次のステップへ →";
 }
 
-/** 現在のステップに合わせてプレースホルダーを更新する */
+// ── Step 1 サブステップ ────────────────────────────────────────────
+
+function getStep1Substep() {
+  const { reality, ideal, proposal } = session.parts.core;
+  if (!reality)  return "reality";
+  if (!ideal)    return "ideal";
+  if (!proposal) return "proposal";
+  return "done";
+}
+
+function updateStep1SubstepIndicator() {
+  if (!el.substepIndicator) return;
+  const show = session.step === "step1_core";
+  el.substepIndicator.hidden = !show;
+  if (!show) return;
+
+  const substep = getStep1Substep();
+  const order = ["reality", "ideal", "proposal"];
+  const currentIdx = substep === "done" ? order.length : order.indexOf(substep);
+
+  el.substepIndicator.querySelectorAll(".substep-item").forEach((item, i) => {
+    item.classList.remove("done", "active", "todo");
+    if (i < currentIdx)        item.classList.add("done");
+    else if (i === currentIdx) item.classList.add("active");
+    else                       item.classList.add("todo");
+  });
+
+  el.substepIndicator.querySelectorAll(".substep-connector").forEach((c, i) => {
+    c.style.background = i < currentIdx ? "var(--c-step-done)" : "var(--c-step-todo)";
+  });
+}
+
+/** 現在のステップとサブステップに合わせてプレースホルダーを更新する */
 function updateChatPlaceholder() {
   if (!el.chatInput) return;
-  const meta = STEP_META[session.step];
-  el.chatInput.placeholder = meta?.placeholder || "メッセージを入力… (Enter で送信、Shift+Enter で改行)";
+  if (session.step === "step1_core") {
+    const placeholders = {
+      reality:  "【① 現実（今の課題）を入力】例：毎日大量のメールが届き、大事な連絡を見落としている",
+      ideal:    "【② 理想（あるべき姿）を入力】例：重要メールだけを即座に把握し、確認時間を1日5分に短縮できている状態",
+      proposal: "【③ 提案（解決策の核）を入力】例：AIによる重要メール自動選別＆毎朝の要約通知システムの導入",
+      done:     "3要素が揃いました！補足・修正があれば入力してください。「次へ」ボタンで Step 2 へ進めます。",
+    };
+    el.chatInput.placeholder = placeholders[getStep1Substep()] || "";
+  } else {
+    const meta = STEP_META[session.step];
+    el.chatInput.placeholder = meta?.placeholder || "メッセージを入力… (Enter で送信、Shift+Enter で改行)";
+  }
 }
 
 // ── 図パネル ──────────────────────────────────────────────────────
@@ -298,11 +342,11 @@ async function doAdvance(event) {
 
 function stepToDiagramKey(step) {
   const map = {
-    step1_head:      "step1",
-    step2_body:      "step2",
-    step3_right_arm: "step3",
-    step4_left_arm:  "step4",
-    step5_legs:      "step5",
+    step1_core:      "step1",
+    step2_drilldown: "step2",
+    step3_what_how:  "step3",
+    step4_verify:    "step4",
+    step5_combine:   "step5",
   };
   return map[step] ?? null;
 }

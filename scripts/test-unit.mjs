@@ -17,15 +17,19 @@ function createSession(sessionId, title) {
   const now = new Date().toISOString();
   return {
     sessionId, title,
-    step: "step1_head", status: "in_progress",
+    step: "step1_core", status: "in_progress",
     fast_track: false,
     createdAt: now, updatedAt: now,
     parts: {
-      head:      { concept: "", message: "" },
-      body:      { core_system: "" },
-      right_arm: { items: [] },
-      left_arm:  { items: [] },
-      legs:      { foundation: "", next_action: "" },
+      core:         { reality: "", ideal: "", proposal: "" },
+      drilldown:    { reality_factors: [], ideal_goals: [], gap_summary: "" },
+      what_how:     { what_items: [], how_items: [], who_when: [] },
+      verification: { contradictions: [], is_consistent: false },
+      frame: {
+        intro:   { audience: "", hook: "" },
+        closing: { cta: "" },
+        title:   "",
+      },
     },
     diagrams: {},
     history: [],
@@ -33,32 +37,43 @@ function createSession(sessionId, title) {
 }
 
 function guardStep1(parts) {
-  if (!parts.head.concept.trim()) return ["head.concept"];
-  return [];
+  const missing = [];
+  if (!parts.core.reality.trim())  missing.push("core.reality");
+  if (!parts.core.ideal.trim())    missing.push("core.ideal");
+  if (!parts.core.proposal.trim()) missing.push("core.proposal");
+  return missing;
 }
 function guardStep2(parts) {
-  if (!parts.body.core_system.trim()) return ["body.core_system"];
-  return [];
+  const missing = [];
+  if (parts.drilldown.reality_factors.length < 1) missing.push("drilldown.reality_factors");
+  if (parts.drilldown.ideal_goals.length < 1)     missing.push("drilldown.ideal_goals");
+  return missing;
 }
 function guardStep3(parts) {
-  if (parts.right_arm.items.length < 1) return ["right_arm.items"];
-  return [];
+  const missing = [];
+  if (parts.what_how.what_items.length < 1) missing.push("what_how.what_items");
+  if (parts.what_how.how_items.length < 1)  missing.push("what_how.how_items");
+  return missing;
 }
 function guardStep4(parts) {
-  if (parts.left_arm.items.length < 1) return ["left_arm.items"];
+  if (!parts.verification.is_consistent) return ["verification.is_consistent"];
+  const unresolved = parts.verification.contradictions.filter((c) => !c.resolution.trim());
+  if (unresolved.length > 0) return [`矛盾 ${unresolved.length} 件が未解決です`];
   return [];
 }
 function guardStep5(parts) {
-  if (!parts.legs.foundation.trim()) return ["legs.foundation"];
-  return [];
+  const missing = [];
+  if (!parts.frame.intro.hook.trim())   missing.push("frame.intro.hook");
+  if (!parts.frame.closing.cta.trim())  missing.push("frame.closing.cta");
+  return missing;
 }
 
 function firstIncompleteStep(parts) {
-  if (guardStep1(parts).length > 0) return "step1_head";
-  if (guardStep2(parts).length > 0) return "step2_body";
-  if (guardStep3(parts).length > 0) return "step3_right_arm";
-  if (guardStep4(parts).length > 0) return "step4_left_arm";
-  if (guardStep5(parts).length > 0) return "step5_legs";
+  if (guardStep1(parts).length > 0) return "step1_core";
+  if (guardStep2(parts).length > 0) return "step2_drilldown";
+  if (guardStep3(parts).length > 0) return "step3_what_how";
+  if (guardStep4(parts).length > 0) return "step4_verify";
+  if (guardStep5(parts).length > 0) return "step5_combine";
   return "complete";
 }
 
@@ -71,22 +86,32 @@ function mergeExtracted(session, extracted) {
   return {
     ...session,
     parts: {
-      head: {
-        concept: e.head?.concept?.trim() || p.head.concept,
-        message: e.head?.message?.trim() || p.head.message,
+      core: {
+        reality:  e.core?.reality?.trim()  || p.core.reality,
+        ideal:    e.core?.ideal?.trim()    || p.core.ideal,
+        proposal: e.core?.proposal?.trim() || p.core.proposal,
       },
-      body: {
-        core_system: e.body?.core_system?.trim() || p.body.core_system,
+      drilldown: {
+        reality_factors: e.drilldown?.reality_factors?.length ? e.drilldown.reality_factors : p.drilldown.reality_factors,
+        ideal_goals:     e.drilldown?.ideal_goals?.length     ? e.drilldown.ideal_goals     : p.drilldown.ideal_goals,
+        gap_summary:     e.drilldown?.gap_summary?.trim()     || p.drilldown.gap_summary,
       },
-      right_arm: {
-        items: e.right_arm?.items?.length ? e.right_arm.items : p.right_arm.items,
+      what_how: {
+        what_items: e.what_how?.what_items?.length ? e.what_how.what_items : p.what_how.what_items,
+        how_items:  e.what_how?.how_items?.length  ? e.what_how.how_items  : p.what_how.how_items,
+        who_when:   e.what_how?.who_when?.length   ? e.what_how.who_when   : p.what_how.who_when,
       },
-      left_arm: {
-        items: e.left_arm?.items?.length ? e.left_arm.items : p.left_arm.items,
+      verification: {
+        contradictions: e.verification?.contradictions?.length ? e.verification.contradictions : p.verification.contradictions,
+        is_consistent:  e.verification?.is_consistent !== undefined ? e.verification.is_consistent : p.verification.is_consistent,
       },
-      legs: {
-        foundation:  e.legs?.foundation?.trim()  || p.legs.foundation,
-        next_action: e.legs?.next_action?.trim() || p.legs.next_action,
+      frame: {
+        intro: {
+          audience: e.frame?.intro?.audience?.trim() || p.frame.intro.audience,
+          hook:     e.frame?.intro?.hook?.trim()     || p.frame.intro.hook,
+        },
+        closing: { cta: e.frame?.closing?.cta?.trim() || p.frame.closing.cta },
+        title:   e.frame?.title?.trim() || p.frame.title,
       },
     },
   };
@@ -116,125 +141,152 @@ function q(raw, fallback = "（未入力）") {
 
 // ── テスト: session ───────────────────────────────────────────────
 
-test("createSession — step1_head 状態で生成される", () => {
+test("createSession — step1_core 状態で生成される", () => {
   const s = createSession("test-id", "テストセッション");
-  assert.equal(s.step, "step1_head");
+  assert.equal(s.step, "step1_core");
   assert.equal(s.status, "in_progress");
   assert.equal(s.fast_track, false);
   assert.deepEqual(s.diagrams, {});
   assert.deepEqual(s.history, []);
 });
 
-test("createSession — 新スキーマの parts が生成される", () => {
+test("createSession — 正しい parts が生成される", () => {
   const s = createSession("test-id", "テスト");
-  assert.deepEqual(s.parts.head, { concept: "", message: "" });
-  assert.deepEqual(s.parts.body, { core_system: "" });
-  assert.deepEqual(s.parts.right_arm, { items: [] });
-  assert.deepEqual(s.parts.left_arm, { items: [] });
-  assert.deepEqual(s.parts.legs, { foundation: "", next_action: "" });
+  assert.deepEqual(s.parts.core, { reality: "", ideal: "", proposal: "" });
+  assert.deepEqual(s.parts.drilldown, { reality_factors: [], ideal_goals: [], gap_summary: "" });
+  assert.deepEqual(s.parts.what_how, { what_items: [], how_items: [], who_when: [] });
+  assert.deepEqual(s.parts.verification, { contradictions: [], is_consistent: false });
+  assert.deepEqual(s.parts.frame.intro, { audience: "", hook: "" });
+  assert.deepEqual(s.parts.frame.closing, { cta: "" });
 });
 
-test("guardStep1 — concept が空の場合は missing", () => {
+test("guardStep1 — 全て空の場合は3件の missing", () => {
   const s = createSession("x", "x");
   const missing = guardStep1(s.parts);
-  assert.equal(missing.length, 1);
-  assert.ok(missing[0].includes("head.concept"));
+  assert.equal(missing.length, 3);
 });
 
-test("guardStep1 — concept 入力済みの場合は通過", () => {
+test("guardStep1 — reality のみ入力済みは2件の missing", () => {
   const s = createSession("x", "x");
-  s.parts.head.concept = "AIでメール管理を革新する";
+  s.parts.core.reality = "現在の課題";
+  assert.equal(guardStep1(s.parts).length, 2);
+});
+
+test("guardStep1 — 全て入力済みは通過", () => {
+  const s = createSession("x", "x");
+  s.parts.core.reality  = "現在の課題";
+  s.parts.core.ideal    = "理想の状態";
+  s.parts.core.proposal = "解決策";
   assert.equal(guardStep1(s.parts).length, 0);
 });
 
-test("guardStep2 — core_system が空の場合は missing", () => {
+test("guardStep2 — reality_factors と ideal_goals が空の場合は missing", () => {
   const s = createSession("x", "x");
-  const missing = guardStep2(s.parts);
-  assert.equal(missing.length, 1);
-  assert.ok(missing[0].includes("core_system"));
+  assert.ok(guardStep2(s.parts).length > 0);
 });
 
-test("guardStep2 — core_system 入力済みの場合は通過", () => {
+test("guardStep2 — 両方1件以上あれば通過", () => {
   const s = createSession("x", "x");
-  s.parts.body.core_system = "自動スコアリングエンジン";
+  s.parts.drilldown.reality_factors = ["要因1"];
+  s.parts.drilldown.ideal_goals     = ["目標1"];
   assert.equal(guardStep2(s.parts).length, 0);
 });
 
-test("guardStep3 — right_arm.items が空の場合は missing", () => {
+test("guardStep3 — what_items と how_items が空の場合は missing", () => {
   const s = createSession("x", "x");
   assert.ok(guardStep3(s.parts).length > 0);
 });
 
-test("guardStep3 — right_arm.items に1件以上あれば通過", () => {
+test("guardStep3 — 両方1件以上あれば通過", () => {
   const s = createSession("x", "x");
-  s.parts.right_arm.items = ["VIP顧客の即時対応"];
+  s.parts.what_how.what_items = ["何を"];
+  s.parts.what_how.how_items  = ["どうやって"];
   assert.equal(guardStep3(s.parts).length, 0);
 });
 
-test("guardStep4 — left_arm.items が空の場合は missing", () => {
+test("guardStep4 — is_consistent が false の場合は missing", () => {
   const s = createSession("x", "x");
   assert.ok(guardStep4(s.parts).length > 0);
 });
 
-test("guardStep4 — left_arm.items に1件以上あれば通過", () => {
+test("guardStep4 — is_consistent が true の場合は通過", () => {
   const s = createSession("x", "x");
-  s.parts.left_arm.items = ["誤判定防止ホワイトリスト"];
+  s.parts.verification.is_consistent = true;
   assert.equal(guardStep4(s.parts).length, 0);
 });
 
-test("guardStep5 — foundation が空の場合は missing", () => {
+test("guardStep5 — hook と cta が空の場合は missing", () => {
   const s = createSession("x", "x");
-  assert.equal(guardStep5(s.parts).length, 1);
+  assert.ok(guardStep5(s.parts).length > 0);
 });
 
-test("guardStep5 — foundation 入力済みの場合は通過", () => {
+test("guardStep5 — 両方入力済みの場合は通過", () => {
   const s = createSession("x", "x");
-  s.parts.legs.foundation = "Gmail API + Cloudflare Workers";
+  s.parts.frame.intro.hook   = "フック";
+  s.parts.frame.closing.cta  = "行動促進";
   assert.equal(guardStep5(s.parts).length, 0);
 });
 
-test("firstIncompleteStep — 全て空の場合は step1_head", () => {
+test("firstIncompleteStep — 全て空の場合は step1_core", () => {
   const s = createSession("x", "x");
-  assert.equal(firstIncompleteStep(s.parts), "step1_head");
+  assert.equal(firstIncompleteStep(s.parts), "step1_core");
 });
 
-test("firstIncompleteStep — step1 埋まっていると step2_body", () => {
+test("firstIncompleteStep — step1 埋まっていると step2_drilldown", () => {
   const s = createSession("x", "x");
-  s.parts.head.concept = "コンセプト";
-  assert.equal(firstIncompleteStep(s.parts), "step2_body");
+  s.parts.core.reality  = "現実";
+  s.parts.core.ideal    = "理想";
+  s.parts.core.proposal = "提案";
+  assert.equal(firstIncompleteStep(s.parts), "step2_drilldown");
 });
 
-test("firstIncompleteStep — step1+2 埋まっていると step3_right_arm", () => {
+test("firstIncompleteStep — step1+2 埋まっていると step3_what_how", () => {
   const s = createSession("x", "x");
-  s.parts.head.concept = "コンセプト";
-  s.parts.body.core_system = "コアシステム";
-  assert.equal(firstIncompleteStep(s.parts), "step3_right_arm");
+  s.parts.core.reality  = "現実";
+  s.parts.core.ideal    = "理想";
+  s.parts.core.proposal = "提案";
+  s.parts.drilldown.reality_factors = ["要因1"];
+  s.parts.drilldown.ideal_goals     = ["目標1"];
+  assert.equal(firstIncompleteStep(s.parts), "step3_what_how");
 });
 
-test("firstIncompleteStep — step1+2+3 埋まっていると step4_left_arm", () => {
+test("firstIncompleteStep — step1+2+3 埋まっていると step4_verify", () => {
   const s = createSession("x", "x");
-  s.parts.head.concept = "コンセプト";
-  s.parts.body.core_system = "コアシステム";
-  s.parts.right_arm.items = ["攻め施策1"];
-  assert.equal(firstIncompleteStep(s.parts), "step4_left_arm");
+  s.parts.core.reality  = "現実";
+  s.parts.core.ideal    = "理想";
+  s.parts.core.proposal = "提案";
+  s.parts.drilldown.reality_factors = ["要因1"];
+  s.parts.drilldown.ideal_goals     = ["目標1"];
+  s.parts.what_how.what_items = ["何を"];
+  s.parts.what_how.how_items  = ["どうやって"];
+  assert.equal(firstIncompleteStep(s.parts), "step4_verify");
 });
 
-test("firstIncompleteStep — step1+2+3+4 埋まっていると step5_legs", () => {
+test("firstIncompleteStep — step1+2+3+4 埋まっていると step5_combine", () => {
   const s = createSession("x", "x");
-  s.parts.head.concept = "コンセプト";
-  s.parts.body.core_system = "コアシステム";
-  s.parts.right_arm.items = ["攻め施策1"];
-  s.parts.left_arm.items  = ["守り施策1"];
-  assert.equal(firstIncompleteStep(s.parts), "step5_legs");
+  s.parts.core.reality  = "現実";
+  s.parts.core.ideal    = "理想";
+  s.parts.core.proposal = "提案";
+  s.parts.drilldown.reality_factors = ["要因1"];
+  s.parts.drilldown.ideal_goals     = ["目標1"];
+  s.parts.what_how.what_items = ["何を"];
+  s.parts.what_how.how_items  = ["どうやって"];
+  s.parts.verification.is_consistent = true;
+  assert.equal(firstIncompleteStep(s.parts), "step5_combine");
 });
 
 test("firstIncompleteStep — 全て埋まっていると complete", () => {
   const s = createSession("x", "x");
-  s.parts.head.concept     = "コンセプト";
-  s.parts.body.core_system = "コアシステム";
-  s.parts.right_arm.items  = ["攻め施策1"];
-  s.parts.left_arm.items   = ["守り施策1"];
-  s.parts.legs.foundation  = "基盤";
+  s.parts.core.reality  = "現実";
+  s.parts.core.ideal    = "理想";
+  s.parts.core.proposal = "提案";
+  s.parts.drilldown.reality_factors = ["要因1"];
+  s.parts.drilldown.ideal_goals     = ["目標1"];
+  s.parts.what_how.what_items = ["何を"];
+  s.parts.what_how.how_items  = ["どうやって"];
+  s.parts.verification.is_consistent = true;
+  s.parts.frame.intro.hook   = "フック";
+  s.parts.frame.closing.cta  = "行動";
   assert.equal(firstIncompleteStep(s.parts), "complete");
 });
 
@@ -248,37 +300,37 @@ test("isBulkInput — 101文字以上は true", () => {
 
 test("mergeExtracted — 空の extracted はセッションを変えない", () => {
   const s = createSession("x", "x");
-  s.parts.head.concept = "既存のコンセプト";
+  s.parts.core.reality = "既存の現実";
   const merged = mergeExtracted(s, undefined);
-  assert.equal(merged.parts.head.concept, "既存のコンセプト");
+  assert.equal(merged.parts.core.reality, "既存の現実");
 });
 
 test("mergeExtracted — 新しい値で既存フィールドを上書きする", () => {
   const s = createSession("x", "x");
-  s.parts.head.concept = "古いコンセプト";
-  const merged = mergeExtracted(s, { head: { concept: "新しいコンセプト", message: "" } });
-  assert.equal(merged.parts.head.concept, "新しいコンセプト");
+  s.parts.core.reality = "古い現実";
+  const merged = mergeExtracted(s, { core: { reality: "新しい現実", ideal: "", proposal: "" } });
+  assert.equal(merged.parts.core.reality, "新しい現実");
 });
 
 test("mergeExtracted — 空文字列では上書きしない", () => {
   const s = createSession("x", "x");
-  s.parts.head.concept = "保持すべきコンセプト";
-  const merged = mergeExtracted(s, { head: { concept: "", message: "" } });
-  assert.equal(merged.parts.head.concept, "保持すべきコンセプト");
+  s.parts.core.reality = "保持すべき現実";
+  const merged = mergeExtracted(s, { core: { reality: "", ideal: "", proposal: "" } });
+  assert.equal(merged.parts.core.reality, "保持すべき現実");
 });
 
 test("mergeExtracted — 配列は空配列では上書きしない", () => {
   const s = createSession("x", "x");
-  s.parts.right_arm.items = ["既存の施策"];
-  const merged = mergeExtracted(s, { right_arm: { items: [] } });
-  assert.deepEqual(merged.parts.right_arm.items, ["既存の施策"]);
+  s.parts.drilldown.reality_factors = ["既存の要因"];
+  const merged = mergeExtracted(s, { drilldown: { reality_factors: [], ideal_goals: [], gap_summary: "" } });
+  assert.deepEqual(merged.parts.drilldown.reality_factors, ["既存の要因"]);
 });
 
 test("mergeExtracted — 配列は非空なら上書きする", () => {
   const s = createSession("x", "x");
-  s.parts.right_arm.items = ["古い施策"];
-  const merged = mergeExtracted(s, { right_arm: { items: ["新しい施策A", "新しい施策B"] } });
-  assert.deepEqual(merged.parts.right_arm.items, ["新しい施策A", "新しい施策B"]);
+  s.parts.drilldown.reality_factors = ["古い要因"];
+  const merged = mergeExtracted(s, { drilldown: { reality_factors: ["新しい要因A", "新しい要因B"], ideal_goals: [], gap_summary: "" } });
+  assert.deepEqual(merged.parts.drilldown.reality_factors, ["新しい要因A", "新しい要因B"]);
 });
 
 // ── テスト: mermaid サニタイズ ────────────────────────────────────
