@@ -50,6 +50,8 @@ const WELCOME_MESSAGE = (title) =>
 let session = null;
 let isLoading = false;
 let currentDiagramSource = "";
+/** 1手戻し用スナップショット: { session, message } */
+let undoSnapshot = null;
 
 // ── DOM refs ─────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
@@ -78,6 +80,7 @@ const el = {
   copyMdBtn:        $("copyMdBtn"),
   downloadMdBtn:    $("downloadMdBtn"),
   statusMdBtn:      $("statusMdBtn"),
+  undoBtn:          $("undoBtn"),
 };
 
 // ── 初期化 ────────────────────────────────────────────────────────
@@ -233,6 +236,27 @@ function onNodeClick(nodeId, label) {
   el.chatInput.setSelectionRange(insertText.length, insertText.length);
 }
 
+// ── Undo（1手戻し）─────────────────────────────────────────────────
+
+function updateUndoBtn() {
+  if (el.undoBtn) el.undoBtn.disabled = !undoSnapshot || isLoading;
+}
+
+/** 直前の送信を取り消し、入力欄に元のテキストを戻す */
+function undoLastTurn() {
+  if (!undoSnapshot || isLoading) return;
+  session = undoSnapshot.session;
+  const prevMessage = undoSnapshot.message;
+  undoSnapshot = null;
+  saveSession(session);
+  el.chatInput.value = prevMessage;
+  restoreHistory();
+  renderAll();
+  el.chatInput.focus();
+  el.chatInput.setSelectionRange(prevMessage.length, prevMessage.length);
+  updateUndoBtn();
+}
+
 // ── チャット ──────────────────────────────────────────────────────
 function addMessage(role, content) {
   const div = document.createElement("div");
@@ -280,6 +304,10 @@ function escHtml(str) {
 async function sendChat() {
   const message = el.chatInput.value.trim();
   if (!message || isLoading) return;
+
+  // 送信前スナップショット保存（Undo 用）
+  undoSnapshot = { session: JSON.parse(JSON.stringify(session)), message };
+  updateUndoBtn();
 
   el.chatInput.value = "";
   el.guardNotice.hidden = true;
@@ -380,6 +408,7 @@ function setLoading(v) {
   isLoading = v;
   el.chatSendBtn.disabled = v;
   el.chatInput.disabled   = v;
+  updateUndoBtn();
   if (!v) renderNavButtons();
   else    { el.nextBtn.disabled = true; el.backBtn.disabled = true; }
   document.body.classList.toggle("loading", v);
@@ -415,6 +444,9 @@ function bindEvents() {
     el.modalDiagram.hidden = mode !== "svg";
     el.modalCode.hidden    = mode !== "code";
   });
+
+  // Undo（1手戻し）
+  el.undoBtn?.addEventListener("click", undoLastTurn);
 
   // エクスポート
   el.copyMdBtn.addEventListener("click", () => copyMarkdown(session));

@@ -133,10 +133,18 @@ function detectStep(systemPrompt: string): string {
 }
 
 function detectStep1Substep(systemPrompt: string): "reality" | "ideal" | "proposal" | "done" {
-  if (systemPrompt.includes("【①現実】")) return "reality";
-  if (systemPrompt.includes("【②理想】")) return "ideal";
-  if (systemPrompt.includes("【③提案】")) return "proposal";
+  // v0.8.0 サブステップガイドのマーカー（buildSystemPrompt が出力する文字列と一致させる）
+  if (systemPrompt.includes("**[1] 現実** を聞く")) return "reality";
+  if (systemPrompt.includes("**[2] 理想** を聞く")) return "ideal";
+  if (systemPrompt.includes("**[3] 提案** を聞く")) return "proposal";
   if (systemPrompt.includes("3要素が揃いました")) return "done";
+  // フォールバック: serializeParts が出力する収集済み情報から推定
+  const hasReality  = systemPrompt.includes("【[1] 現実】");
+  const hasIdeal    = systemPrompt.includes("【[2] 理想】");
+  const hasProposal = systemPrompt.includes("【[3] 提案】");
+  if (hasReality && hasIdeal && hasProposal) return "done";
+  if (hasReality && hasIdeal)    return "proposal";
+  if (hasReality)                return "ideal";
   return "reality";
 }
 
