@@ -383,4 +383,206 @@ test("q — 特殊文字 () [] {} を含むラベルは壊れない", () => {
   assert.ok(!inner.includes('"'));
 });
 
+// ── テスト: import-parser（import-parser.js のロジックをインライン再現）─
+
+function emptyParts() {
+  return {
+    core:         { reality: "", ideal: "", proposal: "" },
+    drilldown:    { reality_factors: [], ideal_goals: [], gap_summary: "" },
+    what_how:     { what_items: [], how_items: [], who_when: [] },
+    verification: { contradictions: [], is_consistent: false },
+    frame:        { intro: { audience: "", hook: "" }, closing: { cta: "" }, title: "" },
+  };
+}
+function isStatusMdLike(text) {
+  return (
+    text.includes("セッション状態ファイル — logi-bot") ||
+    (text.includes("## 確定事項") && /- \[\d/.test(text)) ||
+    (text.includes("## AI案") && /- \[\d/.test(text))
+  );
+}
+function isMdExportLike(text) {
+  return text.includes("## Step 1: コア") || /\*\*\[1\] 現実\*\*:/.test(text);
+}
+function extractTitle(text) {
+  const m1 = text.match(/>\s*\*\*タイトル\*\*:\s*(.+)/);
+  if (m1) return m1[1].trim();
+  const m2 = text.match(/^#\s+(?!セッション状態)(.+)/m);
+  return m2 ? m2[1].trim() : "";
+}
+function parseStatusMdInto(text, parts) {
+  const nodeMap = new Map();
+  for (const line of text.split("\n")) {
+    const m = line.match(/^\s*-\s*\[(\d+(?:-\d+)?)\]\s+(.+)/);
+    if (!m) continue;
+    if (!nodeMap.has(m[1])) nodeMap.set(m[1], m[2].trim());
+  }
+  if (nodeMap.has("0")) parts.frame.intro.hook    = nodeMap.get("0");
+  if (nodeMap.has("1")) parts.core.reality         = nodeMap.get("1");
+  if (nodeMap.has("2")) parts.core.ideal           = nodeMap.get("2");
+  if (nodeMap.has("3")) parts.core.proposal        = nodeMap.get("3");
+  if (nodeMap.has("8")) parts.frame.closing.cta    = nodeMap.get("8");
+  const sorted = [...nodeMap.keys()].sort((a, b) => {
+    const [am, an] = a.split("-").map(Number);
+    const [bm, bn] = b.split("-").map(Number);
+    return am !== bm ? am - bm : (an || 0) - (bn || 0);
+  });
+  for (const id of sorted) {
+    const v = nodeMap.get(id);
+    if (/^4-\d+$/.test(id)) parts.drilldown.reality_factors.push(v);
+    else if (/^5-\d+$/.test(id)) parts.drilldown.ideal_goals.push(v);
+    else if (/^6-\d+$/.test(id)) parts.what_how.what_items.push(v);
+    else if (/^7-\d+$/.test(id)) parts.what_how.how_items.push(v);
+  }
+}
+function parseMdExportInto(text, parts) {
+  const pick = (re) => { const m = text.match(re); return m ? m[1].trim() : ""; };
+  parts.core.reality      = pick(/\*\*\[1\][^*]*\*\*:\s*(.+)/);
+  parts.core.ideal        = pick(/\*\*\[2\][^*]*\*\*:\s*(.+)/);
+  parts.core.proposal     = pick(/\*\*\[3\][^*]*\*\*:\s*(.+)/);
+  parts.frame.intro.hook  = pick(/\*\*\[0\][^*]*\*\*:\s*(.+)/);
+  parts.frame.closing.cta = pick(/\*\*\[8\][^*]*\*\*:\s*(.+)/);
+  let section = "";
+  for (const line of text.split("\n")) {
+    if (/###.+\[4/.test(line)) { section = "4"; continue; }
+    if (/###.+\[5/.test(line)) { section = "5"; continue; }
+    if (line.startsWith("##")) { section = ""; continue; }
+    if (section === "4") {
+      const m = line.match(/^\s*-\s*\[\d+-\d+\]\s+(.+)/);
+      if (m) parts.drilldown.reality_factors.push(m[1].trim());
+    } else if (section === "5") {
+      const m = line.match(/^\s*-\s*\[\d+-\d+\]\s+(.+)/);
+      if (m) parts.drilldown.ideal_goals.push(m[1].trim());
+    }
+  }
+  for (const m of text.matchAll(/\|\s*\[[\d-]+\]\/\[[\d-]+\]\s*\|\s*([^|]+)\|\s*([^|]+)\|/g)) {
+    const what = m[1].trim(); const how = m[2].trim();
+    if (what) parts.what_how.what_items.push(what);
+    if (how)  parts.what_how.how_items.push(how);
+  }
+}
+function parseImportText(text) {
+  const isStatus = isStatusMdLike(text);
+  const isMdExport = !isStatus && isMdExportLike(text);
+  if (!isStatus && !isMdExport) return null;
+  const title = extractTitle(text) || "読み込んだセッション";
+  const parts = emptyParts();
+  if (isStatus) parseStatusMdInto(text, parts);
+  else parseMdExportInto(text, parts);
+  return { parts, title };
+}
+
+const STATUS_MD_SAMPLE = `# セッション状態ファイル — logi-bot
+
+> **タイトル**: テストプロジェクト
+> **セッション ID**: \`abc123\`
+
+## 確定事項
+
+- [1] 現状の課題がある
+- [2] 理想の状態がある
+- [3] 解決策がある
+- [4-1] 現実の詳細A
+- [4-2] 現実の詳細B
+- [5-1] 理想の詳細X
+- [6-1] What1
+- [7-1] How1
+- [0] イントロフック
+- [8] クロージングCTA
+`;
+
+const MD_EXPORT_SAMPLE = `# Markdownエクスポートテスト
+
+## Step 1: コア（胸・腹）
+
+- **[1] 現実**: md現実テキスト
+- **[2] 理想**: md理想テキスト
+- **[3] 提案**: md提案テキスト
+
+## Step 2: ドリルダウン（両腕）
+
+### [4-N] 現実の詳細（左腕）
+- [4-1] md現実詳細1
+
+### [5-N] 理想の詳細（右腕）
+- [5-1] md理想詳細1
+
+## Step 3: What / How（両脚）
+
+| 番号 | What（何を）| How（どうやって）|
+|---|---|---|
+| [6-1]/[7-1] | mdWhat1 | mdHow1 |
+
+## Step 5: 頭・台座
+
+- **[0] イントロ（フック）**: mdフック
+- **[8] クロージング CTA**: mdCTA
+`;
+
+test("parseImportText — 通常テキストは null を返す", () => {
+  assert.equal(parseImportText("普通のメモです。箇条書きがあります。"), null);
+  assert.equal(parseImportText(""), null);
+});
+
+test("parseImportText — STATUS.md 形式を検出する", () => {
+  const result = parseImportText(STATUS_MD_SAMPLE);
+  assert.ok(result !== null);
+});
+
+test("parseImportText — STATUS.md からタイトルを抽出する", () => {
+  const result = parseImportText(STATUS_MD_SAMPLE);
+  assert.equal(result.title, "テストプロジェクト");
+});
+
+test("parseImportText — STATUS.md から core parts を抽出する", () => {
+  const result = parseImportText(STATUS_MD_SAMPLE);
+  assert.equal(result.parts.core.reality,  "現状の課題がある");
+  assert.equal(result.parts.core.ideal,    "理想の状態がある");
+  assert.equal(result.parts.core.proposal, "解決策がある");
+});
+
+test("parseImportText — STATUS.md から配列ノードを抽出する", () => {
+  const result = parseImportText(STATUS_MD_SAMPLE);
+  assert.deepEqual(result.parts.drilldown.reality_factors, ["現実の詳細A", "現実の詳細B"]);
+  assert.deepEqual(result.parts.drilldown.ideal_goals,     ["理想の詳細X"]);
+  assert.deepEqual(result.parts.what_how.what_items,       ["What1"]);
+  assert.deepEqual(result.parts.what_how.how_items,        ["How1"]);
+});
+
+test("parseImportText — STATUS.md から frame parts を抽出する", () => {
+  const result = parseImportText(STATUS_MD_SAMPLE);
+  assert.equal(result.parts.frame.intro.hook,   "イントロフック");
+  assert.equal(result.parts.frame.closing.cta,  "クロージングCTA");
+});
+
+test("parseImportText — Markdown エクスポート形式を検出する", () => {
+  const result = parseImportText(MD_EXPORT_SAMPLE);
+  assert.ok(result !== null);
+});
+
+test("parseImportText — Markdown から core parts を抽出する", () => {
+  const result = parseImportText(MD_EXPORT_SAMPLE);
+  assert.equal(result.parts.core.reality,  "md現実テキスト");
+  assert.equal(result.parts.core.ideal,    "md理想テキスト");
+  assert.equal(result.parts.core.proposal, "md提案テキスト");
+});
+
+test("parseImportText — Markdown から drilldown を抽出する", () => {
+  const result = parseImportText(MD_EXPORT_SAMPLE);
+  assert.deepEqual(result.parts.drilldown.reality_factors, ["md現実詳細1"]);
+  assert.deepEqual(result.parts.drilldown.ideal_goals,     ["md理想詳細1"]);
+});
+
+test("parseImportText — Markdown からテーブル行（What/How）を抽出する", () => {
+  const result = parseImportText(MD_EXPORT_SAMPLE);
+  assert.deepEqual(result.parts.what_how.what_items, ["mdWhat1"]);
+  assert.deepEqual(result.parts.what_how.how_items,  ["mdHow1"]);
+});
+
+test("parseImportText — Markdown から frame parts を抽出する", () => {
+  const result = parseImportText(MD_EXPORT_SAMPLE);
+  assert.equal(result.parts.frame.intro.hook,  "mdフック");
+  assert.equal(result.parts.frame.closing.cta, "mdCTA");
+});
+
 console.log("\n✅ 全テスト完了");

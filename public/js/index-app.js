@@ -5,6 +5,7 @@ import {
   listSessions, deleteSession, clearAllSessions,
   createNewSession, saveSession, savePendingMessage,
 } from "./storage.js";
+import { parseImportText } from "./import-parser.js";
 
 const SAMPLE_BULK = `現在の課題：
 ・社内の情報共有ツールが古く、部門間の連携が非効率なため、プロジェクトの進捗が遅れがちです
@@ -24,15 +25,17 @@ const SAMPLE_BULK = `現在の課題：
 
 // ── DOM refs ────────────────────────────────────────────────────
 const $id = (id) => document.getElementById(id);
-const resumeSection = $id("resumeSection");
-const sessionList   = $id("sessionList");
-const clearAllBtn   = $id("clearAllBtn");
-const titleInput    = $id("titleInput");
-const startQuickBtn = $id("startQuickBtn");
-const bulkTitle     = $id("bulkTitle");
-const bulkInput     = $id("bulkInput");
-const loadSampleBtn = $id("loadSampleBtn");
-const startBulkBtn  = $id("startBulkBtn");
+const resumeSection  = $id("resumeSection");
+const sessionList    = $id("sessionList");
+const clearAllBtn    = $id("clearAllBtn");
+const titleInput     = $id("titleInput");
+const startQuickBtn  = $id("startQuickBtn");
+const bulkTitle      = $id("bulkTitle");
+const bulkInput      = $id("bulkInput");
+const loadSampleBtn  = $id("loadSampleBtn");
+const startBulkBtn   = $id("startBulkBtn");
+const importFileBtn  = $id("importFileBtn");
+const importFileInput = $id("importFileInput");
 const versionDisplay = $id("versionDisplay");
 
 // ── Init ────────────────────────────────────────────────────────
@@ -118,12 +121,40 @@ function startQuick() {
   location.href = `session.html?id=${encodeURIComponent(session.sessionId)}`;
 }
 
+/**
+ * parts の充填度からステップを推定する（サーバーの firstIncompleteStep 相当）
+ * @param {object} parts
+ * @returns {string} StepName
+ */
+function inferStep(parts) {
+  if (!parts.core.reality || !parts.core.ideal || !parts.core.proposal) return "step1_core";
+  if (!parts.drilldown.reality_factors.length || !parts.drilldown.ideal_goals.length) return "step2_drilldown";
+  if (!parts.what_how.what_items.length || !parts.what_how.how_items.length) return "step3_what_how";
+  if (!parts.verification.is_consistent) return "step4_verify";
+  if (!parts.frame.intro.hook || !parts.frame.closing.cta) return "step5_combine";
+  return "complete";
+}
+
 function startBulk() {
-  const title = bulkTitle.value.trim();
-  const text  = bulkInput.value.trim();
-  if (!title) { bulkTitle.focus(); return; }
-  if (text.length < 10) { bulkInput.focus(); return; }
-  const session = createNewSession(title);
+  const titleRaw = bulkTitle.value.trim();
+  const text     = bulkInput.value.trim();
+  if (!text || text.length < 10) { bulkInput.focus(); return; }
+
+  // STATUS.md / Markdown エクスポート形式はローカルパースで即時遷移（API 不要）
+  const imported = parseImportText(text);
+  if (imported) {
+    const title = titleRaw || imported.title;
+    const session = createNewSession(title);
+    session.parts = imported.parts;
+    session.step  = inferStep(imported.parts);
+    saveSession(session);
+    location.href = `session.html?id=${encodeURIComponent(session.sessionId)}`;
+    return;
+  }
+
+  // 通常メモ → API バルク抽出フロー（タイトル必須）
+  if (!titleRaw) { bulkTitle.focus(); return; }
+  const session = createNewSession(titleRaw);
   saveSession(session);
   savePendingMessage(session.sessionId, text);
   location.href = `session.html?id=${encodeURIComponent(session.sessionId)}`;
@@ -148,6 +179,26 @@ function bindEvents() {
       clearAllSessions();
       renderResumeSection();
     }
+  });
+
+  // ファイルインポート
+  importFileBtn?.addEventListener("click", () => importFileInput?.click());
+  importFileInput?.addEventListener("change", (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = String(ev.target.result);
+      bulkInput.value = text;
+      if (!bulkTitle.value.trim()) {
+        bulkTitle.value = file.name.replace(/\.(md|txt)$/i, "").slice(0, 100);
+      }
+      // bulk タブに切り替え
+      document.querySelector('.start-tab[data-tab="bulk"]')?.click();
+      bulkInput.focus();
+    };
+    reader.readAsText(file, "utf-8");
+    e.target.value = ""; // 同じファイルを再選択可能にする
   });
 }
 

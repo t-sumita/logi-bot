@@ -94,22 +94,14 @@ ul { list-style: none; }
 .session-card-del:hover { color: var(--c-error); background: var(--c-reality-light); }
 
 /* Hero */
-.hero { padding: var(--sp-10) 0 var(--sp-8); text-align: center; }
-.hero--compact { padding: var(--sp-4) 0 var(--sp-2); }
-.hero-title { font-size: clamp(1.5rem, 4vw, 2.4rem); font-weight: 900; line-height: 1.25; letter-spacing: -.02em; margin-bottom: var(--sp-4); }
-.hero-title--sm { font-size: clamp(1rem, 3vw, 1.4rem); margin-bottom: var(--sp-2); }
-.hero-sub { font-size: 1rem; color: var(--c-text-sub); line-height: 1.8; }
-.hero--compact .hero-sub { font-size: .85rem; }
-
-/* Guide section */
-.guide-section { padding: var(--sp-6) 0; }
-.guide-section--compact { padding: var(--sp-2) 0 var(--sp-4); }
-.guide-title { text-align: center; font-size: 1.125rem; font-weight: 700; margin-bottom: var(--sp-6); color: var(--c-text-sub); }
+.hero { padding: var(--sp-8) 0 var(--sp-6); text-align: center; border-bottom: 1px solid var(--c-border); }
+.hero-title { font-size: clamp(1.4rem, 3.5vw, 2.2rem); font-weight: 900; line-height: 1.25; letter-spacing: -.02em; margin-bottom: var(--sp-3); }
+.hero-sub { font-size: .95rem; color: var(--c-text-sub); line-height: 1.8; margin-bottom: var(--sp-4); }
 
 /* 5ステップ横並びフロー */
 .step-flow {
   display: flex; align-items: center; justify-content: center; gap: var(--sp-1);
-  flex-wrap: wrap; padding: var(--sp-2) 0;
+  flex-wrap: wrap; padding: var(--sp-1) 0;
 }
 .step-flow-item {
   display: flex; align-items: center; gap: 4px; padding: 4px var(--sp-3);
@@ -143,9 +135,13 @@ ul { list-style: none; }
 .step-card-desc { font-size: .75rem; color: var(--c-text-sub); line-height: 1.5; }
 
 /* Start section */
-.start-section { padding: var(--sp-8) 0; }
-.start-section--top { padding-top: var(--sp-6); padding-bottom: var(--sp-4); }
+.start-section { padding: var(--sp-6) 0 var(--sp-10); }
 .start-section .container { max-width: 680px; }
+/* ファイルインポートエリア */
+.import-file-area {
+  display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
+}
+.import-file-hint { font-size: .78rem; color: var(--c-text-mute); }
 .start-tabs {
   display: flex; gap: var(--sp-2); margin-bottom: var(--sp-5);
   border-bottom: 2px solid var(--c-border); padding-bottom: var(--sp-1);

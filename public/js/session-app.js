@@ -24,6 +24,20 @@ const STEP_META = {
 
 const STEP_ORDER = ["step1_core","step2_drilldown","step3_what_how","step4_verify","step5_combine","complete"];
 
+/**
+ * parts の充填度からステップを推定する（index-app.js の inferStep と同一ロジック）
+ * @param {object} parts - SessionParts
+ * @returns {string} StepName
+ */
+function inferStep(parts) {
+  if (!parts.core.reality || !parts.core.ideal || !parts.core.proposal) return "step1_core";
+  if (!parts.drilldown.reality_factors.length || !parts.drilldown.ideal_goals.length) return "step2_drilldown";
+  if (!parts.what_how.what_items.length || !parts.what_how.how_items.length) return "step3_what_how";
+  if (!parts.verification.is_consistent) return "step4_verify";
+  if (!parts.frame.intro.hook || !parts.frame.closing.cta) return "step5_combine";
+  return "complete";
+}
+
 const WELCOME_MESSAGE = (title) =>
 `🤖 **logi-botへようこそ！**「${title}」の構想を合体ロボ🤖で図解しましょう！
 
@@ -45,6 +59,32 @@ const WELCOME_MESSAGE = (title) =>
 まず **Step 1** から始めましょう。
 
 **[1] 現実**（今、困っていること・課題の状況）を教えてください。`;
+
+const IMPORT_MESSAGE = (title, parts) => {
+  const step = inferStep(parts);
+  const stepLabels = {
+    step1_core: "Step 1（胴体）",
+    step2_drilldown: "Step 2（両腕）",
+    step3_what_how: "Step 3（両足）",
+    step4_verify: "Step 4（点検）",
+    step5_combine: "Step 5（頭・台座）",
+    complete: "完成確認",
+  };
+  const filled = [];
+  if (parts.core.reality)  filled.push(`✅ [1] 現実: ${parts.core.reality.slice(0, 35)}${parts.core.reality.length > 35 ? "…" : ""}`);
+  if (parts.core.ideal)    filled.push(`✅ [2] 理想: ${parts.core.ideal.slice(0, 35)}${parts.core.ideal.length > 35 ? "…" : ""}`);
+  if (parts.core.proposal) filled.push(`✅ [3] 提案: ${parts.core.proposal.slice(0, 35)}${parts.core.proposal.length > 35 ? "…" : ""}`);
+  const more = parts.drilldown.reality_factors.length + parts.drilldown.ideal_goals.length +
+    parts.what_how.what_items.length + parts.what_how.how_items.length;
+  if (more > 0) filled.push(`✅ その他 ${more} 件のノードデータ`);
+
+  return `📂 **「${title}」のデータを読み込みました。**
+
+${filled.join("\n")}
+
+右パネルの合体ロボ図を確認してください。ノードをクリックすると内容を修正できます。
+「次のステップへ」ボタンで **${stepLabels[step] ?? step}** から続けることができます。`;
+};
 
 // ── アプリ状態 ────────────────────────────────────────────────────
 let session = null;
@@ -97,11 +137,23 @@ async function init() {
     history.replaceState(null, "", `session.html?id=${encodeURIComponent(session.sessionId)}`);
   }
 
+  // 旧バージョンの無効な step 値（"onboarding"/"idle" など）を現在のスキーマに移行する
+  if (!STEP_ORDER.includes(session.step)) {
+    session.step = inferStep(session.parts);
+    saveSession(session);
+  }
+
   renderAll();
 
-  // 会話履歴が空なら Welcome を表示
   if (session.history.length === 0) {
-    addMessage("assistant", WELCOME_MESSAGE(session.title));
+    // インポートセッション（parts にデータがあるが会話履歴がない）
+    const hasData = session.parts.core.reality || session.parts.core.ideal ||
+                    session.parts.drilldown.reality_factors.length > 0;
+    if (hasData) {
+      addMessage("assistant", IMPORT_MESSAGE(session.title, session.parts));
+    } else {
+      addMessage("assistant", WELCOME_MESSAGE(session.title));
+    }
   } else {
     restoreHistory();
   }

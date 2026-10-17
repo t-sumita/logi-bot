@@ -31,84 +31,15 @@
 
   <main class="index-main">
 
-    <!-- ── スタート（最上部） ── -->
-    <section class="start-section start-section--top">
+    <!-- ── ① ヒーローエリア（最上部）: タイトル + サブコピー + 5ステップフロー ── -->
+    <section class="hero">
       <div class="container">
-        <div class="start-tabs" role="tablist">
-          <button class="start-tab active" data-tab="quick" role="tab" aria-selected="true"
-            data-t="start.tab.quick">✏️ テーマ名だけ入れて一問一答で始める</button>
-          <button class="start-tab" data-tab="bulk" role="tab" aria-selected="false"
-            data-t="start.tab.bulk">📋 メモをまとめて貼り付けて仮組みする</button>
-        </div>
-
-        <!-- Quick start panel -->
-        <div class="start-panel" id="panelQuick" role="tabpanel">
-          <div class="start-form">
-            <label class="form-label" for="titleInput" data-t="start.label.title">プレゼンのテーマ・プロジェクト名</label>
-            <input class="form-input" id="titleInput" type="text"
-              data-t-attr="placeholder:start.ph.title"
-              placeholder="例：新製品ローンチ計画、営業プロセス改善提案" maxlength="100"
-              autocomplete="off">
-            <p class="form-hint" data-t="start.hint.quick">テーマ名だけでOK。一問一答で5ステップを進めながら、AIがMermaid図を組み立てます。</p>
-            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-              <button class="btn btn-primary btn-lg" id="startQuickBtn"
-                data-t="start.btn.quick">▶ 一問一答で始める</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bulk start panel -->
-        <div class="start-panel" id="panelBulk" role="tabpanel" hidden>
-          <div class="start-form">
-            <label class="form-label" for="bulkTitle"
-              data-t="start.label.bulkTitle">プレゼンのテーマ・プロジェクト名</label>
-            <input class="form-input" id="bulkTitle" type="text"
-              data-t-attr="placeholder:start.ph.bulkTitle"
-              placeholder="例：社内情報共有ツール刷新計画" maxlength="100"
-              autocomplete="off">
-
-            <label class="form-label" for="bulkInput" style="margin-top:4px"
-              data-t="start.label.bulkMemo">企画メモ・議事録・箇条書きをここにドサッと貼り付け</label>
-            <textarea class="form-textarea" id="bulkInput" rows="9"
-              placeholder="ここに企画メモ・箇条書き・議事録などをそのまま貼り付けてください。&#10;AIが自動的に図解パーツに仮組みします。&#10;&#10;例:&#10;・現状：社内の情報共有ツールが古く、部門間の連携が非効率&#10;・理想：リアルタイムで情報が共有され、意思決定が迅速&#10;・提案：Slack と Notion を統合した新しいワークフロー導入"></textarea>
-
-            <div class="bulk-actions">
-              <button class="btn btn-ghost btn-sm" id="loadSampleBtn"
-                data-t="start.btn.sample">📄 サンプルを読み込む</button>
-              <button class="btn btn-primary btn-lg" id="startBulkBtn"
-                data-t="start.btn.bulk">🚀 まとめて仮組みする</button>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- ── 前回セッション再開 ── -->
-    <section class="resume-section" id="resumeSection" hidden>
-      <div class="container">
-        <h2 class="resume-title" data-t="resume.title">🔄 前回の続きから再開する</h2>
-        <div class="session-list" id="sessionList"></div>
-        <button class="btn btn-ghost btn-sm" id="clearAllBtn"
-          data-t="resume.clearAll">すべてのセッションを削除</button>
-      </div>
-    </section>
-
-    <!-- ── Hero（コンパクト） ── -->
-    <section class="hero hero--compact">
-      <div class="container">
-        <h1 class="hero-title hero-title--sm">
+        <h1 class="hero-title">
           🤖 <span data-t="hero.title.l1">図解思考で</span><span data-t="hero.title.l2">プレゼン構想を組み立てる</span>
         </h1>
         <p class="hero-sub" data-t="hero.sub">
           5ステップの一問一答で、バラバラなアイデアを「合体ロボ（全体シナリオ図）」へと整理します。
         </p>
-      </div>
-    </section>
-
-    <!-- ── 5ステップ（コンパクト横並び） ── -->
-    <section class="guide-section guide-section--compact">
-      <div class="container">
         <div class="step-flow" aria-label="5ステップの流れ">
           <div class="step-flow-item">
             <span class="sf-num">1</span>
@@ -119,7 +50,7 @@
           <div class="step-flow-item">
             <span class="sf-num">2</span>
             <span class="sf-icon">💪🛡️</span>
-            <span class="sf-label">両腕（詳細ドリルダウン）</span>
+            <span class="sf-label">両腕（ドリルダウン）</span>
           </div>
           <div class="step-flow-arrow">→</div>
           <div class="step-flow-item">
@@ -140,6 +71,77 @@
             <span class="sf-label">頭・台座（完成）</span>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- ── ② 前回セッション再開（履歴がある場合のみ表示） ── -->
+    <section class="resume-section" id="resumeSection" hidden>
+      <div class="container">
+        <h2 class="resume-title" data-t="resume.title">🔄 前回の続きから再開する</h2>
+        <div class="session-list" id="sessionList"></div>
+        <button class="btn btn-ghost btn-sm" id="clearAllBtn"
+          data-t="resume.clearAll">すべてのセッションを削除</button>
+      </div>
+    </section>
+
+    <!-- ── ③ 新規作成フォーム（下部） ── -->
+    <section class="start-section">
+      <div class="container">
+        <div class="start-tabs" role="tablist">
+          <button class="start-tab active" data-tab="quick" role="tab" aria-selected="true"
+            data-t="start.tab.quick">✏️ テーマ名だけ入れて一問一答で始める</button>
+          <button class="start-tab" data-tab="bulk" role="tab" aria-selected="false"
+            data-t="start.tab.bulk">📋 メモ・STATUS.md を読み込む</button>
+        </div>
+
+        <!-- Quick start panel -->
+        <div class="start-panel" id="panelQuick" role="tabpanel">
+          <div class="start-form">
+            <label class="form-label" for="titleInput" data-t="start.label.title">プレゼンのテーマ・プロジェクト名</label>
+            <input class="form-input" id="titleInput" type="text"
+              data-t-attr="placeholder:start.ph.title"
+              placeholder="例：新製品ローンチ計画、営業プロセス改善提案" maxlength="100"
+              autocomplete="off">
+            <p class="form-hint" data-t="start.hint.quick">テーマ名だけでOK。一問一答で5ステップを進めながら、AIがMermaid図を組み立てます。</p>
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+              <button class="btn btn-primary btn-lg" id="startQuickBtn"
+                data-t="start.btn.quick">▶ 一問一答で始める</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Import / Bulk panel -->
+        <div class="start-panel" id="panelBulk" role="tabpanel" hidden>
+          <div class="start-form">
+            <label class="form-label" for="bulkTitle"
+              data-t="start.label.bulkTitle">プレゼンのテーマ・プロジェクト名</label>
+            <input class="form-input" id="bulkTitle" type="text"
+              data-t-attr="placeholder:start.ph.bulkTitle"
+              placeholder="例：社内情報共有ツール刷新計画（省略可：ファイル名から自動設定）" maxlength="100"
+              autocomplete="off">
+
+            <div class="import-file-area">
+              <button class="btn btn-ghost btn-sm" id="importFileBtn" type="button">
+                📁 ファイルを選択（.md / .txt）
+              </button>
+              <input type="file" id="importFileInput" accept=".md,.txt" style="display:none" aria-hidden="true">
+              <span class="import-file-hint">または下のテキストエリアに直接貼り付け</span>
+            </div>
+
+            <label class="form-label" for="bulkInput" style="margin-top:4px"
+              data-t="start.label.bulkMemo">メモ・STATUS.md・箇条書きをここに貼り付け</label>
+            <textarea class="form-textarea" id="bulkInput" rows="9"
+              placeholder="【STATUS.md を貼り付ける場合】logi-bot からエクスポートした STATUS.md をそのまま貼り付けると、図を即時復元します。&#10;&#10;【メモ・箇条書きの場合】企画メモや議事録をそのまま貼り付けると、AIが図解パーツに仮組みします。&#10;&#10;例:&#10;・現状：社内の情報共有ツールが古く、部門間の連携が非効率&#10;・理想：リアルタイムで情報が共有され、意思決定が迅速&#10;・提案：Slack と Notion を統合した新しいワークフロー導入"></textarea>
+
+            <div class="bulk-actions">
+              <button class="btn btn-ghost btn-sm" id="loadSampleBtn"
+                data-t="start.btn.sample">📄 サンプルを読み込む</button>
+              <button class="btn btn-primary btn-lg" id="startBulkBtn"
+                data-t="start.btn.bulk">🚀 読み込んで始める</button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
 
