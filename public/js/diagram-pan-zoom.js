@@ -1,9 +1,10 @@
 // 図パネルのパン・ズーム操作コントローラー
 // マウスドラッグ／スクロール・タッチスワイプ／ピンチで SVG を操作する。
 
-const MIN_SCALE = 0.2;
+const MIN_SCALE = 0.1;
 const MAX_SCALE = 5.0;
 const ZOOM_STEP = 0.15;
+const FIT_MARGIN = 12; // フィット時の余白 (px)
 
 /**
  * コンテナ要素にパン・ズーム操作を付与する。
@@ -47,26 +48,51 @@ export function initPanZoom(containerEl) {
     applyTransform();
   }
 
-  // ── フィット（全体表示）──────────────────────────────────────────
-  function fit() {
+  // ── フィット実装（layout 確定後に実行）──────────────────────────
+  function fitInner() {
     const v = vp();
     if (!v) return;
     const svgEl = v.querySelector("svg");
-    if (!svgEl) { scale = 1; tx = 0; ty = 0; applyTransform(); return; }
+    if (!svgEl) {
+      scale = 1; tx = 0; ty = 0; applyTransform(); return;
+    }
 
-    // viewBox があれば自然サイズ取得、なければ offsetWidth
-    const vb = svgEl.viewBox?.baseVal;
-    const naturalW = (vb && vb.width > 0) ? vb.width  : svgEl.offsetWidth  || 300;
-    const naturalH = (vb && vb.height > 0) ? vb.height : svgEl.offsetHeight || 300;
+    const cw = containerEl.clientWidth;
+    const ch = containerEl.clientHeight;
+    if (cw <= 0 || ch <= 0) return;
 
-    const cw = containerEl.clientWidth  - 16;
-    const ch = containerEl.clientHeight - 16;
-    const newScale = clampScale(Math.min(cw / naturalW, ch / naturalH));
-
-    scale = newScale;
-    tx = (containerEl.clientWidth  - naturalW * scale) / 2;
-    ty = (containerEl.clientHeight - naturalH * scale) / 2;
+    // transform をリセットして自然サイズを測定
+    scale = 1; tx = 0; ty = 0;
     applyTransform();
+
+    // getBoundingClientRect で実際のレンダリングサイズを取得
+    const svgRect = svgEl.getBoundingClientRect();
+    const svgW = svgRect.width;
+    const svgH = svgRect.height;
+
+    if (svgW <= 0 || svgH <= 0) return;
+
+    // 余白を確保しながらコンテナに収まるスケールを計算
+    const availW = cw - FIT_MARGIN * 2;
+    const availH = ch - FIT_MARGIN * 2;
+    const newScale = clampScale(Math.min(availW / svgW, availH / svgH));
+
+    // コンテナ中央に配置
+    // viewport の origin=(0,0) → SVG top-left。
+    // transform: translate(tx,ty) scale(s) を適用すると
+    // SVG の左上は (tx, ty) に、SVG 中心は (tx + svgW*s/2, ty + svgH*s/2) になる。
+    scale = newScale;
+    tx = (cw - svgW * scale) / 2;
+    ty = Math.max(FIT_MARGIN, (ch - svgH * scale) / 2);
+    applyTransform();
+  }
+
+  /**
+   * SVG を全体表示でコンテナ中央にフィットする。
+   * double rAF でブラウザのレイアウト確定を待ってから実行する。
+   */
+  function fit() {
+    requestAnimationFrame(() => requestAnimationFrame(fitInner));
   }
 
   // ── マウス操作 ────────────────────────────────────────────────────
@@ -178,7 +204,6 @@ export function initPanZoom(containerEl) {
  * @param {HTMLElement} containerEl
  */
 export function wrapForPanZoom(containerEl) {
-  // 既存の viewport を解除して中身をフラットにする
   const existing = containerEl.querySelector(".pz-viewport");
   if (existing) {
     while (existing.firstChild) {
@@ -190,7 +215,6 @@ export function wrapForPanZoom(containerEl) {
   const vp = document.createElement("div");
   vp.className = "pz-viewport";
 
-  // コンテナの直下要素を全て viewport に移動
   while (containerEl.firstChild) {
     vp.appendChild(containerEl.firstChild);
   }

@@ -1,7 +1,7 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.8.5`
+`0.8.6`
 
 ## 最終更新
 2026-10-17
@@ -95,9 +95,19 @@
 - **パン・ズーム安全初期化**: `renderDiagram` の戻り値 `ok` が `false` のときはラップ・初期化をスキップ。DOM 未確定時のクラッシュを防止
 - **単体テスト拡充**: `buildRobotDiagram` を `mermaid-builder.js` から直接 import し、空/途中/全入力/特殊文字の 9 件テスト追加。54/54 全通過
 
+## v0.8.6 追加修正（2026-10-18）
+
+- **パン・ズーム初期フィット計算バグ修正（translate(228px,0px) scale(0.31) 吹き飛び解消）**:
+  - 原因: ① `.pz-viewport` に `padding: 16px` があり tx 計算に混入 ② `setTimeout 60ms` では Mermaid SVG の layout 未確定でサイズが正しく取れなかった
+  - `.pz-viewport` からパディングを除去（centering 計算を `tx = (cw - svgW * scale) / 2` と単純化）
+  - `fit()` を double `requestAnimationFrame` で layout 確定後に実行するよう変更
+  - `getBoundingClientRect()` でレンダリング後の実サイズを測定（viewBox.baseVal 依存を廃止）
+  - `ty = Math.max(FIT_MARGIN, (ch - svgH * scale) / 2)` で上端が見切れないよう保護
+- **SVG スタイルの確実な適用**: CSS で `.pz-viewport svg { max-width: none !important; height: auto; }` を追加
+- `session-app.js`: `setTimeout(..., 60)` を廃止し `panZoom.fit()` を直接呼び出し（rAF は内部）
+
 ## 次の一手
 - ユーザーが https://logi-bot.pages.dev で動作確認
-  1. 合体ロボ図が手描き図のシルエット（横並び腕・縦T字胴体・二股足・台座）で描画されるか
-  2. 図をドラッグ・スクロール・ピンチでパン・ズーム操作できるか
-  3. MOCKモードで Step 1〜5 を 1 問ずつ答えると正しいパーツに格納されるか
-  4. エラー時（DevTools で LOGI_MOCK=0 でAPIキーなし等）に図が真っ白にならず Mermaid コードが表示されるか
+  1. 合体ロボ図が初期表示でコンテナ中央に正しく収まるか（scale ≒ 0.5〜0.7 程度）
+  2. ⊡ ボタンで中央フィットに戻るか
+  3. ドラッグ・スクロール・ピンチが正常に動作するか

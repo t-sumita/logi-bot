@@ -327,10 +327,13 @@ ul { list-style: none; }
 .pz-viewport {
   position: absolute; top: 0; left: 0;
   transform-origin: 0 0;
-  padding: var(--sp-4);
+  /* padding なし: fit() の centering 計算を単純化するため */
 }
 .pz-viewport svg {
   display: block; border-radius: var(--r-md);
+  /* Mermaid が付ける max-width: NNNpx を CSS でも上書き */
+  max-width: none !important;
+  height: auto;
 }
 
 /* Placeholder（パン・ズーム前の初期表示） */

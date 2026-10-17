@@ -290,8 +290,8 @@ async function updateDiagramPanel() {
   if (!panZoom) {
     panZoom = initPanZoom(el.diagramContent);
   }
-  // DOM 確定後にフィット実行
-  setTimeout(() => panZoom?.fit(), 60);
+  // fit() 内部の double rAF でレイアウト確定後に中央フィット
+  panZoom.fit();
 }
 
 /** ノードクリック時: チャット入力欄に番号付き修正テキストを挿入してフォーカス */
