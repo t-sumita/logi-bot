@@ -1,68 +1,51 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.7.1`
+`0.8.0`
 
 ## 最終更新
 2026-10-17
 
 ## 現在地
-- v0.7.1 実装完了・main マージ・GitHub push・Cloudflare Pages デプロイ済み
-- 本番 URL: https://logi-bot.pages.dev
+- feature/v0.8.0-dynamic-svg ブランチ実装完了
+- typecheck 0エラー / test:unit 34/34 全通過
+- ユーザーによる main マージ・デプロイ確認待ち
 
 ## 完了したこと
 
-### フェーズ 0（計画）
-- CLAUDE.md / docs/specs/ 4本 / .claude/skills/ 整備
-- PLAN.md v0→v1（ユーザー承認 2026-10-16）
-- 追加仕様（オンボーディング・バルクインプット・ドリルダウン品質）を全仕様書に反映
+### フェーズ 0〜7a（v0.7.1まで）
+（上記 STATUS.md 履歴参照）
 
-### フェーズ 1（土台）
-- `git init` + `feature/phase1-foundation` ブランチ → main マージ済み
-- `wrangler.toml` / `package.json` / `tsconfig.json`
-- `functions/_lib/types.ts` / `functions/_lib/session.ts` / `functions/_lib/mermaid.ts`
-- `npm run typecheck` 通過（エラー 0）
+### フェーズ 8（v0.8.0 — 動的SVG・番号付きノード・書籍準拠ステップ）
 
-### フェーズ 2（API 層）
-- `functions/_lib/prompt.ts` / `functions/_lib/claude.ts`
-- `functions/api/chat.ts` / `functions/api/advance.ts` / `functions/api/diagram.ts`
-- `scripts/test-unit.mjs` / `scripts/smoke-api.mjs`
-- `test:unit` 28/28 / `smoke` 16/16 全通過
+#### 新規ファイル
+- `public/js/mermaid-builder.js` — クライアントサイド合体ロボMermaid生成
+  - `buildRobotDiagram(session)`: セッション状態から flowchart TB を生成
+  - `attachNodeClickHandlers(container, cb)`: SVGノードクリックで修正入力
 
-### フェーズ 3（フロントエンド）
-- `public/css/tokens.css` / `public/css/app.css`
-- `public/js/storage.js` / `public/js/api.js` / `public/js/mermaid-renderer.js` / `public/js/export.js`
-- `public/js/index-app.js` / `public/js/session-app.js`
-- `public/index.html` / `public/session.html`
+#### 変更ファイル
+- `functions/_lib/types.ts` — NodeStatus 型・LogiSession.nodeStatuses 追加
+- `functions/_lib/session.ts` — createSession に nodeStatuses: {} 追加
+- `functions/_lib/prompt.ts` — [番号] 参照形式・チェックポイントメッセージ全面更新
+- `functions/_lib/claude.ts` — モックレスポンスを [番号] 形式に更新
+- `public/js/storage.js` — createNewSession に nodeStatuses: {} 追加
+- `public/js/session-app.js` — mermaid-builder 連携・タブ廃止・onNodeClick・WELCOME更新
+- `public/js/export.js` — buildRobotDiagram 使用・STATUS.md形式エクスポート追加
+- `public/session.html` — 図タブ→diagram-label 簡略化・STATUS.md ボタン追加
+- `public/css/app.css` — モバイル column-reverse レイアウト・クリッカブルノードCSS
+- `public/index.html` — スタートフォーム最上部・コンパクトヒーロー・横並びステップフロー
+- `public/config.js` — v0.8.0 バンプ
+- `.claude/skills/logi-session/SKILL.md` — [0]〜[8] ノード体系・STATUS.md形式追記
 
-### フェーズ 4（モード切り替え・BYOK・デプロイ準備）
-- マルチプロバイダー（Anthropic/Gemini/OpenAI）対応
-- `public/js/settings.js` — モード設定モーダル
-- GitHub 公開・Cloudflare Pages デプロイ完了（v0.4.0）
+## v0.8.0 の主な機能
 
-### フェーズ 5（UI v0.5.0）
-- ファビコン + subutomo バッジ導入
-- JA/EN 言語切り替え（i18n.js 新規）
-- モードバッジ改善・ℹ️ Info モーダル追加
-
-### フェーズ 6（UX v0.6.0）
-- バッジ修正・ステップ表記2行化・Step 1 順次ガイド
-- 初期化バグ修正・動的プレースホルダー
-
-### フェーズ 7a（ロボット部位誤実装 v0.7.0 → 修正 v0.7.1）
-- **v0.7.0 では誤った合体ロボ構成（step1_head/step2_body等）を実装してしまった**
-- **v0.7.1 で正しい図解思考5ステップに全面修正**:
-  - Step 1: 🫀 胴体（コア）— 現実・理想・提案（core.reality/ideal/proposal）
-  - Step 2: 💪🛡️ 左腕・右腕 — 現実・理想の深掘り（drilldown）
-  - Step 3: 🦿 両足（2本柱）— What/How（what_how）
-  - Step 4: 🔍 合体前の点検 — 矛盾・ブレ検証（verification）
-  - Step 5: 🧠🗂️ 頭・台座 — イントロ・クロージング（frame）
-- **セッション開始**: step1_core から直接開始（準備ステップ廃止）
-- **プレースホルダーバグ修正**: data-t-attr を textarea から削除、JS のみで制御
-- **サブステップインジケーター復活**: Step 1 の ①現実→②理想→③提案 を表示
-- **モバイルナビ修正**: stepLabel を max-width+ellipsis で1行省略
-- `typecheck` 0エラー / `test:unit` 34/34 / `smoke` 18/18 全通過
+1. **クライアントサイドMermaid**: AI生成文字列に依存しない構文エラーゼロの図
+2. **番号付きノード**: [0]〜[8] でノードをクリック→チャットへ修正入力
+3. **書籍準拠ステップ**: [1]→[2]→[3] 厳密順序・チェックポイント確認
+4. **モバイルレイアウト**: 上40%図・下60%チャット (column-reverse)
+5. **STATUS.md出力**: 確定/AI案/未確認の分類エクスポート＋引き継ぎ指示
 
 ## 次の一手
-- ユーザーが https://logi-bot.pages.dev で動作確認
-- 必要に応じて追加調整
+1. ユーザーが動作確認（ブラウザで session.html を開いて全ステップを試す）
+2. 問題なければ `main` へ fast-forward マージ
+3. GitHub push → Cloudflare Pages 自動デプロイ
