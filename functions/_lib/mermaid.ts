@@ -48,139 +48,122 @@ function nonEmpty(arr: string[], max = 4): string[] {
   return arr.filter((s) => s.trim()).slice(0, max);
 }
 
-// ── Step 1: コア図 ────────────────────────────────────────────────
+// ── Step 1: 頭（ヘッド）図 ────────────────────────────────────────
 
-function buildStep1(parts: SessionParts): string {
-  const { reality, ideal, proposal } = parts.core;
+function buildStep1Head(parts: SessionParts): string {
+  const { concept, message } = parts.head;
   return [
     "flowchart TB",
-    `  R[${q("🔴 現実\\n" + reality, "（未入力）")}]`,
-    `  I[${q("🟢 理想\\n" + ideal, "（未入力）")}]`,
-    `  P[${q("💡 提案\\n" + proposal, "（未入力）")}]`,
-    `  R -->|"ギャップ"| I`,
-    `  P -->|"橋渡し"| I`,
-    `  R -.->|"課題の源"| P`,
+    `  H["🧠 ① 頭（ヘッド）\\nコンセプト・結論"]`,
+    `  C[${q("コンセプト:\\n" + concept)}]`,
+    `  M[${q("メッセージ:\\n" + message)}]`,
+    `  H --> C`,
+    `  H --> M`,
   ].join("\n");
 }
 
-// ── Step 2: ドリルダウン図 ────────────────────────────────────────
+// ── Step 2: 胴体（ボディ）図 ──────────────────────────────────────
 
-function buildStep2(parts: SessionParts): string {
-  const factors = nonEmpty(parts.drilldown.reality_factors);
-  const goals   = nonEmpty(parts.drilldown.ideal_goals);
-  const gap     = sanitize(parts.drilldown.gap_summary) || "変革";
-
-  const rfNodes = factors.length > 0
-    ? factors.map((f, i) => `    RF${i}[${q(f)}]`).join("\n")
-    : `    RF0["（未入力）"]`;
-
-  const igNodes = goals.length > 0
-    ? goals.map((g, i) => `    IG${i}[${q(g)}]`).join("\n")
-    : `    IG0["（未入力）"]`;
-
-  return [
-    "flowchart LR",
-    "  subgraph 現実の要因",
-    "    direction TB",
-    rfNodes,
-    "  end",
-    "  subgraph 理想の成果",
-    "    direction TB",
-    igNodes,
-    "  end",
-    `  現実の要因 -->|${q(gap)}| 理想の成果`,
-  ].join("\n");
-}
-
-// ── Step 3: What/How 図 ───────────────────────────────────────────
-
-function buildStep3(parts: SessionParts): string {
-  const whats = nonEmpty(parts.what_how.what_items);
-  const hows  = nonEmpty(parts.what_how.how_items);
-  const len   = Math.min(whats.length, hows.length);
-
-  if (len === 0) {
-    return [
-      "flowchart TB",
-      `  W["What（何を）"] --> H["How（どうやって）"]`,
-    ].join("\n");
-  }
-
-  const wNodes = whats.slice(0, len).map((w, i) => `    W${i}[${q(w)}]`).join("\n");
-  const hNodes = hows.slice(0,  len).map((h, i) => `    H${i}[${q(h)}]`).join("\n");
-  const edges  = Array.from({ length: len }, (_, i) => `  W${i} --> H${i}`).join("\n");
-
+function buildStep2Body(parts: SessionParts): string {
+  const { core_system } = parts.body;
   return [
     "flowchart TB",
-    `  subgraph "What（何を）"`,
-    wNodes,
-    "  end",
-    `  subgraph "How（どうやって）"`,
-    hNodes,
-    "  end",
-    edges,
+    `  H["🧠 ① 頭\\n${label(parts.head.concept || "コンセプト")}"]`,
+    `  B["🫀 ② 胴体（ボディ）\\n${label(core_system)}"]`,
+    `  H --> B`,
   ].join("\n");
 }
 
-// ── Step 4: 検証図 ────────────────────────────────────────────────
+// ── Step 3: 右腕（ライトアーム）図 ──────────────────────────────────
 
-function buildStep4(parts: SessionParts): string {
-  const cs = parts.verification.contradictions.filter((c) => c.description.trim());
-
-  if (cs.length === 0) {
-    return [
-      "flowchart LR",
-      `  S1["Step 1\\nコア"] --> S2["Step 2\\nドリルダウン"]`,
-      `  S2 --> S3["Step 3\\nWhat/How"]`,
-      `  S3 --> OK["✅ 論理一貫\\n整合性確認済み"]`,
-    ].join("\n");
-  }
-
-  const c = cs[0];
-  const resolvedEdge = c.resolution.trim()
-    ? `  C -->|${q("解決: " + c.resolution)}| OK["✅ 解決済み"]`
-    : `  C --> UNRESOLVED["⚠️ 未解決"]`;
+function buildStep3RightArm(parts: SessionParts): string {
+  const items = nonEmpty(parts.right_arm.items, 3);
+  const itemNodes = items.length > 0
+    ? items.map((item, i) => `  RA${i}[${q(item)}]`).join("\n")
+    : `  RA0["（未入力）"]`;
+  const itemEdges = items.length > 0
+    ? items.map((_, i) => `  RA --> RA${i}`).join("\n")
+    : `  RA --> RA0`;
 
   return [
-    "flowchart TB",
-    `  C{${q("🔍 矛盾\\n" + c.description)}}`,
-    `  S1["Step 1\\nコア"] --> C`,
-    `  S3["Step 3\\nWhat/How"] --> C`,
-    resolvedEdge,
+    "flowchart TD",
+    `  B["🫀 ② 胴体\\n${label(parts.body.core_system || "コアシステム")}"]`,
+    `  RA["💪 ③ 右腕（攻め）"]`,
+    itemNodes,
+    `  B --> RA`,
+    itemEdges,
   ].join("\n");
 }
 
-// ── Step 5 / Final: 合体ロボ図 ────────────────────────────────────
+// ── Step 4: 左腕（レフトアーム）図 ──────────────────────────────────
+
+function buildStep4LeftArm(parts: SessionParts): string {
+  const rightItems = nonEmpty(parts.right_arm.items, 3);
+  const leftItems  = nonEmpty(parts.left_arm.items, 3);
+
+  const raNodes = rightItems.length > 0
+    ? rightItems.map((item, i) => `  RA${i}[${q(item)}]`).join("\n")
+    : `  RA0["（未入力）"]`;
+  const laNodes = leftItems.length > 0
+    ? leftItems.map((item, i) => `  LA${i}[${q(item)}]`).join("\n")
+    : `  LA0["（未入力）"]`;
+  const raEdges = rightItems.length > 0
+    ? rightItems.map((_, i) => `  RA --> RA${i}`).join("\n")
+    : `  RA --> RA0`;
+  const laEdges = leftItems.length > 0
+    ? leftItems.map((_, i) => `  LA --> LA${i}`).join("\n")
+    : `  LA --> LA0`;
+
+  return [
+    "flowchart TD",
+    `  B["🫀 ② 胴体\\n${label(parts.body.core_system || "コアシステム")}"]`,
+    `  RA["💪 ③ 右腕（攻め）"]`,
+    `  LA["🛡️ ④ 左腕（守り）"]`,
+    raNodes,
+    laNodes,
+    `  B --> RA & LA`,
+    raEdges,
+    laEdges,
+  ].join("\n");
+}
+
+// ── Final: 合体ロボ図 ─────────────────────────────────────────────
 
 function buildFinal(parts: SessionParts): string {
-  const { core, what_how, frame } = parts;
-  const firstWhat = nonEmpty(what_how.what_items)[0] ?? "What";
-  const firstHow  = nonEmpty(what_how.how_items)[0]  ?? "How";
+  const { head, body, right_arm, left_arm, legs } = parts;
+  const rightItems = nonEmpty(right_arm.items, 3);
+  const leftItems  = nonEmpty(left_arm.items, 3);
 
-  const header = frame.title
-    ? `---\ntitle: ${sanitize(frame.title)}\n---\n`
-    : "";
+  const raLines = rightItems.length > 0
+    ? rightItems.map((item, i) => `  RA${i}[${q(item)}]`).join("\n")
+    : `  RA0["（未入力）"]`;
+  const laLines = leftItems.length > 0
+    ? leftItems.map((item, i) => `  LA${i}[${q(item)}]`).join("\n")
+    : `  LA0["（未入力）"]`;
+  const raEdges = rightItems.length > 0
+    ? rightItems.map((_, i) => `  RA --> RA${i}`).join("\n")
+    : `  RA --> RA0`;
+  const laEdges = leftItems.length > 0
+    ? leftItems.map((_, i) => `  LA --> LA${i}`).join("\n")
+    : `  LA --> LA0`;
 
-  const lines = [
-    `${header}flowchart TB`,
-    `  subgraph "🎯 イントロ"`,
-    `    H[${q("フック:\\n" + frame.intro.hook)}]`,
-    "  end",
-    `  subgraph "⚙️ コア"`,
-    `    R[${q("🔴 現実\\n" + core.reality)}] -->|"ギャップ"| ID[${q("🟢 理想\\n" + core.ideal)}]`,
-    `    P[${q("💡 提案\\n" + core.proposal)}] --> ID`,
-    "  end",
-    `  subgraph "🔬 展開"`,
-    "    direction LR",
-    `    W[${q("What:\\n" + firstWhat)}] --> HW[${q("How:\\n" + firstHow)}]`,
-    "  end",
-    `  subgraph "🏁 クロージング"`,
-    `    CTA[${q("行動促進:\\n" + frame.closing.cta)}]`,
-    "  end",
-    "  イントロ --> コア --> 展開 --> クロージング",
-  ];
-
-  return lines.join("\n");
+  return [
+    "flowchart TD",
+    `  H["🧠 ① 頭\\n${label(head.concept)}"]`,
+    `  B["🫀 ② 胴体\\n${label(body.core_system)}"]`,
+    `  RA["💪 ③ 右腕（攻め）"]`,
+    `  LA["🛡️ ④ 左腕（守り）"]`,
+    `  FL["🦿 ⑤ 左足\\n${label(legs.foundation)}"]`,
+    `  FR["🦿 ⑤ 右足\\n${label(legs.next_action || "ネクストアクション")}"]`,
+    raLines,
+    laLines,
+    `  H --> B`,
+    `  B --> RA & LA`,
+    raEdges,
+    laEdges,
+    `  RA --> FL`,
+    `  LA --> FR`,
+  ].join("\n");
 }
 
 // ── 公開 API ─────────────────────────────────────────────────────
@@ -196,11 +179,11 @@ export function buildDiagram(
 ): string {
   const { parts } = session;
   switch (step) {
-    case "step1_core":      return buildStep1(parts);
-    case "step2_drilldown": return buildStep2(parts);
-    case "step3_what_how":  return buildStep3(parts);
-    case "step4_verify":    return buildStep4(parts);
-    case "step5_combine":
+    case "step1_head":      return buildStep1Head(parts);
+    case "step2_body":      return buildStep2Body(parts);
+    case "step3_right_arm": return buildStep3RightArm(parts);
+    case "step4_left_arm":  return buildStep4LeftArm(parts);
+    case "step5_legs":
     case "final":           return buildFinal(parts);
     default:
       return `flowchart TB\n  A["（図なし: ${step})"]`;
@@ -217,15 +200,15 @@ export function buildBulkDiagrams(
   const { parts } = session;
   const result: ReturnType<typeof buildBulkDiagrams> = {};
 
-  if (parts.core.reality || parts.core.ideal || parts.core.proposal)
-    result.step1 = buildStep1(parts);
-  if (parts.drilldown.reality_factors.length > 0 || parts.drilldown.ideal_goals.length > 0)
-    result.step2 = buildStep2(parts);
-  if (parts.what_how.what_items.length > 0 || parts.what_how.how_items.length > 0)
-    result.step3 = buildStep3(parts);
-  if (parts.verification.contradictions.length > 0 || parts.verification.is_consistent)
-    result.step4 = buildStep4(parts);
-  if (parts.frame.intro.hook || parts.frame.closing.cta)
+  if (parts.head.concept || parts.head.message)
+    result.step1 = buildStep1Head(parts);
+  if (parts.body.core_system)
+    result.step2 = buildStep2Body(parts);
+  if (parts.right_arm.items.length > 0)
+    result.step3 = buildStep3RightArm(parts);
+  if (parts.left_arm.items.length > 0)
+    result.step4 = buildStep4LeftArm(parts);
+  if (parts.legs.foundation || parts.legs.next_action)
     result.step5 = buildFinal(parts);
 
   return result;

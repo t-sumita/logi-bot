@@ -1,77 +1,52 @@
 // logi-bot の型定義。セッション状態・ステートマシン・API の共通型
 
 export type StepName =
-  | "idle"
-  | "onboarding"
-  | "step1_core"
-  | "step2_drilldown"
-  | "step3_what_how"
-  | "step4_verify"
-  | "step5_combine"
+  | "step1_head"
+  | "step2_body"
+  | "step3_right_arm"
+  | "step4_left_arm"
+  | "step5_legs"
   | "complete";
 
 export type SessionStatus = "in_progress" | "complete" | "error";
 
-export type SessionEvent = "START" | "BULK_EXTRACT" | "NEXT" | "BACK" | "RESET";
+export type SessionEvent = "NEXT" | "BACK" | "RESET";
 
 // ── セッションパーツ ──────────────────────────────────────────────
 
-export interface CorePart {
-  reality: string;
-  ideal: string;
-  proposal: string;
+/** ① 頭（ヘッド）: コンセプト・結論 */
+export interface HeadPart {
+  concept: string;
+  message: string;
 }
 
-export interface DrilldownPart {
-  reality_factors: string[];
-  ideal_goals: string[];
-  gap_summary: string;
+/** ② 胴体（ボディ）: コアシステム・本質 */
+export interface BodyPart {
+  core_system: string;
 }
 
-export interface WhoWhen {
-  what_index: number;
-  who?: string;
-  when?: string;
+/** ③ 右腕（ライトアーム）: 攻めの施策 */
+export interface RightArmPart {
+  items: string[];
 }
 
-export interface WhatHowPart {
-  what_items: string[];
-  how_items: string[];
-  who_when: WhoWhen[];
+/** ④ 左腕（レフトアーム）: 守りの施策 */
+export interface LeftArmPart {
+  items: string[];
 }
 
-export interface Contradiction {
-  description: string;
-  location: string;
-  resolution: string;
-}
-
-export interface VerifyPart {
-  contradictions: Contradiction[];
-  is_consistent: boolean;
-}
-
-export interface IntroPart {
-  audience: string;
-  hook: string;
-}
-
-export interface ClosingPart {
-  cta: string;
-}
-
-export interface FramePart {
-  intro: IntroPart;
-  closing: ClosingPart;
-  title: string;
+/** ⑤ 両足（レッグス）: 土台・基盤 */
+export interface LegsPart {
+  foundation: string;
+  next_action: string;
 }
 
 export interface SessionParts {
-  core: CorePart;
-  drilldown: DrilldownPart;
-  what_how: WhatHowPart;
-  verification: VerifyPart;
-  frame: FramePart;
+  head: HeadPart;
+  body: BodyPart;
+  right_arm: RightArmPart;
+  left_arm: LeftArmPart;
+  legs: LegsPart;
 }
 
 export interface SessionDiagrams {
@@ -99,7 +74,6 @@ export interface LogiSession {
   step: StepName;
   status: SessionStatus;
   fast_track: boolean;
-  onboarding_complete: boolean;
   createdAt: string;
   updatedAt: string;
   parts: SessionParts;

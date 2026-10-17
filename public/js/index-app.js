@@ -79,10 +79,12 @@ function renderResumeSection() {
 
 function formatStep(step) {
   const map = {
-    idle: "準備中", onboarding: "オンボーディング",
-    step1_core: "Step 1", step2_drilldown: "Step 2",
-    step3_what_how: "Step 3", step4_verify: "Step 4",
-    step5_combine: "Step 5", complete: "✅ 完成",
+    step1_head:      "Step 1",
+    step2_body:      "Step 2",
+    step3_right_arm: "Step 3",
+    step4_left_arm:  "Step 4",
+    step5_legs:      "Step 5",
+    complete:        "✅ 完成",
   };
   return map[step] ?? step;
 }

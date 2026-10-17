@@ -7,35 +7,38 @@ import { copyMarkdown, downloadMarkdown } from "./export.js";
 
 // ── ステップ定義 ──────────────────────────────────────────────────
 const STEP_META = {
-  idle:            { label: "初期化中",                               diagramKey: null,    index: -1, placeholder: "" },
-  onboarding:      { label: "準備（全体入力）",                        diagramKey: null,    index: 0,  placeholder: "テーマ名・企画メモを入力してください。例：「新製品ローンチ計画の課題がある」" },
-  step1_core:      { label: "Step 1 / 5 — 胸・腹（現実→理想→提案）", diagramKey: "step1", index: 1,  placeholder: "現在の状況・問題点（現実）を教えてください。例：「月次売上が目標比-30%が続いています」" },
-  step2_drilldown: { label: "Step 2 / 5 — 両腕（現実・理想の深掘り）", diagramKey: "step2", index: 2,  placeholder: "例：「原因は①顧客単価の低下 ②新規開拓停滞 ③競合参入の3つです」" },
-  step3_what_how:  { label: "Step 3 / 5 — 両脚（What/How）",          diagramKey: "step3", index: 3,  placeholder: "例：「What: 営業プロセス見直し / How: 3ヶ月でCRM導入＋週次レビュー」" },
-  step4_verify:    { label: "Step 4 / 5 — 点検（矛盾・ブレ検証）",    diagramKey: "step4", index: 4,  placeholder: "例：「予算とスケジュールに矛盾はないか確認お願いします」または「整合性OKです」" },
-  step5_combine:   { label: "Step 5 / 5 — 頭・台座（イントロ・締め）",diagramKey: "step5", index: 5,  placeholder: "例：「フック：今期売上-30%。今日転換点を作ります。CTA：来月からCRM試験導入の承認をお願いします」" },
-  complete:        { label: "合体完了 🎉",                             diagramKey: "final", index: 6,  placeholder: "" },
+  step1_head:     { label: "Step 1 / 5 — 🧠 頭（ヘッド）",        diagramKey: "step1", index: 1,
+    placeholder: "【① 頭：コンセプト・結論】例：重要メールだけをAIが自動選別し、確認時間を1日5分にする仕組み" },
+  step2_body:     { label: "Step 2 / 5 — 🫀 胴体（ボディ）",        diagramKey: "step2", index: 2,
+    placeholder: "【② 胴体：コアシステム・本質】例：受信メールの自動スコアリングと毎朝1回の要約ダイジェスト通知" },
+  step3_right_arm:{ label: "Step 3 / 5 — 💪 右腕（ライトアーム）",  diagramKey: "step3", index: 3,
+    placeholder: "【③ 右腕：攻めの施策】例：VIP顧客からの問い合わせ即応、商談メールの自動タスク化" },
+  step4_left_arm: { label: "Step 4 / 5 — 🛡️ 左腕（レフトアーム）", diagramKey: "step4", index: 4,
+    placeholder: "【④ 左腕：守りの施策】例：誤判定防止のホワイトリスト、セキュリティ・個人情報保護、週次見直し" },
+  step5_legs:     { label: "Step 5 / 5 — 🦿 両足（レッグス）",      diagramKey: "step5", index: 5,
+    placeholder: "【⑤ 両足：土台・前提条件】例：Gmail API＋Cloudflare Workers基盤、月額コスト500円以内、来月テスト開始" },
+  complete:       { label: "合体完了 🎉",                            diagramKey: "final", index: 6,
+    placeholder: "" },
 };
 
-const STEP_ORDER = ["onboarding","step1_core","step2_drilldown","step3_what_how","step4_verify","step5_combine","complete"];
+const STEP_ORDER = ["step1_head","step2_body","step3_right_arm","step4_left_arm","step5_legs","complete"];
 
-const ONBOARDING_WELCOME = (title) =>
-`🤖 logi-bot へようこそ！
+const WELCOME_MESSAGE = (title) =>
+`🤖 **logi-botへようこそ！**「${title}」を一緒に図解していきましょう。
 
-**「${title}」** の図解思考を始めましょう。
+これから合体ロボの **5パーツ** を組み立てていきます：
 
-5つのパーツを組み立てて「合体ロボ（プレゼン構想）」を完成させます：
+　🧠 **① 頭（ヘッド）** → コンセプト・全体メッセージ
+　🫀 **② 胴体（ボディ）** → コアシステム・本質的な仕組み
+　💪 **③ 右腕（ライトアーム）** → 攻めの施策（2〜3項目）
+　🛡️ **④ 左腕（レフトアーム）** → 守りの施策（2〜3項目）
+　🦿 **⑤ 両足（レッグス）** → 土台・基盤・ネクストアクション
 
-　① **胸・腹（コア）** → 現実、理想、提案の骨格
-　② **両腕（ドリルダウン）** → 根拠・数値・原因の深掘り
-　③ **両脚（What/How）** → 何をどうやって実現するか
-　④ **点検** → 矛盾・ブレを洗い出して解消
-　⑤ **頭・台座** → イントロ＋クロージングで全体を完成
+---
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-💡 企画メモ・箇条書き・議事録があれば、まとめて貼り付けてください。AIが自動で図解パーツを仮組みします！
+まず **① 頭（ヘッド）** から始めましょう。
 
-まず **現在の状況（現実）** を教えてください。どんな問題・課題がありますか？`;
+「${title}」で **最も伝えたいコンセプト・結論** を 1〜2 文で教えてください。`;
 
 // ── アプリ状態 ────────────────────────────────────────────────────
 let session = null;
@@ -48,7 +51,6 @@ const $ = (id) => document.getElementById(id);
 const el = {
   title:            $("sessionTitle"),
   stepIndicator:    $("stepIndicator"),
-  substepIndicator: $("substepIndicator"),
   chatMessages:     $("chatMessages"),
   guardNotice:      $("guardNotice"),
   guardMissingList: $("guardMissingList"),
@@ -86,24 +88,18 @@ async function init() {
     history.replaceState(null, "", `session.html?id=${encodeURIComponent(session.sessionId)}`);
   }
 
-  // idle → onboarding の自動遷移はクライアントサイドで即時実施（API 呼び出し不要）
-  if (session.step === "idle") {
-    session = { ...session, step: "onboarding", updatedAt: new Date().toISOString() };
-    saveSession(session);
-  }
-
   renderAll();
 
   // 会話履歴が空なら Welcome を表示
-  if (session.history.length === 0 && session.step === "onboarding") {
-    addMessage("assistant", ONBOARDING_WELCOME(session.title));
+  if (session.history.length === 0) {
+    addMessage("assistant", WELCOME_MESSAGE(session.title));
   } else {
     restoreHistory();
   }
 
   // バルクインプットの pending メッセージがあれば自動送信
   const pending = consumePendingMessage(session.sessionId);
-  if (pending && session.step === "onboarding") {
+  if (pending) {
     el.chatInput.value = pending;
     await sendChat();
   }
@@ -113,8 +109,8 @@ async function init() {
 function restoreHistory() {
   el.chatMessages.innerHTML = "";
   const recent = session.history.slice(-30);
-  if (recent.length === 0 && session.step !== "idle") {
-    addMessage("assistant", ONBOARDING_WELCOME(session.title));
+  if (recent.length === 0) {
+    addMessage("assistant", WELCOME_MESSAGE(session.title));
     return;
   }
   recent.forEach((turn) => addMessage(turn.role, turn.content));
@@ -127,7 +123,6 @@ function renderAll() {
   renderStepIndicator();
   renderNavButtons();
   updateDiagramPanel();
-  updateStep1SubstepIndicator();
   updateChatPlaceholder();
 }
 
@@ -137,7 +132,7 @@ function renderStepIndicator() {
     const s = item.dataset.step;
     const idx = STEP_ORDER.indexOf(s);
     item.classList.remove("done", "active", "todo");
-    if (idx < currentIdx)      item.classList.add("done");
+    if (idx < currentIdx)       item.classList.add("done");
     else if (idx === currentIdx) item.classList.add("active");
     else                        item.classList.add("todo");
   });
@@ -153,86 +148,22 @@ function renderStepIndicator() {
 
 function renderNavButtons() {
   const step = session.step;
-  el.backBtn.disabled  = !["step1_core","step2_drilldown","step3_what_how","step4_verify","step5_combine"].includes(step) || isLoading;
-  el.nextBtn.disabled  = !["onboarding","step1_core","step2_drilldown","step3_what_how","step4_verify","step5_combine"].includes(step) || isLoading;
+  const canBack = ["step2_body","step3_right_arm","step4_left_arm","step5_legs"].includes(step);
+  const canNext = ["step1_head","step2_body","step3_right_arm","step4_left_arm","step5_legs"].includes(step);
 
-  if (step === "step5_combine") el.nextBtn.textContent = "合体ロボを完成させる 🤖";
-  else if (step === "onboarding") el.nextBtn.textContent = "Step 1 へ進む →";
-  else if (step === "complete")   { el.nextBtn.textContent = "完成！"; el.nextBtn.disabled = true; }
-  else el.nextBtn.textContent = "次のステップへ →";
+  el.backBtn.disabled = !canBack || isLoading;
+  el.nextBtn.disabled = !canNext || isLoading;
+
+  if (step === "step5_legs")  el.nextBtn.textContent = "合体ロボを完成させる 🤖";
+  else if (step === "complete") { el.nextBtn.textContent = "完成！"; el.nextBtn.disabled = true; }
+  else                          el.nextBtn.textContent = "次のステップへ →";
 }
 
-// ── Step 1 サブステップ ────────────────────────────────────────────
-
-function getStep1Substep() {
-  const { reality, ideal, proposal } = session.parts.core;
-  if (!reality) return "reality";
-  if (!ideal)   return "ideal";
-  if (!proposal) return "proposal";
-  return "done";
-}
-
-function updateStep1SubstepIndicator() {
-  if (!el.substepIndicator) return;
-  const show = session.step === "step1_core";
-  el.substepIndicator.hidden = !show;
-  if (!show) return;
-
-  const substep = getStep1Substep();
-  const order = ["reality", "ideal", "proposal"];
-  const currentIdx = substep === "done" ? order.length : order.indexOf(substep);
-
-  el.substepIndicator.querySelectorAll(".substep-item").forEach((item, i) => {
-    item.classList.remove("done", "active", "todo");
-    if (i < currentIdx)            item.classList.add("done");
-    else if (i === currentIdx)     item.classList.add("active");
-    else                           item.classList.add("todo");
-  });
-
-  // コネクタの色を更新
-  el.substepIndicator.querySelectorAll(".substep-connector").forEach((c, i) => {
-    c.style.background = i < currentIdx ? "var(--c-step-done)" : "var(--c-step-todo)";
-  });
-}
-
-function escMermaid(str) {
-  return String(str).replace(/"/g, "'").replace(/\n/g, " ").replace(/[<>]/g, "");
-}
-
-/** Step 1 の入力状況から部分 Mermaid 図をクライアントサイドで生成する */
-function buildClientStep1Diagram(parts) {
-  const { reality, ideal, proposal } = parts.core;
-  if (!reality && !ideal && !proposal) return "";
-
-  const nodes = [];
-  const edges = [];
-
-  if (reality)  nodes.push(`  R["🔴 現実\\n${escMermaid(reality.slice(0, 40))}"]`);
-  if (ideal)    nodes.push(`  I["🟢 理想\\n${escMermaid(ideal.slice(0, 40))}"]`);
-  if (proposal) nodes.push(`  P["💡 提案\\n${escMermaid(proposal.slice(0, 40))}"]`);
-
-  if (reality && ideal)    edges.push("  R -->|ギャップ| I");
-  if (proposal && ideal)   edges.push("  P -->|橋渡し| I");
-  if (reality && proposal) edges.push("  R -.->|課題の源| P");
-
-  return `flowchart TB\n${nodes.join("\n")}\n${edges.join("\n")}`;
-}
-
-/** 現在のステップとサブステップに合わせてプレースホルダーを更新する */
+/** 現在のステップに合わせてプレースホルダーを更新する */
 function updateChatPlaceholder() {
   if (!el.chatInput) return;
-  if (session.step === "step1_core") {
-    const placeholders = {
-      reality:  "現在の状況・問題点（現実）を教えてください。例：「月次売上が目標比-30%が続いています」",
-      ideal:    "理想の状態はどんなイメージですか？例：「来期末までに売上120%達成、利益率15%」",
-      proposal: "解決策・提案を教えてください。例：「CRM導入と週次レビューで営業プロセスを改善」",
-      done:     "3要素が揃いました！補足・修正があれば入力してください。「次へ」ボタンで Step 2 へ進めます。",
-    };
-    el.chatInput.placeholder = placeholders[getStep1Substep()] || "";
-  } else {
-    const meta = STEP_META[session.step];
-    el.chatInput.placeholder = meta?.placeholder || "メッセージを入力… (Enter で送信、Shift+Enter で改行)";
-  }
+  const meta = STEP_META[session.step];
+  el.chatInput.placeholder = meta?.placeholder || "メッセージを入力… (Enter で送信、Shift+Enter で改行)";
 }
 
 // ── 図パネル ──────────────────────────────────────────────────────
@@ -280,6 +211,10 @@ function addTypingIndicator() {
   return div;
 }
 
+function escHtml(str) {
+  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 async function sendChat() {
   const message = el.chatInput.value.trim();
   if (!message || isLoading) return;
@@ -302,18 +237,9 @@ async function sendChat() {
     saveSession(session);
     addMessage("assistant", res.reply);
 
-    // ファストトラック後: 最初の未完ステップへ自動遷移済み (session.step 更新済み)
+    // ファストトラック後: 最初の未完ステップへ自動遷移済み
     if (res.fast_track && res.first_incomplete_step) {
       addMessage("system", `⚡ ファストトラック: ${formatStep(res.first_incomplete_step)} から再開します`);
-    }
-
-    // Step 1 では回答のたびに部分図をクライアントサイドで即時更新
-    if (session.step === "step1_core") {
-      const partial = buildClientStep1Diagram(session.parts);
-      if (partial) {
-        session = { ...session, diagrams: { ...session.diagrams, step1: partial } };
-        saveSession(session);
-      }
     }
 
     renderAll();
@@ -334,7 +260,6 @@ async function doAdvance(event) {
     const res = await apiAdvance(session, event);
 
     if (res && !res.ok) {
-      // guard_failed
       showGuardNotice(res.missing_fields ?? []);
       return;
     }
@@ -372,7 +297,13 @@ async function doAdvance(event) {
 }
 
 function stepToDiagramKey(step) {
-  const map = { step1_core:"step1", step2_drilldown:"step2", step3_what_how:"step3", step4_verify:"step4", step5_combine:"step5" };
+  const map = {
+    step1_head:      "step1",
+    step2_body:      "step2",
+    step3_right_arm: "step3",
+    step4_left_arm:  "step4",
+    step5_legs:      "step5",
+  };
   return map[step] ?? null;
 }
 
@@ -390,6 +321,10 @@ function forceNextStep() {
   saveSession(session);
   el.guardNotice.hidden = true;
   renderAll();
+}
+
+function formatStep(step) {
+  return STEP_META[step]?.label ?? step;
 }
 
 // ── ズームモーダル ────────────────────────────────────────────────
@@ -412,15 +347,6 @@ function setLoading(v) {
   if (!v) renderNavButtons();
   else    { el.nextBtn.disabled = true; el.backBtn.disabled = true; }
   document.body.classList.toggle("loading", v);
-}
-
-// ── ユーティリティ ────────────────────────────────────────────────
-function escHtml(str) {
-  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function formatStep(step) {
-  return STEP_META[step]?.label ?? step;
 }
 
 // ── イベントバインド ──────────────────────────────────────────────

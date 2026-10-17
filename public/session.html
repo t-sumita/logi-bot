@@ -37,51 +37,43 @@
 
   <!-- ── Step Indicator ── -->
   <div class="step-indicator" id="stepIndicator" role="progressbar" aria-label="進行ステップ">
-    <div class="step-item" data-step="onboarding">
-      <div class="step-dot"></div>
-      <div class="step-name">
-        <span class="sn-main" data-t="step.onboarding.main">準備</span>
-        <span class="sn-sub" data-t="step.onboarding.sub">全体入力</span>
-      </div>
-    </div>
-    <div class="step-connector"></div>
-    <div class="step-item" data-step="step1_core">
+    <div class="step-item" data-step="step1_head">
       <div class="step-dot">1</div>
       <div class="step-name">
-        <span class="sn-main" data-t="step.step1.main">胸・腹</span>
-        <span class="sn-sub" data-t="step.step1.sub">現実→理想→提案</span>
+        <span class="sn-main" data-t="step.step1_head.main">① 頭</span>
+        <span class="sn-sub" data-t="step.step1_head.sub">コンセプト・結論</span>
       </div>
     </div>
     <div class="step-connector"></div>
-    <div class="step-item" data-step="step2_drilldown">
+    <div class="step-item" data-step="step2_body">
       <div class="step-dot">2</div>
       <div class="step-name">
-        <span class="sn-main" data-t="step.step2.main">両腕</span>
-        <span class="sn-sub" data-t="step.step2.sub">現実・理想の深掘り</span>
+        <span class="sn-main" data-t="step.step2_body.main">② 胴体</span>
+        <span class="sn-sub" data-t="step.step2_body.sub">コアシステム</span>
       </div>
     </div>
     <div class="step-connector"></div>
-    <div class="step-item" data-step="step3_what_how">
+    <div class="step-item" data-step="step3_right_arm">
       <div class="step-dot">3</div>
       <div class="step-name">
-        <span class="sn-main" data-t="step.step3.main">両脚</span>
-        <span class="sn-sub" data-t="step.step3.sub">What/How</span>
+        <span class="sn-main" data-t="step.step3_right_arm.main">③ 右腕</span>
+        <span class="sn-sub" data-t="step.step3_right_arm.sub">攻めの施策</span>
       </div>
     </div>
     <div class="step-connector"></div>
-    <div class="step-item" data-step="step4_verify">
+    <div class="step-item" data-step="step4_left_arm">
       <div class="step-dot">4</div>
       <div class="step-name">
-        <span class="sn-main" data-t="step.step4.main">点検</span>
-        <span class="sn-sub" data-t="step.step4.sub">矛盾・ブレ検証</span>
+        <span class="sn-main" data-t="step.step4_left_arm.main">④ 左腕</span>
+        <span class="sn-sub" data-t="step.step4_left_arm.sub">守りの施策</span>
       </div>
     </div>
     <div class="step-connector"></div>
-    <div class="step-item" data-step="step5_combine">
+    <div class="step-item" data-step="step5_legs">
       <div class="step-dot">5</div>
       <div class="step-name">
-        <span class="sn-main" data-t="step.step5.main">頭・台座</span>
-        <span class="sn-sub" data-t="step.step5.sub">イントロ・締め</span>
+        <span class="sn-main" data-t="step.step5_legs.main">⑤ 両足</span>
+        <span class="sn-sub" data-t="step.step5_legs.sub">土台・基盤</span>
       </div>
     </div>
     <div class="step-connector"></div>
@@ -104,24 +96,6 @@
       </div>
 
       <div class="chat-input-area">
-        <!-- サブステップインジケーター（Step 1 胸・腹 のみ表示） -->
-        <div class="substep-indicator" id="substepIndicator" hidden aria-label="Step 1 進行状況">
-          <div class="substep-item" data-substep="reality">
-            <div class="substep-dot"></div>
-            <div class="substep-label" data-t="substep.reality">現実</div>
-          </div>
-          <div class="substep-connector"></div>
-          <div class="substep-item" data-substep="ideal">
-            <div class="substep-dot"></div>
-            <div class="substep-label" data-t="substep.ideal">理想</div>
-          </div>
-          <div class="substep-connector"></div>
-          <div class="substep-item" data-substep="proposal">
-            <div class="substep-dot"></div>
-            <div class="substep-label" data-t="substep.proposal">提案</div>
-          </div>
-        </div>
-
         <!-- ガード条件 未達通知 -->
         <div class="guard-notice" id="guardNotice" hidden role="alert">
           <div class="guard-notice-inner">

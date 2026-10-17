@@ -101,7 +101,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     return err(400, "invalid_input", "message が空です");
 
   // バルク抽出モード判定
-  const isBulk = body.step === "onboarding" && isBulkInput(body.message);
+  const isBulk = body.step === "step1_head" && isBulkInput(body.message) && !body.session.parts.head.concept;
   const systemPrompt = isBulk
     ? buildBulkSystemPrompt(body.session)
     : buildSystemPrompt(body.step, body.session);
@@ -144,7 +144,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       ...updatedSession,
       step: targetStep,
       fast_track: true,
-      onboarding_complete: true,
       status: targetStep === "complete" ? "complete" : "in_progress",
       diagrams: { ...updatedSession.diagrams, ...diagrams },
     };

@@ -1,13 +1,13 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.6.0`
+`0.7.0`
 
 ## 最終更新
 2026-10-17
 
 ## 現在地
-- `feature/phase6-ux` ブランチで v0.6.0 実装完了。ユーザーのマージ・デプロイ指示待ち。
+- `feature/phase7-robot-refactor` ブランチで v0.7.0 実装完了。main へのマージ・デプロイ指示待ち。
 
 ## 完了したこと
 
@@ -45,13 +45,23 @@
 - モードバッジ改善・ℹ️ Info モーダル追加
 
 ### フェーズ 6（UX v0.6.0）
-- **バッジ修正**: 常時表示はアイコンのみ（`.su-badge span { display: none }`）、ポップオーバーにバージョン・コピーライト・Donation・Contact を集約
-- **ステップ表記2行化**: `.sn-main` / `.sn-sub` で パーツ名＋サブ説明を表示
-- **Step 1 順次ガイド**: 現実→理想→提案の3段階。サブステップインジケーター追加、部分図をクライアントサイドで即時生成
-- **初期化バグ修正**: `idle→onboarding` をクライアントサイドで即時実施（API呼び出し廃止・"初期化中"フリーズ解消）
-- **動的プレースホルダー**: ステップ・サブステップに応じた具体的な入力例を表示
-- `typecheck` 0エラー（`npm run typecheck` 確認済み）
+- バッジ修正・ステップ表記2行化・Step 1 順次ガイド
+- 初期化バグ修正・動的プレースホルダー
+
+### フェーズ 7（ロボット部位再定義 v0.7.0）
+- **合体ロボ5パーツ全面刷新**: 旧5ステップ（胸・腹/両腕/両脚/点検/頭・台座）を廃止し、本来の合体ロボレイアウトに合わせた新5部位に再設計
+  - Step 1: 🧠 頭（ヘッド）— コンセプト・結論（head.concept + head.message）
+  - Step 2: 🫀 胴体（ボディ）— コアシステム（body.core_system）
+  - Step 3: 💪 右腕（ライトアーム）— 攻めの施策 2〜3項目（right_arm.items[]）
+  - Step 4: 🛡️ 左腕（レフトアーム）— 守りの施策 2〜3項目（left_arm.items[]）
+  - Step 5: 🦿 両足（レッグス）— 土台・基盤・ネクストアクション（legs.foundation + legs.next_action）
+- **合体ロボ図レイアウト**: H→B, B→RA & LA, RA→FL, LA→FR の flowchart TD
+- **セッション開始を step1_head から直接開始**（onboarding/idle 廃止）
+- **サブステップインジケーター廃止**（Step 1 の現実→理想→提案の3段階UI を削除）
+- **動的プレースホルダー**: 各ステップ固有の具体例テキスト
+- **モバイル CSS**: `100dvh` + `env(safe-area-inset-bottom)` でiOS Safari対応
+- `typecheck` 0エラー / `test:unit` 33/33 全通過
 
 ## 次の一手
-- ユーザーが `feature/phase6-ux` の動作確認後、main へ fast-forward マージ指示
+- ユーザーが `feature/phase7-robot-refactor` の動作確認後、main へ fast-forward マージ指示
 - GitHub push → Cloudflare Pages 自動デプロイ

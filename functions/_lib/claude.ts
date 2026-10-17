@@ -2,7 +2,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import type { MessageParam } from "@anthropic-ai/sdk/resources/messages.js";
-import type { Env, ConversationTurn, SessionParts, CorePart, DrilldownPart, WhatHowPart } from "./types.js";
+import type { Env, ConversationTurn, SessionParts } from "./types.js";
 import { SESSION_UPDATE_TOOL } from "./prompt.js";
 
 // ── 公開インターフェース ──────────────────────────────────────────
@@ -29,7 +29,7 @@ export async function callClaudeApi(
   const client = new Anthropic({ apiKey });
   const trimmed = req.history.slice(-20);
   const messages: MessageParam[] = [
-    ...trimmed.map((t) => ({ role: t.role, content: t.content })),
+    ...trimmed.map((turn) => ({ role: turn.role, content: turn.content })),
     { role: "user" as const, content: req.message },
   ];
 
@@ -54,54 +54,46 @@ export async function callClaudeApi(
   return { reply: reply.trim(), extracted };
 }
 
-// ── MOCK レスポンス（強化版：手動 Mermaid 作図ツールとして完結）──
+// ── MOCK レスポンス ───────────────────────────────────────────────
 
-// ── サンプルシナリオ（不良在庫の一掃による利益改善）──────────────
+// ── サンプルシナリオ（メール管理AIアシスタント）─────────────────────
 const SAMPLE_PARTS: Partial<SessionParts> = {
-  core: {
-    reality:  "店頭の不良在庫が棚全体の35%を占め、月次150万円のキャッシュが拘束されている",
-    ideal:    "不良在庫率を5%以下に抑え、解放した資金を新商品仕入れに回して粗利を20%改善する",
-    proposal: "在庫AIスコアリング＋週次クリアランスセールで不良在庫を3ヶ月で一掃する",
+  head: {
+    concept: "重要メールだけをAIが自動選別し、確認時間を1日5分にする仕組み",
+    message:  "毎日100通のメールに埋もれる時間を、AIで95%削減する",
   },
-  drilldown: {
-    reality_factors: [
-      "発注担当が経験則に頼り数値根拠がない（需要予測精度±40%）",
-      "クリアランス判断基準が曖昧で値引き意思決定に2週間以上かかる",
-      "仕入れと販売データが別システムで在庫全体像を誰も把握できていない",
-    ],
-    ideal_goals: [
-      "不良在庫率5%以下（現状35%から改善）",
-      "在庫回転率を年6回から12回へ倍増",
-      "解放資金300万円を高利益商品仕入れに転用",
-    ],
-    gap_summary: "意思決定の遅さとデータ分断が在庫滞留の根本原因",
+  body: {
+    core_system: "受信メールの自動スコアリングと毎朝1回の要約ダイジェスト通知",
   },
-  what_how: {
-    what_items: ["在庫AIスコアリング導入", "週次クリアランスセール実施", "発注ルールの数値化"],
-    how_items:  [
-      "SaaS在庫管理ツール（月5万円）を3ヶ月試験導入",
-      "毎週金曜に在庫担当+店長で30分クリアランス判定会議",
-      "POS実績ベースで自動計算する発注シート作成",
+  right_arm: {
+    items: [
+      "VIP顧客からの問い合わせを即時検知・最優先通知",
+      "商談メールの自動タスク化とカレンダー連携",
+      "新規リードメールの自動CRM登録",
     ],
-    who_when: [],
   },
-  verification: { is_consistent: true, contradictions: [] },
-  frame: {
-    intro:   { audience: "経営陣・仕入れ責任者", hook: "今の在庫の35%が「死に筋」です。3ヶ月で300万円を解放できます" },
-    closing: { cta: "来月から在庫管理ツールの試験導入を承認してください" },
-    title:   "在庫革命：不良在庫ゼロで利益率20%改善計画",
+  left_arm: {
+    items: [
+      "誤判定防止のホワイトリスト・ブラックリスト管理",
+      "個人情報・セキュリティ関連メールの別フォルダ隔離",
+      "週次レビューで判定精度を継続改善",
+    ],
+  },
+  legs: {
+    foundation:  "Gmail API + Cloudflare Workers基盤、月額コスト500円以内",
+    next_action: "来月から30日間のパイロット運用開始、効果測定後に全社展開",
   },
 };
 
-const SAMPLE_REPLY = `いただいた情報から、全パーツを仮組みしました！📦
+const SAMPLE_REPLY = `いただいた情報から、合体ロボの全パーツを仮組みしました！🤖
 
-✅ コア（胸・腹）: 現実「不良在庫35%・月次150万円拘束」→ 理想「粗利20%改善」→ 提案「AIスコアリング+クリアランスセール」
-✅ ドリルダウン（両腕）: 現実の要因3つ・理想の成果3つを整理
-✅ What/How（両脚）: 3つのアクションとその実行手段を対にして整理
-✅ 点検（矛盾検証）: 論理一貫性を確認
-✅ 頭・台座（フレーム）: フック・CTA・タイトルを設定
+✅ 頭（ヘッド）: コンセプト「AIで重要メール自動選別・確認5分」を設定
+✅ 胴体（ボディ）: コアシステム「自動スコアリング＋朝の要約ダイジェスト」を定義
+✅ 右腕（ライトアーム）: 攻めの施策3項目（VIP検知・商談タスク化・CRM連携）
+✅ 左腕（レフトアーム）: 守りの施策3項目（ホワイトリスト・セキュリティ隔離・週次改善）
+✅ 両足（レッグス）: 土台「Gmail + Cloudflare Workers」＋ネクストアクション
 
-🎉 全ステップが仮組みされました！「次のステップへ」ボタンで内容を確認・修正できます。`;
+🎉 全パーツが仮組みされました！「次へ」ボタンで内容を確認・修正できます。`;
 
 // ── テキスト抽出ユーティリティ ────────────────────────────────────
 
@@ -121,137 +113,61 @@ function getLines(text: string): string[] {
     .filter((l) => l.length > 1 && l.length < 300);
 }
 
-function extractCore(msg: string): CorePart {
-  const reality  = extractByPrefix(msg, ["現実","現状","問題","課題","今の状況"]) || getLines(msg)[0] || msg.slice(0, 200);
-  const ideal    = extractByPrefix(msg, ["理想","目標","あるべき","ゴール","目指す"]) || getLines(msg)[1] || "";
-  const proposal = extractByPrefix(msg, ["提案","解決","対策","方針","施策","アイデア"]) || getLines(msg)[2] || "";
-  return { reality, ideal, proposal };
-}
-
-function extractDrilldown(msg: string): Partial<DrilldownPart> {
-  const lines = getLines(msg);
-  // 1行だけなら reality_factors に追加
-  if (lines.length === 1) return { reality_factors: [lines[0]], ideal_goals: [], gap_summary: "" };
-  // 半分を reality_factors、残りを ideal_goals に
-  const mid = Math.ceil(lines.length / 2);
-  return {
-    reality_factors: lines.slice(0, mid),
-    ideal_goals:     lines.slice(mid),
-    gap_summary:     "",
-  };
-}
-
-function extractWhatHow(msg: string): Partial<WhatHowPart> {
-  // "What: xxx / How: yyy" ペアを検出
-  const pairRe = /What[：:　]([^\n/]+)[/／\n]How[：:　]([^\n]+)/gi;
-  const pairs: { w: string; h: string }[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = pairRe.exec(msg)) !== null) {
-    pairs.push({ w: m[1].trim(), h: m[2].trim() });
-  }
-  if (pairs.length > 0) {
-    return {
-      what_items: pairs.map((p) => p.w),
-      how_items:  pairs.map((p) => p.h),
-      who_when:   [],
-    };
-  }
-  // ペアが見つからなければ行単位で割り振り
-  const lines = getLines(msg);
-  const mid = Math.ceil(lines.length / 2);
-  return {
-    what_items: lines.slice(0, mid),
-    how_items:  lines.slice(mid).length ? lines.slice(mid) : lines.slice(0, mid).map(() => "（実行方法を追加）"),
-    who_when:   [],
-  };
-}
-
 // ── ステップ別 MOCK レスポンス ────────────────────────────────────
 
 function detectStep(systemPrompt: string): string {
-  if (systemPrompt.includes("Step 1") || systemPrompt.includes("step1_core"))   return "step1";
-  if (systemPrompt.includes("Step 2") || systemPrompt.includes("step2"))        return "step2";
-  if (systemPrompt.includes("Step 3") || systemPrompt.includes("step3"))        return "step3";
-  if (systemPrompt.includes("Step 4") || systemPrompt.includes("step4"))        return "step4";
-  if (systemPrompt.includes("Step 5") || systemPrompt.includes("step5"))        return "step5";
-  return "onboarding";
+  if (systemPrompt.includes("step1_head")   || systemPrompt.includes("Step 1: 頭"))   return "step1_head";
+  if (systemPrompt.includes("step2_body")   || systemPrompt.includes("Step 2: 胴体")) return "step2_body";
+  if (systemPrompt.includes("step3_right")  || systemPrompt.includes("Step 3: 右腕")) return "step3_right_arm";
+  if (systemPrompt.includes("step4_left")   || systemPrompt.includes("Step 4: 左腕")) return "step4_left_arm";
+  if (systemPrompt.includes("step5_legs")   || systemPrompt.includes("Step 5: 両足")) return "step5_legs";
+  return "step1_head";
 }
 
-function detectStep1Substep(systemPrompt: string): "reality" | "ideal" | "proposal" | "done" {
-  if (systemPrompt.includes("step1_substep:reality"))  return "reality";
-  if (systemPrompt.includes("step1_substep:ideal"))    return "ideal";
-  if (systemPrompt.includes("step1_substep:proposal")) return "proposal";
-  return "done";
-}
-
-function stepMockResponse(step: string, message: string, systemPrompt: string = ""): ClaudeResponse {
+function stepMockResponse(step: string, message: string): ClaudeResponse {
   const short = message.slice(0, 40);
   switch (step) {
-    case "step1": {
-      const substep = detectStep1Substep(systemPrompt);
-      switch (substep) {
-        case "reality": {
-          const reality = getLines(message)[0] || message.slice(0, 200);
-          return {
-            reply: `「${reality.slice(0, 40)}…」を**現実の状況**として記録しました。✅\n\n次に、**理想の状態**を教えてください。\nそれが実現したとき、どんな状況になっていますか？`,
-            extracted: { core: { reality, ideal: "", proposal: "" } },
-          };
-        }
-        case "ideal": {
-          const ideal = getLines(message)[0] || message.slice(0, 200);
-          return {
-            reply: `「${ideal.slice(0, 40)}…」を**理想の状態**として記録しました。✅\n\n最後に、**解決策・提案**を教えてください。\nどんなアプローチでこの理想を実現しますか？`,
-            extracted: { core: { reality: "", ideal, proposal: "" } },
-          };
-        }
-        case "proposal": {
-          const proposal = getLines(message)[0] || message.slice(0, 200);
-          return {
-            reply: `「${proposal.slice(0, 40)}…」を**提案・解決策**として記録しました。✅\n\n**3要素（現実・理想・提案）が揃いました！🎉**\n「次へ」ボタンで Step 2（両腕・ドリルダウン）へ進めます。`,
-            extracted: { core: { reality: "", ideal: "", proposal } },
-          };
-        }
-        default: {
-          const core = extractCore(message);
-          return {
-            reply: `補足を受け取りました。\n\n内容を更新しました。「次へ」ボタンで Step 2 へ進めます。`,
-            extracted: { core },
-          };
-        }
-      }
-    }
-    case "step2": {
-      const d = extractDrilldown(message);
-      const reply = `「${short}…」を受け取りました。\n\n✅ 現実の要因として ${d.reality_factors?.length ?? 0} 件を記録しました。\n\n**理想を達成したとき、何が実現していますか？** 具体的な成果を2〜3つ教えてください。`;
-      return { reply, extracted: { drilldown: d as DrilldownPart } };
-    }
-    case "step3": {
-      const wh = extractWhatHow(message);
-      const reply = `「${short}…」を受け取りました。\n\n✅ What/How を ${wh.what_items?.length ?? 0} ペア記録しました。\n\n**体制・予算・期限**で決まっているものはありますか？（なければ「なし」でOKです）`;
-      return { reply, extracted: { what_how: wh as WhatHowPart } };
-    }
-    case "step4": {
-      const reply = `「${short}…」を確認しました。\n\n✅ 整合性チェック完了。論理的に一貫したストーリーになっています。\n\n**「次へ」ボタンでStep 5（頭・台座）へ進めます。**`;
-      return { reply, extracted: { verification: { is_consistent: true, contradictions: [] } } };
-    }
-    case "step5": {
-      const hook = extractByPrefix(message, ["フック","一文","導入","インパクト"]) || getLines(message)[0] || message.slice(0, 100);
-      const cta  = extractByPrefix(message, ["CTA","行動","してほしい","依頼","お願い"]) || getLines(message).slice(-1)[0] || "ぜひ検討をお願いします";
-      const reply = `「${short}…」を受け取りました。\n\n✅ フック・CTAを記録しました。\n\n**「次へ」ボタンで合体ロボ図を完成させましょう！🤖**`;
+    case "step1_head": {
+      const concept = getLines(message)[0] || message.slice(0, 200);
       return {
-        reply,
-        extracted: {
-          frame: {
-            intro:   { audience: "", hook },
-            closing: { cta },
-            title:   "",
-          },
-        },
+        reply: `「${concept.slice(0, 40)}…」を**コンセプト**として記録しました。✅\n\n**このプレゼンで最も伝えたいメッセージ**（結論・一言で言うと）を教えてください。`,
+        extracted: { head: { concept, message: "" } },
+      };
+    }
+    case "step2_body": {
+      const core_system = getLines(message)[0] || message.slice(0, 200);
+      return {
+        reply: `「${short}…」を**コアシステム**として記録しました。✅\n\n「次へ」ボタンで Step 3（右腕：攻めの施策）へ進めます。`,
+        extracted: { body: { core_system } },
+      };
+    }
+    case "step3_right_arm": {
+      const items = getLines(message).slice(0, 3);
+      const finalItems = items.length > 0 ? items : [message.slice(0, 100)];
+      return {
+        reply: `「${short}…」を受け取りました。\n\n✅ 攻めの施策として ${finalItems.length} 件を記録しました。\n\n「次へ」ボタンで Step 4（左腕：守りの施策）へ進めます。`,
+        extracted: { right_arm: { items: finalItems } },
+      };
+    }
+    case "step4_left_arm": {
+      const items = getLines(message).slice(0, 3);
+      const finalItems = items.length > 0 ? items : [message.slice(0, 100)];
+      return {
+        reply: `「${short}…」を受け取りました。\n\n✅ 守りの施策として ${finalItems.length} 件を記録しました。\n\n「次へ」ボタンで Step 5（両足：土台・基盤）へ進めます。`,
+        extracted: { left_arm: { items: finalItems } },
+      };
+    }
+    case "step5_legs": {
+      const foundation  = extractByPrefix(message, ["土台","基盤","前提","インフラ","基礎"]) || getLines(message)[0] || message.slice(0, 100);
+      const next_action = extractByPrefix(message, ["ネクスト","次のステップ","アクション","予定","計画"]) || getLines(message).slice(-1)[0] || "詳細はご相談ください";
+      return {
+        reply: `「${short}…」を受け取りました。\n\n✅ 土台とネクストアクションを記録しました。\n\n**「次へ」ボタンで合体ロボ図を完成させましょう！🤖**`,
+        extracted: { legs: { foundation, next_action } },
       };
     }
     default: {
       return {
-        reply: `「${short}…」ありがとうございます。\n\n現在の状況（現実）・目指す状態（理想）・解決策（提案）をどんな形でも構いません、教えてください。`,
+        reply: `「${short}…」ありがとうございます。\n\nプレゼンの**コンセプト・結論**を 1〜2 文で教えてください。`,
         extracted: undefined,
       };
     }
@@ -260,42 +176,48 @@ function stepMockResponse(step: string, message: string, systemPrompt: string = 
 
 function bulkExtractMock(message: string): ClaudeResponse {
   // サンプルシナリオのキーワードが含まれる場合はサンプルデータを返す
-  if (message.includes("不良在庫") || message.includes("クリアランス")) {
+  if (message.includes("メール") || message.includes("Gmail") || message.includes("スコアリング")) {
     return { reply: SAMPLE_REPLY, extracted: SAMPLE_PARTS };
   }
 
   // 汎用バルク抽出：全フィールドに対して抽出を試みる
-  const core = extractCore(message);
   const lines = getLines(message);
-  const mid = Math.ceil(lines.length / 2);
-  const drilldown: DrilldownPart = {
-    reality_factors: lines.slice(0, Math.min(3, mid)),
-    ideal_goals:     lines.slice(mid, mid + 3),
-    gap_summary:     "",
-  };
+  const concept    = lines[0] || message.slice(0, 200);
+  const msgText    = lines[1] || "";
+  const core_system = lines[2] || "";
+  const rightItems  = lines.slice(3, 6).filter(Boolean);
+  const leftItems   = lines.slice(6, 9).filter(Boolean);
+  const foundation  = lines.slice(-2, -1)[0] || "";
+  const next_action = lines.slice(-1)[0] || "";
 
   const filled: string[] = [];
-  if (core.reality)                          filled.push("✅ コア（現実）を仮組み");
-  if (core.ideal)                            filled.push("✅ コア（理想）を仮組み");
-  if (core.proposal)                         filled.push("✅ コア（提案）を仮組み");
-  if (drilldown.reality_factors.length > 0) filled.push("✅ ドリルダウン（現実の要因）を仮組み");
-  if (drilldown.ideal_goals.length > 0)     filled.push("✅ ドリルダウン（理想の成果）を仮組み");
+  if (concept)              filled.push("✅ 頭（ヘッド）: コンセプトを仮組み");
+  if (core_system)          filled.push("✅ 胴体（ボディ）: コアシステムを仮組み");
+  if (rightItems.length > 0) filled.push(`✅ 右腕（ライトアーム）: 攻めの施策 ${rightItems.length} 件を仮組み`);
+  if (leftItems.length > 0)  filled.push(`✅ 左腕（レフトアーム）: 守りの施策 ${leftItems.length} 件を仮組み`);
+  if (foundation)           filled.push("✅ 両足（レッグス）: 土台を仮組み");
 
   const missing: string[] = [];
-  if (!core.reality || !core.ideal || !core.proposal) missing.push("⚠️ コアの3要素（現実・理想・提案）を明確にしてください");
-  if (drilldown.reality_factors.length === 0) missing.push("⚠️ 具体的な問題点・制約を教えてください");
+  if (!concept)               missing.push("⚠️ コンセプト・結論（頭）を明確にしてください");
+  if (rightItems.length === 0) missing.push("⚠️ 攻めの施策（右腕）を 2〜3 項目教えてください");
 
-  const reply = `いただいた情報から図解パーツを仮組みしました！\n\n${filled.join("\n")}\n\n${missing[0] ?? ""}`;
+  const reply = `いただいた情報から図解パーツを仮組みしました！\n\n${filled.join("\n")}${missing.length > 0 ? "\n\n" + missing[0] : ""}`;
 
   return {
     reply,
-    extracted: { core, drilldown },
+    extracted: {
+      head:      { concept, message: msgText },
+      body:      { core_system },
+      right_arm: { items: rightItems },
+      left_arm:  { items: leftItems },
+      legs:      { foundation, next_action },
+    },
   };
 }
 
 function getMockResponse(req: ClaudeRequest): ClaudeResponse {
   if (req.forceTool) return bulkExtractMock(req.message);
-  return stepMockResponse(detectStep(req.systemPrompt), req.message, req.systemPrompt);
+  return stepMockResponse(detectStep(req.systemPrompt), req.message);
 }
 
 // ── 公開エントリポイント ──────────────────────────────────────────
