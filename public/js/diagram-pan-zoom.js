@@ -74,13 +74,34 @@ export function initPanZoom(containerEl) {
     scale = 1; tx = 0; ty = 0;
     applyTransform();
 
-    // getBoundingClientRect で実際のレンダリングサイズを取得
-    const svgRect = svgEl.getBoundingClientRect();
-    const svgW = svgRect.width;
-    const svgH = svgRect.height;
+    // viewBox から確実にサイズを取得（タイミング依存ゼロ）
+    let svgW = 0;
+    let svgH = 0;
+
+    if (svgEl.viewBox && svgEl.viewBox.baseVal && svgEl.viewBox.baseVal.width > 0) {
+      svgW = svgEl.viewBox.baseVal.width;
+      svgH = svgEl.viewBox.baseVal.height;
+    } else if (svgEl.getAttribute("viewBox")) {
+      const vb = svgEl.getAttribute("viewBox").trim().split(/[\s,]+/);
+      if (vb.length === 4) {
+        svgW = parseFloat(vb[2]);
+        svgH = parseFloat(vb[3]);
+      }
+    }
+
+    // viewBox が取れなかった場合のフォールバック（実測）
+    if (!svgW || !svgH) {
+      const rect = svgEl.getBoundingClientRect();
+      svgW = rect.width;
+      svgH = rect.height;
+    }
+
     console.log("[PanZoom Debug] SVG BoundingBox:", { svgW, svgH });
 
-    if (svgW <= 0 || svgH <= 0) return;
+    if (!svgW || !svgH || !cw || !ch) {
+      console.warn("[PanZoom Debug] Dimensions still 0, skipping fit", { cw, ch, svgW, svgH });
+      return;
+    }
 
     // 余白を確保しながらコンテナに収まるスケールを計算
     const availW = cw - FIT_MARGIN * 2;

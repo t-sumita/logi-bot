@@ -1,7 +1,7 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.8.7`
+`0.8.8`
 
 ## 最終更新
 2026-10-18
@@ -114,8 +114,17 @@
   - フェイルセーフ: `containerEl.clientWidth/Height` が 0 の場合、`getBoundingClientRect()` でフォールバック取得
   - 原因特定後は `console.log` を除去予定
 
+## v0.8.8 追加修正（2026-10-18）
+
+- **パン・ズーム `fit()` scale(0.1) 固着バグ根本修正**:
+  - 原因: `getBoundingClientRect()` が Mermaid SVG のレンダリング前に呼ばれ `{svgW:0, svgH:0}` を返していた
+  - 修正: `viewBox.baseVal` → `getAttribute('viewBox')` → `getBoundingClientRect()` の優先順位でサイズ取得
+  - Mermaid が必ず生成する `viewBox` 属性を使うことでタイミング依存ゼロに
+  - 全サイズ 0 のときは `console.warn` してスキップ（クラッシュ防止）
+
 ## 次の一手
-- ユーザーが https://logi-bot.pages.dev で動作確認し、DevTools Console で `[PanZoom Debug]` ログを確認
-  1. `Container: {cw, ch}` の値が正しいか（cw/ch が 0 でないか）
-  2. `SVG BoundingBox: {svgW, svgH}` の値が正しいか（0 でないか）
-  3. `Calculated Scale:` が MIN_SCALE=0.1 より大きいか
+- ユーザーが https://logi-bot.pages.dev で動作確認
+  1. 合体ロボ図が初期表示でコンテナ中央に正しく収まるか（scale ≒ 0.5〜0.7 程度）
+  2. ⊡ ボタンで中央フィットに戻るか
+  3. ドラッグ・スクロール・ピンチが正常に動作するか
+  4. 問題なければデバッグログを除去して v0.8.9 リリース
