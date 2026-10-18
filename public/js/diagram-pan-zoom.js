@@ -50,8 +50,6 @@ export function initPanZoom(containerEl) {
 
   // ── フィット実装（layout 確定後に実行）──────────────────────────
   function fitInner() {
-    console.log("[PanZoom Debug] fit() called");
-
     const v = vp();
     if (!v) return;
     const svgEl = v.querySelector("svg");
@@ -67,7 +65,6 @@ export function initPanZoom(containerEl) {
       cw = r.width;
       ch = r.height;
     }
-    console.log("[PanZoom Debug] Container:", { cw, ch });
     if (cw <= 0 || ch <= 0) return;
 
     // transform をリセットして自然サイズを測定
@@ -96,36 +93,22 @@ export function initPanZoom(containerEl) {
       svgH = rect.height;
     }
 
-    console.log("[PanZoom Debug] SVG BoundingBox:", { svgW, svgH });
+    if (!svgW || !svgH) return;
 
-    if (!svgW || !svgH || !cw || !ch) {
-      console.warn("[PanZoom Debug] Dimensions still 0, skipping fit", { cw, ch, svgW, svgH });
-      return;
-    }
+    // viewBox 由来のピクセル値を SVG に直接付与（auto による 0x0 潰れを防止）
+    svgEl.style.width = `${svgW}px`;
+    svgEl.style.height = `${svgH}px`;
+    svgEl.style.maxWidth = "none";
 
     // 余白を確保しながらコンテナに収まるスケールを計算
     const availW = cw - FIT_MARGIN * 2;
     const availH = ch - FIT_MARGIN * 2;
     const newScale = clampScale(Math.min(availW / svgW, availH / svgH));
-    console.log("[PanZoom Debug] Calculated Scale:", newScale);
 
     scale = newScale;
     tx = (cw - svgW * scale) / 2;
     ty = Math.max(FIT_MARGIN, (ch - svgH * scale) / 2);
-    console.log("[PanZoom Debug] Calculated Translate:", { tx, ty });
     applyTransform();
-
-    const svgRect = svgEl.getBoundingClientRect();
-    const cs = window.getComputedStyle(svgEl);
-    console.log("[PanZoom Debug] Rendered SVG DOM Rect:", {
-      width: svgRect.width,
-      height: svgRect.height,
-      top: svgRect.top,
-      left: svgRect.left,
-      display: cs.display,
-      opacity: cs.opacity,
-      visibility: cs.visibility,
-    });
   }
 
   /**

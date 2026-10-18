@@ -1,7 +1,7 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.8.9`
+`0.9.0`
 
 ## 最終更新
 2026-10-18
@@ -130,7 +130,26 @@
   - `.pz-viewport svg .node rect/polygon/circle` にも `visibility/opacity !important` を追加
 - **レンダリング後 DOM 状態確認ログを追加**: `applyTransform()` 後に `getBoundingClientRect` + `getComputedStyle` で `display/opacity/visibility` を出力
 
+## v0.9.0（2026-10-18）
+
+- **パン・ズーム 根本修正完了・デバッグログ除去**:
+  - 原因確定: `width: auto !important` により SVG の物理サイズが 0x0 に潰れていた
+  - `fitInner()` で viewBox 由来の `svgW/svgH` を `svgEl.style.width/height` に直接付与
+  - `app.css` の `width: auto !important; height: auto !important;` を削除
+  - `[PanZoom Debug]` ログを全除去（クリーンアップ）
+
+## v0.8.x → v0.9.0 パン・ズーム修正の全経緯
+
+| バージョン | 修正内容 | 結果 |
+|---|---|---|
+| v0.8.6 | double rAF + getBoundingClientRect | → svgW/H=0（タイミング問題）|
+| v0.8.7 | デバッグログ追加 | → Container 正常・SVG=0 を確認 |
+| v0.8.8 | viewBox から svgW/H 取得 | → 計算値 scale=0.254 正常 |
+| v0.8.9 | CSS で可視性強制 | → width:auto が原因と判明 |
+| v0.9.0 | svgEl.style.width/height 直接付与 + CSS 修正 | → 解決 |
+
 ## 次の一手
 - ユーザーが https://logi-bot.pages.dev で動作確認
-  - `[PanZoom Debug] Rendered SVG DOM Rect:` の `display/opacity/visibility` を確認
-  - 図が見えていれば全デバッグログを除去して v0.9.0 リリース
+  1. 合体ロボ図が初期表示でコンテナ中央に正しく収まるか（scale ≒ 0.25 程度）
+  2. ⊡ ボタンで中央フィットに戻るか
+  3. ドラッグ・スクロール・ピンチが正常に動作するか

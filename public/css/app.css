@@ -337,8 +337,6 @@ ul { list-style: none; }
   opacity: 1 !important;
   border-radius: var(--r-md);
   max-width: none !important;
-  width: auto !important;
-  height: auto !important;
   overflow: visible !important;
 }
 .pz-viewport svg .node rect,
