@@ -2,10 +2,10 @@
 
 import { loadSession, saveSession, createNewSession, consumePendingMessage } from "./storage.js";
 import { chat as apiChat, advance as apiAdvance } from "./api.js";
-import { renderDiagram, openZoomModal } from "./mermaid-renderer.js";
+import { openZoomModal } from "./mermaid-renderer.js";
 import { copyMarkdown, downloadMarkdown, downloadStatusMd } from "./export.js";
-import { buildRobotDiagram, attachNodeClickHandlers } from "./mermaid-builder.js";
-import { initPanZoom, wrapForPanZoom } from "./diagram-pan-zoom.js";
+import { buildRobotDiagram } from "./mermaid-builder.js";
+import { renderHtmlDiagram, printDiagram } from "./html-diagram.js";
 
 // ── ステップ定義 ──────────────────────────────────────────────────
 const STEP_META = {
@@ -93,8 +93,8 @@ let isLoading = false;
 let currentDiagramSource = "";
 /** 1手戻し用スナップショット: { session, message } */
 let undoSnapshot = null;
-/** パン・ズームコントローラー */
-let panZoom = null;
+/** 固定レイアウト図の表示倍率（ズームコントローラー用） */
+let diagramScale = 1;
 
 // ── DOM refs ─────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
@@ -112,6 +112,7 @@ const el = {
   diagramContent:   $("diagramContent"),
   zoomDiagramBtn:   $("zoomDiagramBtn"),
   showCodeBtn:      $("showCodeBtn"),
+  printDiagramBtn:  $("printDiagramBtn"),
   diagramFitBtn:    $("diagramFitBtn"),
   diagramZoomInBtn: $("diagramZoomInBtn"),
   diagramZoomOutBtn:$("diagramZoomOutBtn"),
@@ -278,20 +279,28 @@ function updateChatPlaceholder() {
 
 // ── 図パネル ──────────────────────────────────────────────────────
 
-/** クライアントサイドで合体ロボ図を生成・描画し、クリックハンドラ・パンズームを付与する */
-async function updateDiagramPanel() {
-  const source = buildRobotDiagram(session);
-  currentDiagramSource = source;
-  const { ok } = await renderDiagram(source, el.diagramContent);
-  // SVG の挿入が成功した場合のみパン・ズームを初期化する
-  if (!ok) return;
-  wrapForPanZoom(el.diagramContent);
-  attachNodeClickHandlers(el.diagramContent, onNodeClick);
-  if (!panZoom) {
-    panZoom = initPanZoom(el.diagramContent);
-  }
-  // fit() 内部の double rAF でレイアウト確定後に中央フィット
-  panZoom.fit();
+/** HTML/CSS 固定レイアウトで合体ロボ図を描画し、クリックハンドラを付与する */
+function updateDiagramPanel() {
+  // Mermaid ソースはエクスポート・コード表示用に内部的に生成しておく
+  currentDiagramSource = buildRobotDiagram(session);
+  renderHtmlDiagram(session.parts, { container: el.diagramContent, onNodeClick });
+  applyDiagramScale();
+}
+
+/** 現在の表示倍率を図のルート要素に適用する */
+function applyDiagramScale() {
+  const root = el.diagramContent?.querySelector(".robot");
+  if (root) root.style.transform = `scale(${diagramScale})`;
+}
+
+/** ズームコントローラー操作 */
+function zoomDiagram(factor) {
+  diagramScale = Math.min(2.5, Math.max(0.4, diagramScale * factor));
+  applyDiagramScale();
+}
+function fitDiagram() {
+  diagramScale = 1;
+  applyDiagramScale();
 }
 
 /** ノードクリック時: チャット入力欄に番号付き修正テキストを挿入してフォーカス */
@@ -497,10 +506,13 @@ function bindEvents() {
   el.zoomDiagramBtn.addEventListener("click", () => openZoom("svg"));
   el.showCodeBtn.addEventListener("click", () => openZoom("code"));
 
-  // パン・ズームコントローラー
-  el.diagramFitBtn?.addEventListener("click", () => panZoom?.fit());
-  el.diagramZoomInBtn?.addEventListener("click", () => panZoom?.zoomIn());
-  el.diagramZoomOutBtn?.addEventListener("click", () => panZoom?.zoomOut());
+  // 印刷・PDF 出力（別タブ）
+  el.printDiagramBtn?.addEventListener("click", () => printDiagram(session));
+
+  // 固定レイアウト図のズームコントローラー
+  el.diagramFitBtn?.addEventListener("click", fitDiagram);
+  el.diagramZoomInBtn?.addEventListener("click", () => zoomDiagram(1.15));
+  el.diagramZoomOutBtn?.addEventListener("click", () => zoomDiagram(1 / 1.15));
 
   // モーダル閉じる
   el.zoomModalClose.addEventListener("click", () => { el.zoomModal.hidden = true; });

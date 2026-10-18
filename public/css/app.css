@@ -319,10 +319,11 @@ ul { list-style: none; }
 .diagram-actions { display: flex; gap: var(--sp-1); }
 .diagram-pane { position: relative; }
 .diagram-content {
-  flex: 1 1 0; overflow: hidden; position: relative; min-height: 0; cursor: grab;
-  user-select: none; -webkit-user-select: none;
+  flex: 1 1 0; overflow: auto; position: relative; min-height: 0;
+  scrollbar-width: thin; scrollbar-color: var(--c-border) transparent;
 }
-.diagram-content:active { cursor: grabbing; }
+.diagram-content::-webkit-scrollbar { width: 6px; height: 6px; }
+.diagram-content::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: var(--r-full); }
 /* pan-zoom viewport — transform はここに適用 */
 .pz-viewport {
   position: absolute; top: 0; left: 0;

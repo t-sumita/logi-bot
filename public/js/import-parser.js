@@ -41,6 +41,35 @@ function extractTitle(text) {
 }
 
 /**
+ * ノード番号 → 値の Map を parts の該当位置へ割り当てる（番号体系の正本）。
+ * 単一ノード: 0=hook / 1=reality / 2=ideal / 3=proposal / 8=cta
+ * 配列ノード: 4-N=reality_factors / 5-N=ideal_goals / 6-N=what_items / 7-N=how_items
+ * @param {Map<string,string>} nodeMap
+ * @param {object} parts
+ */
+function assignNodesToParts(nodeMap, parts) {
+  if (nodeMap.has("0")) parts.frame.intro.hook  = nodeMap.get("0");
+  if (nodeMap.has("1")) parts.core.reality       = nodeMap.get("1");
+  if (nodeMap.has("2")) parts.core.ideal         = nodeMap.get("2");
+  if (nodeMap.has("3")) parts.core.proposal      = nodeMap.get("3");
+  if (nodeMap.has("8")) parts.frame.closing.cta  = nodeMap.get("8");
+
+  // 配列系は番号順に並べてから push する
+  const sorted = [...nodeMap.keys()].sort((a, b) => {
+    const [am, an] = a.split("-").map(Number);
+    const [bm, bn] = b.split("-").map(Number);
+    return am !== bm ? am - bm : (an || 0) - (bn || 0);
+  });
+  for (const id of sorted) {
+    const v = nodeMap.get(id);
+    if (/^4-\d+$/.test(id)) parts.drilldown.reality_factors.push(v);
+    else if (/^5-\d+$/.test(id)) parts.drilldown.ideal_goals.push(v);
+    else if (/^6-\d+$/.test(id)) parts.what_how.what_items.push(v);
+    else if (/^7-\d+$/.test(id)) parts.what_how.how_items.push(v);
+  }
+}
+
+/**
  * STATUS.md 形式のテキストから parts に値を読み込む。
  * 書式: `- [N] text` または `- [N-M] text`
  * 確定事項・AI案・未確認すべてのセクションを対象にする。
@@ -54,26 +83,7 @@ function parseStatusMdInto(text, parts) {
     const content = m[2].trim();
     if (!nodeMap.has(id)) nodeMap.set(id, content); // 最初出現値を優先
   }
-
-  if (nodeMap.has("0")) parts.frame.intro.hook    = nodeMap.get("0");
-  if (nodeMap.has("1")) parts.core.reality         = nodeMap.get("1");
-  if (nodeMap.has("2")) parts.core.ideal           = nodeMap.get("2");
-  if (nodeMap.has("3")) parts.core.proposal        = nodeMap.get("3");
-  if (nodeMap.has("8")) parts.frame.closing.cta    = nodeMap.get("8");
-
-  // 配列系: [4-N] [5-N] [6-N] [7-N]
-  const sorted = [...nodeMap.keys()].sort((a, b) => {
-    const [am, an] = a.split("-").map(Number);
-    const [bm, bn] = b.split("-").map(Number);
-    return am !== bm ? am - bm : (an || 0) - (bn || 0);
-  });
-  for (const id of sorted) {
-    const v = nodeMap.get(id);
-    if (/^4-\d+$/.test(id)) parts.drilldown.reality_factors.push(v);
-    else if (/^5-\d+$/.test(id)) parts.drilldown.ideal_goals.push(v);
-    else if (/^6-\d+$/.test(id)) parts.what_how.what_items.push(v);
-    else if (/^7-\d+$/.test(id)) parts.what_how.how_items.push(v);
-  }
+  assignNodesToParts(nodeMap, parts);
 }
 
 /**
@@ -114,9 +124,61 @@ function parseMdExportInto(text, parts) {
 }
 
 /**
+ * Mermaid コードらしきテキストか判定する。
+ * flowchart 宣言・```mermaid フェンス・番号付きノードラベル（["[N] …"]）を手掛かりにする。
+ */
+function isMermaidLike(text) {
+  if (/```mermaid/.test(text)) return true;
+  if (/\bflowchart\s+(TB|TD|BT|RL|LR)\b/.test(text)) return true;
+  // ["[N] …"] / [[N] …] のような番号付きノードラベル
+  if (/\[\s*["[]?\s*\[\d+(?:-\d+)?\]/.test(text)) return true;
+  return false;
+}
+
+/**
+ * Mermaid ノードラベルから抽出した生テキストを実データに整形する。
+ * 書式例: "🫀 [1] 現実\n現実の本文" のように「ラベル語\n値」で来る場合は値だけを採る。
+ * "（未入力）" を含む場合は空、"（AI案）"/"（未確認）" マーカーは除去する。
+ * @param {string} raw - `[N]` 直後に続く捕捉文字列（リテラル \n を含みうる）
+ * @returns {string}
+ */
+function cleanMermaidValue(raw) {
+  // mermaid-builder はラベル内改行を literal な "\n"（バックスラッシュ+n）で埋め込む
+  const segs = raw.split(/\\n/).map((s) => s.trim()).filter(Boolean);
+  if (segs.some((s) => s === "（未入力）")) return "";
+  const meaningful = segs.filter((s) => !/^（(AI案|未確認)）$/.test(s));
+  if (meaningful.length === 0) return "";
+  // 複数セグメントなら先頭はパーツ見出し（例: "現実"）とみなし、残りを値とする
+  if (meaningful.length === 1) return meaningful[0];
+  return meaningful.slice(1).join(" ").trim();
+}
+
+/**
+ * Mermaid テキストからナンバリング記号（[N] / [N-M]）付きのノードを正規表現で抽出し、
+ * parts に復元する（AI 不使用）。
+ * @param {string} text
+ * @param {object} parts
+ * @returns {number} 復元できたノード数
+ */
+function parseMermaidInto(text, parts) {
+  const nodeMap = new Map();
+  // [N] または [N-M] の直後から、クォート/角括弧/実改行までの文字列を捕捉（literal \n は許容）
+  const re = /\[(\d+(?:-\d+)?)\]\s*((?:\\n|[^"\]\n])*)/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const id = m[1];
+    if (nodeMap.has(id)) continue; // 最初出現値を優先
+    const value = cleanMermaidValue(m[2]);
+    if (value) nodeMap.set(id, value);
+  }
+  assignNodesToParts(nodeMap, parts);
+  return nodeMap.size;
+}
+
+/**
  * テキストをパースして SessionParts とタイトルを返す。
- * STATUS.md 形式または Markdown エクスポート形式の場合に結果を返す。
- * それ以外は null を返し、呼び出し元は API バルク抽出にフォールバックする。
+ * STATUS.md 形式 / Markdown エクスポート形式 / Mermaid コードを順に試す。
+ * いずれにも該当しなければ null を返し、呼び出し元は API バルク抽出にフォールバックする。
  *
  * @param {string} text
  * @returns {{ parts: object, title: string } | null}
@@ -124,14 +186,21 @@ function parseMdExportInto(text, parts) {
 export function parseImportText(text) {
   const isStatus   = isStatusMdLike(text);
   const isMdExport = !isStatus && isMdExportLike(text);
-  if (!isStatus && !isMdExport) return null;
 
-  const title = extractTitle(text) || "読み込んだセッション";
-  const parts = emptyParts();
-  if (isStatus) {
-    parseStatusMdInto(text, parts);
-  } else {
-    parseMdExportInto(text, parts);
+  if (isStatus || isMdExport) {
+    const title = extractTitle(text) || "読み込んだセッション";
+    const parts = emptyParts();
+    if (isStatus) parseStatusMdInto(text, parts);
+    else          parseMdExportInto(text, parts);
+    return { parts, title };
   }
-  return { parts, title };
+
+  // Mermaid 逆インポート（番号付きノードを正規表現で抽出）
+  if (isMermaidLike(text)) {
+    const parts = emptyParts();
+    const count = parseMermaidInto(text, parts);
+    if (count > 0) return { parts, title: extractTitle(text) || "インポートした図" };
+  }
+
+  return null;
 }

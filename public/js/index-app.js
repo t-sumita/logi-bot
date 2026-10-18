@@ -23,6 +23,21 @@ const SAMPLE_BULK = `現在の課題：
 ・調整コスト50%削減
 ・チームの生産性向上でプロジェクト遅延をゼロに`;
 
+// サンプル業務データ（「📝 サンプルで試す」用の plotData 直接セット版）
+const SAMPLE_PLOT = {
+  title: "社内情報共有ツール刷新",
+  core: {
+    reality:  "社内の情報共有ツールが古く、部門間の連携が非効率なため、プロジェクトの進捗が遅れがち。週に平均5時間が無駄な調整会議や確認作業に費やされている。",
+    ideal:    "リアルタイムで情報が共有され、担当者が即座に状況を把握できる。意思決定のリードタイムが現在の3日から1日以内に短縮される。",
+    proposal: "SlackとNotionを統合した新しいワークフローを導入し、情報の一元管理を実現する。IT部門2名が1ヶ月で初期設定、3ヶ月後に全社展開。",
+  },
+  // 期待効果（イントロ=頭 / 台座=クロージングの両方に反映）
+  frame: {
+    hook: "調整コスト50%削減。チームの生産性向上でプロジェクト遅延をゼロに。",
+    cta:  "調整コスト50%削減。チームの生産性向上でプロジェクト遅延をゼロに。",
+  },
+};
+
 // ── DOM refs ────────────────────────────────────────────────────
 const $id = (id) => document.getElementById(id);
 const resumeSection  = $id("resumeSection");
@@ -30,6 +45,7 @@ const sessionList    = $id("sessionList");
 const clearAllBtn    = $id("clearAllBtn");
 const titleInput     = $id("titleInput");
 const startQuickBtn  = $id("startQuickBtn");
+const sampleTryBtn   = $id("sampleTryBtn");
 const bulkTitle      = $id("bulkTitle");
 const bulkInput      = $id("bulkInput");
 const loadSampleBtn  = $id("loadSampleBtn");
@@ -122,6 +138,21 @@ function startQuick() {
 }
 
 /**
+ * サンプル業務データを plotData に一括セットし、即座にセッション画面へ遷移する。
+ */
+function startSample() {
+  const session = createNewSession(SAMPLE_PLOT.title);
+  session.parts.core.reality     = SAMPLE_PLOT.core.reality;
+  session.parts.core.ideal       = SAMPLE_PLOT.core.ideal;
+  session.parts.core.proposal    = SAMPLE_PLOT.core.proposal;
+  session.parts.frame.intro.hook = SAMPLE_PLOT.frame.hook;
+  session.parts.frame.closing.cta = SAMPLE_PLOT.frame.cta;
+  session.step = inferStep(session.parts);
+  saveSession(session);
+  location.href = `session.html?id=${encodeURIComponent(session.sessionId)}`;
+}
+
+/**
  * parts の充填度からステップを推定する（サーバーの firstIncompleteStep 相当）
  * @param {object} parts
  * @returns {string} StepName
@@ -165,6 +196,7 @@ function bindEvents() {
   bindTabs();
 
   startQuickBtn.addEventListener("click", startQuick);
+  sampleTryBtn?.addEventListener("click", startSample);
   titleInput.addEventListener("keydown", (e) => { if (e.key === "Enter") startQuick(); });
 
   startBulkBtn.addEventListener("click", startBulk);

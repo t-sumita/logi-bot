@@ -1,7 +1,7 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.9.0`
+`0.9.1`
 
 ## 最終更新
 2026-10-18
@@ -148,8 +148,27 @@
 | v0.8.9 | CSS で可視性強制 | → width:auto が原因と判明 |
 | v0.9.0 | svgEl.style.width/height 直接付与 + CSS 修正 | → 解決 |
 
+## v0.9.1（2026-10-18 — HTML固定レイアウト刷新・印刷・サンプル・逆インポート）
+
+- **Task 1 / HTML/CSS 固定レイアウトビューア（脱 Mermaid メイン表示）**:
+  - `public/js/html-diagram.js` 新規作成。`renderHtmlDiagram(plotData, { container, onNodeClick })` が
+    頭→上半身（左腕・胴体・右腕の横並び）→下半身（左足・右足）→台座の固定 DOM を組み立てる
+  - 右側 `#diagramContent` の Mermaid レンダリングを廃止し、自動レイアウト崩れを根本解消
+  - 各ボックスは CSS（配色・ボーダー・角丸・影）でスタイリング、線は `.rb-connector`/`.rb-arrow` で疑似表現
+  - ノードクリックでチャット入力欄に修正テキストを挿入（従来機能を DOM ベースで維持）
+  - ズームコントローラー（⊡/＋/－）は `.robot` への `transform: scale()` 方式に変更
+  - Mermaid コード生成（`buildRobotDiagram`）はエクスポート・コード表示・SVG 拡大用に内部的に存続
+  - 脚は「左足・右足を横に並べ、各足内の項目を縦に積む」ロボシルエット構成で実装
+- **Task 2 / 印刷・PDF 出力（別タブ）**: 図コントローラーに「🖨️ 印刷・PDF」ボタン追加。
+  `window.open('', '_blank')` で開いたタブに図 DOM + 自己完結 CSS（`ROBOT_CSS`/`PRINT_CSS`）を流し込み、
+  `load` 後に `window.print()` を自動呼び出し
+- **Task 3 / サンプル一発読み込み**: トップ（クイック）画面に「📝 サンプルで試す（社内情報共有ツール刷新）」
+  ボタン追加。`plotData` に業務サンプル（現実/理想/提案 + 期待効果→イントロ/台座）を一括セットし即遷移
+- **Task 4 / Mermaid 逆インポート（MOCK・正規表現）**: `import-parser.js` を拡張。
+  `isMermaidLike` 検出 + `parseMermaidInto`（`[N]`/`[N-M]` ナンバリングを正規表現抽出し plotData へ復元）。
+  ノード割り当てを `assignNodesToParts` に共通化。`cleanMermaidValue` で「見出し\\n本文」整形・（未入力）スキップ
+- **テスト**: 61/61 全通過（Mermaid 逆インポート 7 件追加）。typecheck 0 エラー
+
 ## 次の一手
-- ユーザーが https://logi-bot.pages.dev で動作確認
-  1. 合体ロボ図が初期表示でコンテナ中央に正しく収まるか（scale ≒ 0.25 程度）
-  2. ⊡ ボタンで中央フィットに戻るか
-  3. ドラッグ・スクロール・ピンチが正常に動作するか
+
+v0.9.1 のブラウザ実機確認（固定レイアウト表示・印刷プレビュー・サンプル遷移・Mermaid 貼り付けインポート）

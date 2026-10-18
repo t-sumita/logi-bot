@@ -411,18 +411,12 @@ function extractTitle(text) {
   const m2 = text.match(/^#\s+(?!セッション状態)(.+)/m);
   return m2 ? m2[1].trim() : "";
 }
-function parseStatusMdInto(text, parts) {
-  const nodeMap = new Map();
-  for (const line of text.split("\n")) {
-    const m = line.match(/^\s*-\s*\[(\d+(?:-\d+)?)\]\s+(.+)/);
-    if (!m) continue;
-    if (!nodeMap.has(m[1])) nodeMap.set(m[1], m[2].trim());
-  }
-  if (nodeMap.has("0")) parts.frame.intro.hook    = nodeMap.get("0");
-  if (nodeMap.has("1")) parts.core.reality         = nodeMap.get("1");
-  if (nodeMap.has("2")) parts.core.ideal           = nodeMap.get("2");
-  if (nodeMap.has("3")) parts.core.proposal        = nodeMap.get("3");
-  if (nodeMap.has("8")) parts.frame.closing.cta    = nodeMap.get("8");
+function assignNodesToParts(nodeMap, parts) {
+  if (nodeMap.has("0")) parts.frame.intro.hook  = nodeMap.get("0");
+  if (nodeMap.has("1")) parts.core.reality       = nodeMap.get("1");
+  if (nodeMap.has("2")) parts.core.ideal         = nodeMap.get("2");
+  if (nodeMap.has("3")) parts.core.proposal      = nodeMap.get("3");
+  if (nodeMap.has("8")) parts.frame.closing.cta  = nodeMap.get("8");
   const sorted = [...nodeMap.keys()].sort((a, b) => {
     const [am, an] = a.split("-").map(Number);
     const [bm, bn] = b.split("-").map(Number);
@@ -435,6 +429,42 @@ function parseStatusMdInto(text, parts) {
     else if (/^6-\d+$/.test(id)) parts.what_how.what_items.push(v);
     else if (/^7-\d+$/.test(id)) parts.what_how.how_items.push(v);
   }
+}
+function parseStatusMdInto(text, parts) {
+  const nodeMap = new Map();
+  for (const line of text.split("\n")) {
+    const m = line.match(/^\s*-\s*\[(\d+(?:-\d+)?)\]\s+(.+)/);
+    if (!m) continue;
+    if (!nodeMap.has(m[1])) nodeMap.set(m[1], m[2].trim());
+  }
+  assignNodesToParts(nodeMap, parts);
+}
+function isMermaidLike(text) {
+  if (/```mermaid/.test(text)) return true;
+  if (/\bflowchart\s+(TB|TD|BT|RL|LR)\b/.test(text)) return true;
+  if (/\[\s*["[]?\s*\[\d+(?:-\d+)?\]/.test(text)) return true;
+  return false;
+}
+function cleanMermaidValue(raw) {
+  const segs = raw.split(/\\n/).map((s) => s.trim()).filter(Boolean);
+  if (segs.some((s) => s === "（未入力）")) return "";
+  const meaningful = segs.filter((s) => !/^（(AI案|未確認)）$/.test(s));
+  if (meaningful.length === 0) return "";
+  if (meaningful.length === 1) return meaningful[0];
+  return meaningful.slice(1).join(" ").trim();
+}
+function parseMermaidInto(text, parts) {
+  const nodeMap = new Map();
+  const re = /\[(\d+(?:-\d+)?)\]\s*((?:\\n|[^"\]\n])*)/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const id = m[1];
+    if (nodeMap.has(id)) continue;
+    const value = cleanMermaidValue(m[2]);
+    if (value) nodeMap.set(id, value);
+  }
+  assignNodesToParts(nodeMap, parts);
+  return nodeMap.size;
 }
 function parseMdExportInto(text, parts) {
   const pick = (re) => { const m = text.match(re); return m ? m[1].trim() : ""; };
@@ -465,12 +495,19 @@ function parseMdExportInto(text, parts) {
 function parseImportText(text) {
   const isStatus = isStatusMdLike(text);
   const isMdExport = !isStatus && isMdExportLike(text);
-  if (!isStatus && !isMdExport) return null;
-  const title = extractTitle(text) || "読み込んだセッション";
-  const parts = emptyParts();
-  if (isStatus) parseStatusMdInto(text, parts);
-  else parseMdExportInto(text, parts);
-  return { parts, title };
+  if (isStatus || isMdExport) {
+    const title = extractTitle(text) || "読み込んだセッション";
+    const parts = emptyParts();
+    if (isStatus) parseStatusMdInto(text, parts);
+    else parseMdExportInto(text, parts);
+    return { parts, title };
+  }
+  if (isMermaidLike(text)) {
+    const parts = emptyParts();
+    const count = parseMermaidInto(text, parts);
+    if (count > 0) return { parts, title: extractTitle(text) || "インポートした図" };
+  }
+  return null;
 }
 
 const STATUS_MD_SAMPLE = `# セッション状態ファイル — logi-bot
@@ -584,6 +621,70 @@ test("parseImportText — Markdown から frame parts を抽出する", () => {
   const result = parseImportText(MD_EXPORT_SAMPLE);
   assert.equal(result.parts.frame.intro.hook,  "mdフック");
   assert.equal(result.parts.frame.closing.cta, "mdCTA");
+});
+
+// ── テスト: Mermaid 逆インポート ─────────────────────────────────
+
+// mermaid-builder のエクスポート出力に近い形式（ラベルは "見出し\n本文"）
+const MERMAID_EXPORT_SAMPLE = `\`\`\`mermaid
+flowchart TB
+    INTRO["[0] 🧠 イントロ\\nメール処理に追われていませんか"]:::confirmed
+    REAL["[1] 現実\\n大量のメールで見落とし発生"]:::confirmed
+    IDEAL["[2] 理想\\n重要メールを5分で把握"]:::confirmed
+    PROP["[3] 提案\\nAI要約通知システム"]:::confirmed
+    nn4_1["[4-1] 現実詳細\\n1日120通受信"]:::confirmed
+    nn5_1["[5-1] 理想詳細\\n見落としゼロ"]:::confirmed
+    nn6_1["[6-1] What\\n自動フィルタ"]:::confirmed
+    nn7_1["[7-1] How\\n開発2週間"]:::confirmed
+    BASE["[8] 🗂️ 台座\\n今週テスト導入"]:::confirmed
+\`\`\``;
+
+// ユーザーが手書きした簡易形式（本文が [N] 直後に続く）
+const MERMAID_SIMPLE_SAMPLE = `flowchart TB
+    A["[1] 現実のテキスト"]
+    B["[2] 理想のテキスト"]
+    C[4-1] 左腕の詳細`;
+
+test("parseImportText — Mermaid コードを検出する", () => {
+  assert.ok(parseImportText(MERMAID_EXPORT_SAMPLE) !== null);
+  assert.ok(parseImportText(MERMAID_SIMPLE_SAMPLE) !== null);
+});
+
+test("parseImportText — Mermaid から core parts（見出し\\n本文形式）を抽出する", () => {
+  const r = parseImportText(MERMAID_EXPORT_SAMPLE);
+  assert.equal(r.parts.core.reality,  "大量のメールで見落とし発生");
+  assert.equal(r.parts.core.ideal,    "重要メールを5分で把握");
+  assert.equal(r.parts.core.proposal, "AI要約通知システム");
+});
+
+test("parseImportText — Mermaid から frame parts を抽出する", () => {
+  const r = parseImportText(MERMAID_EXPORT_SAMPLE);
+  assert.equal(r.parts.frame.intro.hook,  "メール処理に追われていませんか");
+  assert.equal(r.parts.frame.closing.cta, "今週テスト導入");
+});
+
+test("parseImportText — Mermaid から配列ノード（[N-M]）を抽出する", () => {
+  const r = parseImportText(MERMAID_EXPORT_SAMPLE);
+  assert.deepEqual(r.parts.drilldown.reality_factors, ["1日120通受信"]);
+  assert.deepEqual(r.parts.drilldown.ideal_goals,     ["見落としゼロ"]);
+  assert.deepEqual(r.parts.what_how.what_items,       ["自動フィルタ"]);
+  assert.deepEqual(r.parts.what_how.how_items,        ["開発2週間"]);
+});
+
+test("parseImportText — Mermaid 簡易形式（[N] 直後に本文）を抽出する", () => {
+  const r = parseImportText(MERMAID_SIMPLE_SAMPLE);
+  assert.equal(r.parts.core.reality, "現実のテキスト");
+  assert.equal(r.parts.core.ideal,   "理想のテキスト");
+  assert.deepEqual(r.parts.drilldown.reality_factors, ["左腕の詳細"]);
+});
+
+test("cleanMermaidValue — （未入力）は空文字を返す", () => {
+  assert.equal(cleanMermaidValue("現実\\n（未入力）"), "");
+});
+
+test("cleanMermaidValue — （AI案）/（未確認）マーカーは除去される", () => {
+  assert.equal(cleanMermaidValue("現実\\n課題テキスト\\n（AI案）"), "課題テキスト");
+  assert.equal(cleanMermaidValue("理想\\n目標テキスト\\n（未確認）"), "目標テキスト");
 });
 
 // ── テスト: buildRobotDiagram — Mermaid 構文検証 ─────────────────
