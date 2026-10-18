@@ -5,7 +5,7 @@ import { chat as apiChat, advance as apiAdvance } from "./api.js";
 import { openZoomModal } from "./mermaid-renderer.js";
 import { copyMarkdown, downloadMarkdown, downloadStatusMd } from "./export.js";
 import { buildRobotDiagram } from "./mermaid-builder.js";
-import { renderHtmlDiagram, printDiagram } from "./html-diagram.js";
+import { renderHtmlDiagram, printDiagram, redrawConnectors } from "./html-diagram.js";
 
 // ── ステップ定義 ──────────────────────────────────────────────────
 const STEP_META = {
@@ -312,6 +312,13 @@ function initSplitter() {
   if (!splitter || !body || !pane) return;
   let dragging = false;
 
+  let rafId = null;
+  // ドラッグ中は rAF で間引いて接続線を再描画し、古い座標に取り残されないようにする
+  const scheduleRedraw = () => {
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => { rafId = null; redrawConnectors(el.diagramContent); });
+  };
+
   const applyWidth = (clientX) => {
     const rect = body.getBoundingClientRect();
     const min = 240;                       // 図解ペインの最小幅
@@ -330,13 +337,18 @@ function initSplitter() {
     try { splitter.setPointerCapture(ev.pointerId); } catch (_e) { /* no-op */ }
     ev.preventDefault();
   });
-  splitter.addEventListener("pointermove", (ev) => { if (dragging) applyWidth(ev.clientX); });
+  splitter.addEventListener("pointermove", (ev) => {
+    if (!dragging) return;
+    applyWidth(ev.clientX);
+    scheduleRedraw();
+  });
   const endDrag = (ev) => {
     if (!dragging) return;
     dragging = false;
     splitter.classList.remove("dragging");
     document.body.style.userSelect = "";
     try { splitter.releasePointerCapture(ev.pointerId); } catch (_e) { /* no-op */ }
+    redrawConnectors(el.diagramContent);   // ドラッグ終了時に最終座標で再描画
   };
   splitter.addEventListener("pointerup", endDrag);
   splitter.addEventListener("pointercancel", endDrag);
@@ -569,6 +581,13 @@ function bindEvents() {
 
   // ペイン境界スプリッター
   initSplitter();
+
+  // ウィンドウリサイズ時も接続線を再描画（デバウンス）
+  let resizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => redrawConnectors(el.diagramContent), 150);
+  });
 
   // Undo（1手戻し）
   el.undoBtn?.addEventListener("click", undoLastTurn);

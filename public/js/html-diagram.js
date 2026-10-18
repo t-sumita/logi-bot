@@ -39,7 +39,7 @@ export const ROBOT_CSS = `
   font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', system-ui, sans-serif;
   position: relative;
   display: flex; flex-direction: column; align-items: center;
-  gap: 6px; padding: 18px 14px; color: var(--rb-ink);
+  gap: 20px; padding: 18px 14px; color: var(--rb-ink);
   transform-origin: top center; width: max-content; min-width: 100%;
   margin: 0 auto;
 }
@@ -51,9 +51,6 @@ export const ROBOT_CSS = `
 .robot-row { display: flex; justify-content: center; align-items: stretch; gap: 14px; }
 .robot-upper { align-items: flex-start; }
 .robot-head-row, .robot-base-row { width: 100%; }
-
-/* 縦コネクタ（疑似的な体の中心線） */
-.rb-connector { width: 3px; height: 16px; background: var(--rb-line); border-radius: 2px; }
 
 /* 共通ボックス（接続線より前面に出す） */
 .rb-box {
@@ -115,7 +112,6 @@ export const PRINT_CSS = `
 * { box-sizing: border-box; }
 body { margin: 0; padding: 24px; background: #fff;
   font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', system-ui, sans-serif; color: #1E293B; }
-.print-meta { text-align: right; font-size: .72rem; color: #94A3B8; margin: 0 0 2px; }
 .print-title { text-align: center; font-size: 1.3rem; font-weight: 800; margin: 0 0 20px; }
 @media print { body { padding: 0; } .robot { transform: none !important; } }
 `;
@@ -202,21 +198,20 @@ export function buildDiagramMarkup(plotData) {
   const leftLeg = limbBoxesHtml(wh.what_items, "6", "rb-leg-l", "🦿");
   const rightLeg = limbBoxesHtml(wh.how_items, "7", "rb-leg-r", "⚡");
 
+  // 頭・台座はどこにも繋がず単独で浮かぶ（手描き図どおり）。
+  // ボックス間のつながりはすべて接続線 SVG（drawConnectors）で描画し、擬似縦棒は置かない。
   return (
     '<div class="robot">' +
       `<div class="robot-row robot-head-row">${head}</div>` +
-      '<div class="rb-connector"></div>' +
       '<div class="robot-row robot-upper">' +
         `<div class="rb-limb"><div class="rb-limb-title">💪 左腕 / 現実の詳細</div>${leftArm}</div>` +
         `<div class="rb-limb rb-torso"><div class="rb-limb-title">🫀 胴体（コア）</div>${torso}</div>` +
         `<div class="rb-limb"><div class="rb-limb-title">🛡️ 右腕 / 理想の詳細</div>${rightArm}</div>` +
       '</div>' +
-      '<div class="rb-connector"></div>' +
       '<div class="robot-row robot-legs">' +
         `<div class="rb-limb"><div class="rb-limb-title">🦿 左足 / What（何を）</div>${leftLeg}</div>` +
         `<div class="rb-limb"><div class="rb-limb-title">⚡ 右足 / How（どうやって）</div>${rightLeg}</div>` +
       '</div>' +
-      '<div class="rb-connector"></div>' +
       `<div class="robot-row robot-base-row">${base}</div>` +
     '</div>'
   );
@@ -358,11 +353,13 @@ export function renderHtmlDiagram(plotData, opts = {}) {
   }
 }
 
-/** ファイル名・表示用の日時文字列（YYYY/MM/DD HH:mm:ss）を返す */
-function formatDateTime(d = new Date()) {
-  const p = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ` +
-    `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+/**
+ * 既存の .robot に対して接続線だけを再描画する（ペイン／ウィンドウのリサイズ追従用）。
+ * @param {Element} container - #diagramContent など .robot を内包する要素
+ */
+export function redrawConnectors(container) {
+  if (!container) return;
+  try { drawConnectors(container.querySelector(".robot")); } catch (_e) { /* 線描画失敗は無視 */ }
 }
 
 // ── 印刷・PDF 出力（別タブ） ───────────────────────────────────────
@@ -375,7 +372,6 @@ function formatDateTime(d = new Date()) {
 export function printDiagram(session) {
   const markup = buildDiagramMarkup(session.parts);
   const title = escHtml(session.title || "無題");
-  const datetime = escHtml(formatDateTime());
 
   const w = window.open("", "_blank");
   if (!w) {
@@ -391,12 +387,11 @@ export function printDiagram(session) {
     'window.addEventListener("load",function(){run();setTimeout(function(){run();window.print();},300);});' +
     '})();<' + '/script>';
 
-  // ヘッダー: 右上に控えめな生成日時、その下にタイトル（太字・シンプル）
+  // ヘッダーはプロジェクトのタイトルのみ（印刷の日時はブラウザ標準機能に任せる）
   const html =
     '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">' +
     `<title>${title}</title>` +
     `<style>${PRINT_CSS}${ROBOT_CSS}</style></head><body>` +
-    `<div class="print-meta">生成日時: ${datetime}</div>` +
     `<h1 class="print-title">${title}</h1>` +
     markup +
     connectorScript +
