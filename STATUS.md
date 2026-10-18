@@ -1,7 +1,7 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.9.4`
+`0.9.5`
 
 ## 最終更新
 2026-10-18
@@ -215,6 +215,16 @@
   `formatDateTime` を削除。印刷ヘッダーはタイトルのみに
 - **テスト**: 70/70 全通過（既存を維持）。typecheck 0 エラー・`node --check` 通過
 
+## v0.9.5（2026-10-18 — 印刷時の接続線非表示・別タブの接続線トグル）
+
+- **背景**: 別タブで Ctrl+P を開くと用紙幅へのリサイズで接続線の座標がズレる。座標再計算は泥沼化するため割り切り
+- **1. 印刷時は接続線を非表示**: `PRINT_CSS` の `@media print` で `.diagram-connectors { display: none !important }`。
+  印刷プレビュー／PDF 出力はボックス配置のみ
+- **2. 別タブに「接続線を表示する」トグル**: 上部に控えめな操作バー（`.print-toolbar`、印刷時は非表示）。
+  チェック ON（既定）で線あり、OFF で `body.hide-connectors` により画面上も線を消す
+- **デプロイ**: `npx wrangler pages deploy public --project-name=logi-bot --branch=main --commit-dirty=true`
+  （Pages は git 連携なし。main への push だけでは本番に反映されない）
+
 ## 次の一手
 
-v0.9.4 本番確認（スマホ）: 縦棒が消えたか・ペインドラッグで線が追従するか・印刷がタイトルのみか
+v0.9.5 本番確認: 別タブのトグルで線が消える／印刷プレビューで線が出ないか

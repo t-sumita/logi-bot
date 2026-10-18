@@ -113,7 +113,15 @@ export const PRINT_CSS = `
 body { margin: 0; padding: 24px; background: #fff;
   font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', system-ui, sans-serif; color: #1E293B; }
 .print-title { text-align: center; font-size: 1.3rem; font-weight: 800; margin: 0 0 20px; }
-@media print { body { padding: 0; } .robot { transform: none !important; } }
+.print-toolbar { display: flex; justify-content: flex-end; margin: 0 0 12px; font-size: 0.8rem; color: #64748B; }
+.print-toolbar label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+body.hide-connectors .diagram-connectors { display: none; }
+@media print {
+  body { padding: 0; }
+  .robot { transform: none !important; }
+  .print-toolbar { display: none !important; }
+  .diagram-connectors { display: none !important; }
+}
 `;
 
 // ── マークアップ生成 ──────────────────────────────────────────────
@@ -384,6 +392,8 @@ export function printDiagram(session) {
   const connectorScript =
     '<' + 'script>(function(){var draw=' + drawConnectors.toString() + ';' +
     'function run(){try{draw(document.querySelector(".robot"));}catch(e){}}' +
+    'var cb=document.getElementById("toggleConnectors");' +
+    'if(cb){cb.addEventListener("change",function(){document.body.classList.toggle("hide-connectors",!cb.checked);});}' +
     'window.addEventListener("load",function(){run();setTimeout(function(){run();window.print();},300);});' +
     '})();<' + '/script>';
 
@@ -392,6 +402,7 @@ export function printDiagram(session) {
     '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">' +
     `<title>${title}</title>` +
     `<style>${PRINT_CSS}${ROBOT_CSS}</style></head><body>` +
+    '<div class="print-toolbar"><label><input type="checkbox" id="toggleConnectors" checked> 接続線を表示する</label></div>' +
     `<h1 class="print-title">${title}</h1>` +
     markup +
     connectorScript +
