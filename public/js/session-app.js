@@ -110,7 +110,6 @@ const el = {
   chatInput:        $("chatInput"),
   chatSendBtn:      $("chatSendBtn"),
   diagramContent:   $("diagramContent"),
-  zoomDiagramBtn:   $("zoomDiagramBtn"),
   showCodeBtn:      $("showCodeBtn"),
   printDiagramBtn:  $("printDiagramBtn"),
   diagramFitBtn:    $("diagramFitBtn"),
@@ -553,8 +552,7 @@ function bindEvents() {
   el.backBtn.addEventListener("click", () => doAdvance("BACK"));
   el.forceNextBtn.addEventListener("click", forceNextStep);
 
-  // 図ズーム（モーダル）
-  el.zoomDiagramBtn.addEventListener("click", () => openZoom("svg"));
+  // Mermaid コード表示（モーダル）
   el.showCodeBtn.addEventListener("click", () => openZoom("code"));
 
   // 印刷・PDF 出力（別タブ）

@@ -428,6 +428,7 @@ ul { list-style: none; }
 }
 .modal-title { font-size: 1rem; font-weight: 700; }
 .modal-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.modal-note { margin: 0; padding: var(--sp-3) var(--sp-5); font-size: .8rem; line-height: 1.5; color: var(--c-text-mute); background: var(--c-surface-2); border-bottom: 1px solid var(--c-border); flex-shrink: 0; }
 .modal-tabs { display: flex; gap: var(--sp-2); padding: var(--sp-3) var(--sp-5); border-bottom: 1px solid var(--c-border); flex-shrink: 0; }
 .modal-tab { padding: var(--sp-1) var(--sp-3); font-size: .8rem; font-weight: 600; border-radius: var(--r-md); color: var(--c-text-mute); }
 .modal-tab.active { background: var(--c-primary-light); color: var(--c-primary); }
