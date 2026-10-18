@@ -11,6 +11,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildRobotDiagram } from "../public/js/mermaid-builder.js";
+import { buildDiagramMarkup } from "../public/js/html-diagram.js";
 
 // ── session.ts の純粋ロジックをインライン再現 ─────────────────────
 
@@ -819,6 +820,58 @@ test("buildRobotDiagram — 特殊文字（\" [ ] { }）を含む入力が安全
   assert.ok(lines.length > 0, "REAL ノードが見つからない");
   const inner = lines[0].replace(/^.*REAL\["/, "").replace(/".*$/, "");
   assert.ok(!inner.includes('"'), `サニタイズ後もラベル内に " が残っている: ${lines[0]}`);
+});
+
+// ── テスト: buildDiagramMarkup — HTML 固定レイアウト ───────────────
+
+/** テスト用 parts 生成 */
+function makeParts(overrides = {}) {
+  return {
+    core:         { reality: "", ideal: "", proposal: "" },
+    drilldown:    { reality_factors: [], ideal_goals: [], gap_summary: "" },
+    what_how:     { what_items: [], how_items: [], who_when: [] },
+    verification: { contradictions: [], is_consistent: false },
+    frame:        { intro: { audience: "", hook: "" }, closing: { cta: "" }, title: "" },
+    ...overrides,
+  };
+}
+
+test("buildDiagramMarkup — T字胴体（上段 現実・理想 / 下段 提案）の構造を持つ", () => {
+  const html = buildDiagramMarkup(makeParts());
+  assert.ok(html.includes("rb-torso-top"), "rb-torso-top が無い");
+  assert.ok(html.includes("rb-torso-bottom"), "rb-torso-bottom が無い");
+  // 上段に現実[1]・理想[2]、下段に提案[3]
+  const topIdx = html.indexOf("rb-torso-top");
+  const bottomIdx = html.indexOf("rb-torso-bottom");
+  assert.ok(html.indexOf('data-node="1"') > topIdx && html.indexOf('data-node="1"') < bottomIdx, "[1]現実が上段に無い");
+  assert.ok(html.indexOf('data-node="2"') > topIdx && html.indexOf('data-node="2"') < bottomIdx, "[2]理想が上段に無い");
+  assert.ok(html.indexOf('data-node="3"') > bottomIdx, "[3]提案が下段に無い");
+});
+
+test("buildDiagramMarkup — 腕の配列が複数ノードとして描画される", () => {
+  const html = buildDiagramMarkup(makeParts({
+    drilldown: { reality_factors: ["要因A", "要因B", "要因C"], ideal_goals: ["目標X", "目標Y"], gap_summary: "" },
+  }));
+  for (const id of ["4-1", "4-2", "4-3"]) assert.ok(html.includes(`data-node="${id}"`), `${id} が描画されない`);
+  for (const id of ["5-1", "5-2"]) assert.ok(html.includes(`data-node="${id}"`), `${id} が描画されない`);
+  for (const v of ["要因A", "要因B", "要因C", "目標X", "目標Y"]) assert.ok(html.includes(v), `値「${v}」が無い`);
+});
+
+test("buildDiagramMarkup — 足の配列が複数ノードとして描画される", () => {
+  const html = buildDiagramMarkup(makeParts({
+    what_how: { what_items: ["W1", "W2", "W3"], how_items: ["H1", "H2"], who_when: [] },
+  }));
+  for (const id of ["6-1", "6-2", "6-3", "7-1", "7-2"]) assert.ok(html.includes(`data-node="${id}"`), `${id} が描画されない`);
+});
+
+test("buildDiagramMarkup — 配列が空のときは薄い枠（プレースホルダー）を1つだけ出す", () => {
+  const html = buildDiagramMarkup(makeParts());
+  // グループ番号のプレースホルダー（is-empty）が 1 つずつ
+  for (const g of ["4", "5", "6", "7"]) {
+    const re = new RegExp(`data-node="${g}"`, "g");
+    assert.equal((html.match(re) || []).length, 1, `[${g}] のプレースホルダーが1つでない`);
+  }
+  assert.ok(html.includes("is-empty"), "is-empty クラスが無い");
 });
 
 console.log("\n✅ 全テスト完了");

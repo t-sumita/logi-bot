@@ -181,10 +181,28 @@ export async function copyMarkdown(session) {
 
 /**
  * Markdown を .md ファイルとしてダウンロードする。
+ * デフォルト名は `[プロジェクト名]_YYYYMMDD_HHMMSS.md`。
+ * ダウンロード直前に prompt で任意のファイル名に変更できる。
  */
 export function downloadMarkdown(session) {
   const md = toMarkdown(session);
-  _download(md, `${sanitizeFilename(session.title)}_logi-bot.md`);
+  const defaultName = `${sanitizeFilename(session.title)}_${timestamp()}.md`;
+
+  let name = defaultName;
+  if (typeof prompt === "function") {
+    const input = prompt("保存するファイル名を入力してください", defaultName);
+    if (input === null) return; // キャンセル時は何もしない
+    const trimmed = input.trim();
+    if (trimmed) name = /\.md$/i.test(trimmed) ? trimmed : `${trimmed}.md`;
+  }
+  _download(md, name);
+}
+
+/** ファイル名用のタイムスタンプ（YYYYMMDD_HHMMSS）を返す */
+function timestamp() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
 }
 
 /**

@@ -165,6 +165,9 @@ ul { list-style: none; }
   background: var(--c-bg); color: var(--c-text);
 }
 .form-input:focus { outline: none; border-color: var(--c-primary); background: #fff; box-shadow: 0 0 0 3px var(--c-primary-light); }
+/* 入力必須のゆらし演出（空のまま送信しようとしたとき） */
+.shake { animation: shake .4s ease; border-color: var(--c-error) !important; }
+@keyframes shake { 0%,100% { transform: translateX(0); } 20%,60% { transform: translateX(-5px); } 40%,80% { transform: translateX(5px); } }
 .form-textarea {
   width: 100%; padding: var(--sp-3) var(--sp-4); border: 1.5px solid var(--c-border);
   border-radius: var(--r-md); font-size: .9rem; resize: vertical; min-height: 160px;

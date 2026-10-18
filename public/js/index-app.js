@@ -24,12 +24,37 @@ const SAMPLE_BULK = `現在の課題：
 ・チームの生産性向上でプロジェクト遅延をゼロに`;
 
 // サンプル業務データ（「📝 サンプルで試す」用の plotData 直接セット版）
+// 腕・足にも複数の詳細を入れ、合体ロボ図の複数ノード描画を即確認できるようにする。
 const SAMPLE_PLOT = {
   title: "社内情報共有ツール刷新",
   core: {
     reality:  "社内の情報共有ツールが古く、部門間の連携が非効率なため、プロジェクトの進捗が遅れがち。週に平均5時間が無駄な調整会議や確認作業に費やされている。",
     ideal:    "リアルタイムで情報が共有され、担当者が即座に状況を把握できる。意思決定のリードタイムが現在の3日から1日以内に短縮される。",
     proposal: "SlackとNotionを統合した新しいワークフローを導入し、情報の一元管理を実現する。IT部門2名が1ヶ月で初期設定、3ヶ月後に全社展開。",
+  },
+  drilldown: {
+    reality_factors: [
+      "週5時間を調整会議・確認作業に浪費",
+      "部門間で最新情報が共有されず手戻り発生",
+      "ツールが乱立し必要な情報を探せない",
+    ],
+    ideal_goals: [
+      "意思決定のリードタイムを3日→1日に短縮",
+      "担当者が即座に状況を把握できる",
+      "情報を一元管理し検索性を向上",
+    ],
+  },
+  what_how: {
+    what_items: [
+      "SlackとNotionを統合",
+      "情報の一元管理基盤を構築",
+      "通知・ワークフローを自動化",
+    ],
+    how_items: [
+      "IT部門2名が1ヶ月で初期設定",
+      "3ヶ月後に全社展開",
+      "運用ルールを策定し定着化",
+    ],
   },
   // 期待効果（イントロ=頭 / 台座=クロージングの両方に反映）
   frame: {
@@ -145,6 +170,10 @@ function startSample() {
   session.parts.core.reality     = SAMPLE_PLOT.core.reality;
   session.parts.core.ideal       = SAMPLE_PLOT.core.ideal;
   session.parts.core.proposal    = SAMPLE_PLOT.core.proposal;
+  session.parts.drilldown.reality_factors = [...SAMPLE_PLOT.drilldown.reality_factors];
+  session.parts.drilldown.ideal_goals     = [...SAMPLE_PLOT.drilldown.ideal_goals];
+  session.parts.what_how.what_items        = [...SAMPLE_PLOT.what_how.what_items];
+  session.parts.what_how.how_items         = [...SAMPLE_PLOT.what_how.how_items];
   session.parts.frame.intro.hook = SAMPLE_PLOT.frame.hook;
   session.parts.frame.closing.cta = SAMPLE_PLOT.frame.cta;
   session.step = inferStep(session.parts);
@@ -166,12 +195,23 @@ function inferStep(parts) {
   return "complete";
 }
 
+/**
+ * 貼り付けテキストの先頭行から仮タイトルを生成する（タイトル未入力時のフォールバック）。
+ * @param {string} text
+ * @returns {string}
+ */
+function deriveTitle(text) {
+  const firstLine = text.split("\n").map((l) => l.trim()).find((l) => l.length > 0) || "";
+  const cleaned = firstLine.replace(/^[#\-*・>\s]+/, "").trim();
+  return cleaned.slice(0, 40) || "読み込んだメモ";
+}
+
 function startBulk() {
   const titleRaw = bulkTitle.value.trim();
   const text     = bulkInput.value.trim();
-  if (!text || text.length < 10) { bulkInput.focus(); return; }
+  if (!text || text.length < 10) { bulkInput.focus(); bulkInput.classList.add("shake"); setTimeout(() => bulkInput.classList.remove("shake"), 600); return; }
 
-  // STATUS.md / Markdown エクスポート形式はローカルパースで即時遷移（API 不要）
+  // STATUS.md / Markdown エクスポート / Mermaid コードはローカルパースで即時遷移（API 不要）
   const imported = parseImportText(text);
   if (imported) {
     const title = titleRaw || imported.title;
@@ -183,9 +223,9 @@ function startBulk() {
     return;
   }
 
-  // 通常メモ → API バルク抽出フロー（タイトル必須）
-  if (!titleRaw) { bulkTitle.focus(); return; }
-  const session = createNewSession(titleRaw);
+  // 通常メモ → API バルク抽出フロー（タイトル未入力なら先頭行から自動生成して必ず発火させる）
+  const title = titleRaw || deriveTitle(text);
+  const session = createNewSession(title);
   saveSession(session);
   savePendingMessage(session.sessionId, text);
   location.href = `session.html?id=${encodeURIComponent(session.sessionId)}`;

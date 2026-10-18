@@ -74,10 +74,15 @@ export const ROBOT_CSS = `
 .robot-upper { gap: 10px; }
 .rb-limb { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 130px; }
 .rb-limb-title { font-size: .7rem; font-weight: 800; color: var(--rb-sub); white-space: nowrap; }
-.rb-torso { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.rb-torso .rb-box.rb-core { border-color: #4F46E5; background: #EEF2FF; min-width: 150px; }
+
+/* 胴体（コア）: 上段に [1]現実←→[2]理想 を横並び、下段中央に [3]提案（T字／逆三角形） */
+.rb-torso { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.rb-torso-top { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.rb-torso-bottom { display: flex; justify-content: center; margin-top: 2px; }
+.rb-torso .rb-box.rb-core { border-color: #4F46E5; background: #EEF2FF; min-width: 120px; max-width: 170px; }
 .rb-torso .rb-box.rb-core .rb-tag { color: #4338CA; }
-.rb-arrow { font-size: .66rem; color: var(--rb-sub); line-height: 1.1; }
+.rb-arrow { font-size: .66rem; color: var(--rb-sub); line-height: 1.2; text-align: center; }
+.rb-arrow-h { font-size: .64rem; font-weight: 800; color: #4338CA; white-space: nowrap; }
 
 /* 左腕（現実系=赤）・右腕（理想系=緑） */
 .rb-box.rb-arm-l { border-color: #F87171; background: #FEF2F2; }
@@ -98,8 +103,7 @@ export const PRINT_CSS = `
 * { box-sizing: border-box; }
 body { margin: 0; padding: 24px; background: #fff;
   font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', system-ui, sans-serif; color: #1E293B; }
-.print-title { text-align: center; font-size: 1.25rem; font-weight: 800; margin: 0 0 8px; }
-.print-sub { text-align: center; font-size: .75rem; color: #64748B; margin: 0 0 18px; }
+.print-title { text-align: center; font-size: 1.3rem; font-weight: 800; margin: 0 0 20px; }
 @media print { body { padding: 0; } .robot { transform: none !important; } }
 `;
 
@@ -169,12 +173,17 @@ export function buildDiagramMarkup(plotData) {
   const leftArm = limbBoxesHtml(dd.reality_factors, "4", "rb-arm-l", "💪");
   const rightArm = limbBoxesHtml(dd.ideal_goals, "5", "rb-arm-r", "🛡️");
 
+  // T字（逆三角形）: 上段 [1]現実 ←→ [2]理想、下段中央 [3]提案
   const torso =
-    boxHtml({ nodeId: "1", cls: "rb-core", tag: "🫀 [1] 現実", value: core.reality }) +
-    '<div class="rb-arrow">↓ なぜ？</div>' +
-    boxHtml({ nodeId: "2", cls: "rb-core", tag: "🫀 [2] 理想", value: core.ideal }) +
+    '<div class="rb-torso-top">' +
+      boxHtml({ nodeId: "1", cls: "rb-core", tag: "🫀 [1] 現実", value: core.reality }) +
+      '<div class="rb-arrow rb-arrow-h">→<br>なぜ？</div>' +
+      boxHtml({ nodeId: "2", cls: "rb-core", tag: "🫀 [2] 理想", value: core.ideal }) +
+    '</div>' +
     '<div class="rb-arrow">↓ どうする？</div>' +
-    boxHtml({ nodeId: "3", cls: "rb-core", tag: "🫀 [3] 提案", value: core.proposal });
+    '<div class="rb-torso-bottom">' +
+      boxHtml({ nodeId: "3", cls: "rb-core", tag: "🫀 [3] 提案", value: core.proposal }) +
+    '</div>';
 
   const leftLeg = limbBoxesHtml(wh.what_items, "6", "rb-leg-l", "🦿");
   const rightLeg = limbBoxesHtml(wh.how_items, "7", "rb-leg-r", "⚡");
@@ -244,8 +253,7 @@ export function renderHtmlDiagram(plotData, opts = {}) {
  */
 export function printDiagram(session) {
   const markup = buildDiagramMarkup(session.parts);
-  const title = escHtml(session.title || "合体ロボ図");
-  const now = escHtml(new Date().toLocaleString("ja-JP"));
+  const title = escHtml(session.title || "無題");
 
   const w = window.open("", "_blank");
   if (!w) {
@@ -253,12 +261,12 @@ export function printDiagram(session) {
     return;
   }
 
+  // ヘッダーはプロジェクトのタイトル文字列のみ（太字・シンプル）
   const html =
     '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">' +
-    `<title>${title} — 合体ロボ図</title>` +
+    `<title>${title}</title>` +
     `<style>${PRINT_CSS}${ROBOT_CSS}</style></head><body>` +
-    `<h1 class="print-title">🤖 ${title}</h1>` +
-    `<p class="print-sub">合体ロボ図（全体シナリオ） — ${now}</p>` +
+    `<h1 class="print-title">${title}</h1>` +
     markup +
     // 画像・フォントのレイアウト確定を待ってから印刷ダイアログを開く
     '<' + 'script>window.addEventListener("load",function(){setTimeout(function(){window.print();},300);});<' + '/script>' +
