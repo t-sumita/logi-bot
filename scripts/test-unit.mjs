@@ -688,6 +688,43 @@ test("cleanMermaidValue — （AI案）/（未確認）マーカーは除去さ�
   assert.equal(cleanMermaidValue("理想\\n目標テキスト\\n（未確認）"), "目標テキスト");
 });
 
+// ── テスト: 直接貼り付けインポートの動作保証（index-app.js のロジック再現）─
+
+// index-app.js の deriveTitle と同一実装
+function deriveTitle(text) {
+  const firstLine = text.split("\n").map((l) => l.trim()).find((l) => l.length > 0) || "";
+  const cleaned = firstLine.replace(/^[#\-*・>\s]+/, "").trim();
+  return cleaned.slice(0, 40) || "読み込んだメモ";
+}
+
+test("deriveTitle — 先頭の非空行を採用する", () => {
+  assert.equal(deriveTitle("\n\n新製品ローンチ計画\n詳細..."), "新製品ローンチ計画");
+});
+
+test("deriveTitle — 箇条書き・見出し記号を除去する", () => {
+  assert.equal(deriveTitle("・現状：ツールが古い"), "現状：ツールが古い");
+  assert.equal(deriveTitle("# 営業プロセス改善"), "営業プロセス改善");
+  assert.equal(deriveTitle("- メモ一行目"), "メモ一行目");
+});
+
+test("deriveTitle — 空テキストはフォールバック", () => {
+  assert.equal(deriveTitle("   \n  "), "読み込んだメモ");
+});
+
+test("直接貼り付け（STATUS.md）→ parseImportText が parts を返しセッション復元できる", () => {
+  const r = parseImportText(STATUS_MD_SAMPLE);
+  assert.ok(r !== null);
+  assert.equal(r.parts.core.reality, "現状の課題がある");
+});
+
+test("直接貼り付け（通常メモ）→ parse は null でも deriveTitle で必ず遷移できる", () => {
+  const memo = "現状：社内の情報共有ツールが古く、部門間の連携が非効率。\n理想：リアルタイム共有で意思決定を迅速化。";
+  assert.equal(parseImportText(memo), null);          // ローカルパース対象外
+  const title = deriveTitle(memo);                     // → API バルク抽出フローの仮タイトル
+  assert.ok(title && title.length > 0, "仮タイトルが生成されない");
+  assert.ok(title !== "読み込んだメモ", "先頭行からタイトルを取れていない");
+});
+
 // ── テスト: buildRobotDiagram — Mermaid 構文検証 ─────────────────
 
 /** テスト用ダミーセッション生成 */

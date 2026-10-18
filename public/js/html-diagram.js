@@ -35,12 +35,18 @@ const EMPTY_TEXT = "（未入力）";
  */
 export const ROBOT_CSS = `
 .robot {
-  --rb-ink: #1E293B; --rb-sub: #64748B; --rb-line: #CBD5E1;
+  --rb-ink: #1E293B; --rb-sub: #64748B; --rb-line: #94A3B8;
   font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', system-ui, sans-serif;
+  position: relative;
   display: flex; flex-direction: column; align-items: center;
   gap: 6px; padding: 18px 14px; color: var(--rb-ink);
   transform-origin: top center; width: max-content; min-width: 100%;
   margin: 0 auto;
+}
+/* 接続線オーバーレイ（ボックスの背面に敷く） */
+.diagram-connectors {
+  position: absolute; top: 0; left: 0; z-index: 0;
+  pointer-events: none; overflow: visible;
 }
 .robot-row { display: flex; justify-content: center; align-items: stretch; gap: 14px; }
 .robot-upper { align-items: flex-start; }
@@ -49,8 +55,9 @@ export const ROBOT_CSS = `
 /* 縦コネクタ（疑似的な体の中心線） */
 .rb-connector { width: 3px; height: 16px; background: var(--rb-line); border-radius: 2px; }
 
-/* 共通ボックス */
+/* 共通ボックス（接続線より前面に出す） */
 .rb-box {
+  position: relative; z-index: 1;
   border: 2px solid var(--rb-line); border-radius: 12px; background: #fff;
   padding: 8px 12px; min-width: 120px; max-width: 220px; text-align: center;
   box-shadow: 0 2px 6px rgba(15,23,42,.08); transition: box-shadow .15s ease, transform .15s ease;
@@ -76,13 +83,18 @@ export const ROBOT_CSS = `
 .rb-limb-title { font-size: .7rem; font-weight: 800; color: var(--rb-sub); white-space: nowrap; }
 
 /* 胴体（コア）: 上段に [1]現実←→[2]理想 を横並び、下段中央に [3]提案（T字／逆三角形） */
-.rb-torso { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.rb-torso-top { display: flex; align-items: center; justify-content: center; gap: 8px; }
-.rb-torso-bottom { display: flex; justify-content: center; margin-top: 2px; }
+.rb-torso { display: flex; flex-direction: column; align-items: center; gap: 0; }
+.rb-torso-top { display: flex; align-items: center; justify-content: center; gap: 26px; }
+.rb-torso-gap { height: 26px; }
+.rb-torso-bottom { display: flex; justify-content: center; }
 .rb-torso .rb-box.rb-core { border-color: #4F46E5; background: #EEF2FF; min-width: 120px; max-width: 170px; }
 .rb-torso .rb-box.rb-core .rb-tag { color: #4338CA; }
-.rb-arrow { font-size: .66rem; color: var(--rb-sub); line-height: 1.2; text-align: center; }
-.rb-arrow-h { font-size: .64rem; font-weight: 800; color: #4338CA; white-space: nowrap; }
+/* ラベル類は接続線より前面に出し、背景で線を隠す */
+.rb-arrow { position: relative; z-index: 1; font-size: .66rem; color: var(--rb-sub); line-height: 1.2; text-align: center; background: #fff; padding: 0 3px; }
+.rb-arrow-h { font-size: .64rem; font-weight: 800; color: #4338CA; white-space: nowrap; background: #fff; padding: 1px 4px; }
+
+/* 腕・足の箱は縦に積む（間隔は接続線用に確保） */
+.rb-limb .rb-box + .rb-box { margin-top: 14px; }
 
 /* 左腕（現実系=赤）・右腕（理想系=緑） */
 .rb-box.rb-arm-l { border-color: #F87171; background: #FEF2F2; }
@@ -103,6 +115,7 @@ export const PRINT_CSS = `
 * { box-sizing: border-box; }
 body { margin: 0; padding: 24px; background: #fff;
   font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', system-ui, sans-serif; color: #1E293B; }
+.print-meta { text-align: right; font-size: .72rem; color: #94A3B8; margin: 0 0 2px; }
 .print-title { text-align: center; font-size: 1.3rem; font-weight: 800; margin: 0 0 20px; }
 @media print { body { padding: 0; } .robot { transform: none !important; } }
 `;
@@ -150,9 +163,10 @@ function limbBoxesHtml(items, group, cls, emoji) {
   if (filled.length === 0) {
     return boxHtml({ nodeId: group, cls, tag: `${emoji} [${group}]`, value: "" });
   }
+  // 箱は縦に積むだけ（箱同士のつながりは接続線 SVG が描画する）
   return filled
     .map((v, i) => boxHtml({ nodeId: `${group}-${i + 1}`, cls, tag: `${emoji} [${group}-${i + 1}]`, value: v }))
-    .join('<div class="rb-arrow">↓</div>');
+    .join("");
 }
 
 /**
@@ -173,14 +187,14 @@ export function buildDiagramMarkup(plotData) {
   const leftArm = limbBoxesHtml(dd.reality_factors, "4", "rb-arm-l", "💪");
   const rightArm = limbBoxesHtml(dd.ideal_goals, "5", "rb-arm-r", "🛡️");
 
-  // T字（逆三角形）: 上段 [1]現実 ←→ [2]理想、下段中央 [3]提案
+  // T字（逆三角形）: 上段 [1]現実 →なぜ？→ [2]理想、下段中央 [3]提案（つながりは接続線 SVG）
   const torso =
     '<div class="rb-torso-top">' +
       boxHtml({ nodeId: "1", cls: "rb-core", tag: "🫀 [1] 現実", value: core.reality }) +
-      '<div class="rb-arrow rb-arrow-h">→<br>なぜ？</div>' +
+      '<div class="rb-arrow rb-arrow-h">なぜ？</div>' +
       boxHtml({ nodeId: "2", cls: "rb-core", tag: "🫀 [2] 理想", value: core.ideal }) +
     '</div>' +
-    '<div class="rb-arrow">↓ どうする？</div>' +
+    '<div class="rb-torso-gap"></div>' +
     '<div class="rb-torso-bottom">' +
       boxHtml({ nodeId: "3", cls: "rb-core", tag: "🫀 [3] 提案", value: core.proposal }) +
     '</div>';
@@ -209,6 +223,98 @@ export function buildDiagramMarkup(plotData) {
 }
 
 // ── 画面描画 ──────────────────────────────────────────────────────
+
+/**
+ * .robot 内の各ボックス間に接続線（SVG オーバーレイ）を描画する。
+ * ボックスの背面に <svg class="diagram-connectors"> を敷き、レイアウト座標で線を引く。
+ * ※印刷タブでも toString() で使い回すため、外部の関数・定数に依存しない自己完結実装にする。
+ * @param {Element} root - .robot 要素
+ */
+function drawConnectors(root) {
+  if (!root) return;
+  const NS = "http://www.w3.org/2000/svg";
+  const existing = root.querySelector("svg.diagram-connectors");
+  if (existing) existing.remove();
+
+  const W = root.offsetWidth, H = root.offsetHeight;
+  if (!W || !H) return;
+
+  const COLOR = "#94A3B8", WIDTH = "2";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("class", "diagram-connectors");
+  svg.setAttribute("width", W);
+  svg.setAttribute("height", H);
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+
+  // 矢印マーカー（現実→理想 用）
+  const defs = document.createElementNS(NS, "defs");
+  const marker = document.createElementNS(NS, "marker");
+  marker.setAttribute("id", "rb-arrowhead");
+  marker.setAttribute("markerWidth", "8"); marker.setAttribute("markerHeight", "8");
+  marker.setAttribute("refX", "5"); marker.setAttribute("refY", "3");
+  marker.setAttribute("orient", "auto");
+  const mp = document.createElementNS(NS, "path");
+  mp.setAttribute("d", "M0,0 L6,3 L0,6 Z"); mp.setAttribute("fill", COLOR);
+  marker.appendChild(mp); defs.appendChild(marker); svg.appendChild(defs);
+
+  // root を基準としたレイアウト座標を返す
+  const pos = function (el) {
+    let x = 0, y = 0, n = el;
+    while (n && n !== root) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+    return { x: x, y: y, w: el.offsetWidth, h: el.offsetHeight, cx: x + el.offsetWidth / 2, cy: y + el.offsetHeight / 2 };
+  };
+  const line = function (x1, y1, x2, y2, arrow) {
+    const l = document.createElementNS(NS, "line");
+    l.setAttribute("x1", x1); l.setAttribute("y1", y1);
+    l.setAttribute("x2", x2); l.setAttribute("y2", y2);
+    l.setAttribute("stroke", COLOR); l.setAttribute("stroke-width", WIDTH); l.setAttribute("stroke-linecap", "round");
+    if (arrow) l.setAttribute("marker-end", "url(#rb-arrowhead)");
+    svg.appendChild(l);
+  };
+  const poly = function (pts) {
+    const p = document.createElementNS(NS, "polyline");
+    p.setAttribute("points", pts.map(function (a) { return a[0] + "," + a[1]; }).join(" "));
+    p.setAttribute("fill", "none"); p.setAttribute("stroke", COLOR);
+    p.setAttribute("stroke-width", WIDTH); p.setAttribute("stroke-linejoin", "round"); p.setAttribute("stroke-linecap", "round");
+    svg.appendChild(p);
+  };
+  const q = function (s) { return root.querySelector(s); };
+  const qa = function (s) { return Array.prototype.slice.call(root.querySelectorAll(s)); };
+
+  const real = q('[data-node="1"]'), ideal = q('[data-node="2"]'), prop = q('[data-node="3"]');
+
+  // 左腕: 左詳細の右辺 → 現実の左辺（放射）
+  if (real) { const r = pos(real); qa(".rb-arm-l").forEach(function (b) { const p = pos(b); line(p.x + p.w, p.cy, r.x, r.cy); }); }
+  // 右腕: 理想の右辺 → 右詳細の左辺（放射）
+  if (ideal) { const idl = pos(ideal); qa(".rb-arm-r").forEach(function (b) { const p = pos(b); line(idl.x + idl.w, idl.cy, p.x, p.cy); }); }
+
+  // 胴体 T字: 現実→理想（矢印）＋ 中間から下へ提案の上辺中央へ
+  if (real && ideal) {
+    const r = pos(real), idl = pos(ideal);
+    line(r.x + r.w, r.cy, idl.x, idl.cy, true);
+    if (prop) {
+      const pr = pos(prop);
+      const midX = (r.x + r.w + idl.x) / 2;
+      poly([[midX, r.cy], [midX, pr.y], [pr.cx, pr.y]]);
+    }
+  }
+
+  // 両足: 提案の下辺 → 各足先頭（L字）＋ 足内は縦直列
+  if (prop) {
+    const pr = pos(prop);
+    const leg = function (boxes) {
+      if (!boxes.length) return;
+      const first = pos(boxes[0]);
+      const midY = (pr.y + pr.h + first.y) / 2;
+      poly([[pr.cx, pr.y + pr.h], [pr.cx, midY], [first.cx, midY], [first.cx, first.y]]);
+      for (let i = 1; i < boxes.length; i++) { const a = pos(boxes[i - 1]), b = pos(boxes[i]); line(a.cx, a.y + a.h, b.cx, b.y); }
+    };
+    leg(qa(".rb-leg-l"));
+    leg(qa(".rb-leg-r"));
+  }
+
+  root.insertBefore(svg, root.firstChild);
+}
 
 /** ROBOT_CSS を document に一度だけ注入する */
 function ensureStyleInjected() {
@@ -242,6 +348,21 @@ export function renderHtmlDiagram(plotData, opts = {}) {
       });
     });
   }
+
+  // レイアウト確定後に接続線を描画（フォント読込で箱サイズが変わった場合も再描画）
+  // 接続線描画の失敗が図全体の表示を壊さないよう保護する。
+  const safeDraw = () => { try { drawConnectors(container.querySelector(".robot")); } catch (_e) { /* 線描画失敗は無視 */ } };
+  safeDraw();
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(safeDraw).catch(() => {});
+  }
+}
+
+/** ファイル名・表示用の日時文字列（YYYY/MM/DD HH:mm:ss）を返す */
+function formatDateTime(d = new Date()) {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ` +
+    `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
 // ── 印刷・PDF 出力（別タブ） ───────────────────────────────────────
@@ -254,6 +375,7 @@ export function renderHtmlDiagram(plotData, opts = {}) {
 export function printDiagram(session) {
   const markup = buildDiagramMarkup(session.parts);
   const title = escHtml(session.title || "無題");
+  const datetime = escHtml(formatDateTime());
 
   const w = window.open("", "_blank");
   if (!w) {
@@ -261,15 +383,23 @@ export function printDiagram(session) {
     return;
   }
 
-  // ヘッダーはプロジェクトのタイトル文字列のみ（太字・シンプル）
+  // 印刷タブ内でも接続線を描画するため drawConnectors を関数ソースごと埋め込み、
+  // レイアウト確定（load）後に描画 → 印刷ダイアログを開く。
+  const connectorScript =
+    '<' + 'script>(function(){var draw=' + drawConnectors.toString() + ';' +
+    'function run(){try{draw(document.querySelector(".robot"));}catch(e){}}' +
+    'window.addEventListener("load",function(){run();setTimeout(function(){run();window.print();},300);});' +
+    '})();<' + '/script>';
+
+  // ヘッダー: 右上に控えめな生成日時、その下にタイトル（太字・シンプル）
   const html =
     '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">' +
     `<title>${title}</title>` +
     `<style>${PRINT_CSS}${ROBOT_CSS}</style></head><body>` +
+    `<div class="print-meta">生成日時: ${datetime}</div>` +
     `<h1 class="print-title">${title}</h1>` +
     markup +
-    // 画像・フォントのレイアウト確定を待ってから印刷ダイアログを開く
-    '<' + 'script>window.addEventListener("load",function(){setTimeout(function(){window.print();},300);});<' + '/script>' +
+    connectorScript +
     "</body></html>";
 
   w.document.open();

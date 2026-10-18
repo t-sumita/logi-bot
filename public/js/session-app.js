@@ -128,6 +128,9 @@ const el = {
   downloadMdBtn:    $("downloadMdBtn"),
   statusMdBtn:      $("statusMdBtn"),
   undoBtn:          $("undoBtn"),
+  sessionBody:      $("sessionBody"),
+  diagramPane:      $("diagramPane"),
+  paneSplitter:     $("paneSplitter"),
 };
 
 // ── 初期化 ────────────────────────────────────────────────────────
@@ -301,6 +304,42 @@ function zoomDiagram(factor) {
 function fitDiagram() {
   diagramScale = 1;
   applyDiagramScale();
+}
+
+/** チャット／図解ペインの境界スプリッターをドラッグ可能にする（マウス・タッチ対応） */
+function initSplitter() {
+  const splitter = el.paneSplitter, body = el.sessionBody, pane = el.diagramPane;
+  if (!splitter || !body || !pane) return;
+  let dragging = false;
+
+  const applyWidth = (clientX) => {
+    const rect = body.getBoundingClientRect();
+    const min = 240;                       // 図解ペインの最小幅
+    const max = rect.width - 320;          // チャットペインに最低 320px を確保
+    let w = rect.right - clientX;          // 右端からのカーソル距離 = 図解ペイン幅
+    w = Math.max(min, Math.min(Math.max(min, max), w));
+    pane.style.flex = `0 0 ${w}px`;
+  };
+
+  splitter.addEventListener("pointerdown", (ev) => {
+    // 縦積み（モバイル）時は display:none のため発火しない
+    if (getComputedStyle(splitter).display === "none") return;
+    dragging = true;
+    splitter.classList.add("dragging");
+    document.body.style.userSelect = "none";
+    try { splitter.setPointerCapture(ev.pointerId); } catch (_e) { /* no-op */ }
+    ev.preventDefault();
+  });
+  splitter.addEventListener("pointermove", (ev) => { if (dragging) applyWidth(ev.clientX); });
+  const endDrag = (ev) => {
+    if (!dragging) return;
+    dragging = false;
+    splitter.classList.remove("dragging");
+    document.body.style.userSelect = "";
+    try { splitter.releasePointerCapture(ev.pointerId); } catch (_e) { /* no-op */ }
+  };
+  splitter.addEventListener("pointerup", endDrag);
+  splitter.addEventListener("pointercancel", endDrag);
 }
 
 /** ノードクリック時: チャット入力欄に番号付き修正テキストを挿入してフォーカス */
@@ -527,6 +566,9 @@ function bindEvents() {
     el.modalDiagram.hidden = mode !== "svg";
     el.modalCode.hidden    = mode !== "code";
   });
+
+  // ペイン境界スプリッター
+  initSplitter();
 
   // Undo（1手戻し）
   el.undoBtn?.addEventListener("click", undoLastTurn);
