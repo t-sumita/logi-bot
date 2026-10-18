@@ -114,6 +114,18 @@ export function initPanZoom(containerEl) {
     ty = Math.max(FIT_MARGIN, (ch - svgH * scale) / 2);
     console.log("[PanZoom Debug] Calculated Translate:", { tx, ty });
     applyTransform();
+
+    const svgRect = svgEl.getBoundingClientRect();
+    const cs = window.getComputedStyle(svgEl);
+    console.log("[PanZoom Debug] Rendered SVG DOM Rect:", {
+      width: svgRect.width,
+      height: svgRect.height,
+      top: svgRect.top,
+      left: svgRect.left,
+      display: cs.display,
+      opacity: cs.opacity,
+      visibility: cs.visibility,
+    });
   }
 
   /**

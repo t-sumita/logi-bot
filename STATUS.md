@@ -1,7 +1,7 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.8.8`
+`0.8.9`
 
 ## 最終更新
 2026-10-18
@@ -122,9 +122,15 @@
   - Mermaid が必ず生成する `viewBox` 属性を使うことでタイミング依存ゼロに
   - 全サイズ 0 のときは `console.warn` してスキップ（クラッシュ防止）
 
+## v0.8.9 追加修正（2026-10-18）
+
+- **SVG・ビューポート可視性を CSS で強制保証**:
+  - `.pz-viewport` に `display/visibility/opacity !important` を追加
+  - `.pz-viewport svg` に `display/visibility/opacity/width/height/overflow !important` を追加
+  - `.pz-viewport svg .node rect/polygon/circle` にも `visibility/opacity !important` を追加
+- **レンダリング後 DOM 状態確認ログを追加**: `applyTransform()` 後に `getBoundingClientRect` + `getComputedStyle` で `display/opacity/visibility` を出力
+
 ## 次の一手
 - ユーザーが https://logi-bot.pages.dev で動作確認
-  1. 合体ロボ図が初期表示でコンテナ中央に正しく収まるか（scale ≒ 0.5〜0.7 程度）
-  2. ⊡ ボタンで中央フィットに戻るか
-  3. ドラッグ・スクロール・ピンチが正常に動作するか
-  4. 問題なければデバッグログを除去して v0.8.9 リリース
+  - `[PanZoom Debug] Rendered SVG DOM Rect:` の `display/opacity/visibility` を確認
+  - 図が見えていれば全デバッグログを除去して v0.9.0 リリース

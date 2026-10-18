@@ -327,13 +327,25 @@ ul { list-style: none; }
 .pz-viewport {
   position: absolute; top: 0; left: 0;
   transform-origin: 0 0;
-  /* padding なし: fit() の centering 計算を単純化するため */
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 .pz-viewport svg {
-  display: block; border-radius: var(--r-md);
-  /* Mermaid が付ける max-width: NNNpx を CSS でも上書き */
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  border-radius: var(--r-md);
   max-width: none !important;
-  height: auto;
+  width: auto !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+.pz-viewport svg .node rect,
+.pz-viewport svg .node polygon,
+.pz-viewport svg .node circle {
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 /* Placeholder（パン・ズーム前の初期表示） */
