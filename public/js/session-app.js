@@ -318,18 +318,27 @@ function initSplitter() {
     rafId = requestAnimationFrame(() => { rafId = null; redrawConnectors(el.diagramContent); });
   };
 
-  const applyWidth = (clientX) => {
+  const isMobile = () => getComputedStyle(splitter).cursor === "row-resize";
+
+  const applySize = (clientX, clientY) => {
     const rect = body.getBoundingClientRect();
-    const min = 240;                       // 図解ペインの最小幅
-    const max = rect.width - 320;          // チャットペインに最低 320px を確保
-    let w = rect.right - clientX;          // 右端からのカーソル距離 = 図解ペイン幅
-    w = Math.max(min, Math.min(Math.max(min, max), w));
-    pane.style.flex = `0 0 ${w}px`;
+    if (isMobile()) {
+      // 縦積み（column-reverse）: diagram-pane は上側 = rect.top 側
+      const min = 80;
+      const max = rect.height - 160;        // チャットペインに最低 160px を確保
+      let h = clientY - rect.top;           // 上端からのタッチ距離 = 図解ペイン高さ
+      h = Math.max(min, Math.min(max, h));
+      pane.style.flex = `0 0 ${h}px`;
+    } else {
+      const min = 240;                      // 図解ペインの最小幅
+      const max = rect.width - 320;         // チャットペインに最低 320px を確保
+      let w = rect.right - clientX;         // 右端からのカーソル距離 = 図解ペイン幅
+      w = Math.max(min, Math.min(Math.max(min, max), w));
+      pane.style.flex = `0 0 ${w}px`;
+    }
   };
 
   splitter.addEventListener("pointerdown", (ev) => {
-    // 縦積み（モバイル）時は display:none のため発火しない
-    if (getComputedStyle(splitter).display === "none") return;
     dragging = true;
     splitter.classList.add("dragging");
     document.body.style.userSelect = "none";
@@ -338,7 +347,7 @@ function initSplitter() {
   });
   splitter.addEventListener("pointermove", (ev) => {
     if (!dragging) return;
-    applyWidth(ev.clientX);
+    applySize(ev.clientX, ev.clientY);
     scheduleRedraw();
   });
   const endDrag = (ev) => {

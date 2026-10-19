@@ -519,9 +519,15 @@ select.form-input { background: var(--c-bg); cursor: pointer; }
 @media (max-width: 720px) {
   /* column-reverse: chat-pane (DOM first) → bottom, diagram-pane (DOM second) → top */
   .session-body { flex-direction: column-reverse; overflow: hidden; }
-  /* 縦積みレイアウトでは左右スプリッターは無効化 */
-  .pane-splitter { display: none; }
-  .diagram-pane { flex: 0 0 40%; border-bottom: 1px solid var(--c-border); min-height: 0; }
+  /* 縦積みレイアウトでは上下スプリッターに切り替え */
+  .pane-splitter {
+    flex: 0 0 8px; cursor: row-resize; align-self: stretch; width: 100%;
+    border-bottom: 1px solid var(--c-border);
+  }
+  .pane-splitter::before {
+    width: 30px; height: 2px;
+  }
+  .diagram-pane { flex: 0 0 40%; border-bottom: none; min-height: 80px; }
   .chat-pane { flex: 1 1 0; border-right: none; min-height: 0; }
   .step-indicator { padding: 0 var(--sp-3); }
   .header-title { font-size: .8rem; }
