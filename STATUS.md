@@ -4,12 +4,18 @@
 `0.9.7`
 
 ## 最終更新
-2026-10-18
+2026-10-20
 
 ## 現在地
-- v0.8.1 main マージ・GitHub push・Cloudflare Pages デプロイ済み
-- 本番 URL: https://logi-bot.pages.dev
-- typecheck 0エラー / test:unit 34/34 全通過
+- v0.9.7 main マージ・GitHub push・Cloudflare Pages デプロイ済み（本番 URL: https://logi-bot.pages.dev）
+- typecheck 0エラー / test:unit 70/70 全通過
+- 作業ブランチなし（main のみ）。未コミット変更は無し（この STATUS.md 更新を除く）
+- 注意: Pages は git 連携なし。main への push だけでは本番に反映されない。
+  デプロイは `npx wrangler pages deploy public --project-name=logi-bot --branch=main --commit-dirty=true`
+- 注意: 直近セッションで Claude Code の auto mode classifier 障害により Bash/PowerShell が頻繁にブロックされた。
+  その場合は `!` 付きでユーザー自身がコマンドを実行する運用で凌いだ
+- コミット対象外のゴミファイル（リポジトリ直下）: `wrangler-*.log` / `wrangler-dev.log` / `SKILL.md.txt`
+  （`git add` はファイル名を個別指定すること）
 
 ## 完了したこと
 
@@ -239,4 +245,6 @@
 
 ## 次の一手
 
-v0.9.7 本番確認: トップ画面の説明文が「ロジカルな思考図解」になっているか
+本番確認（2026-10-20 ユーザー確認済み）: トップ説明文の変更、縦棒除去、ペインドラッグ追従、印刷時の接続線非表示、Mermaidコードボタンは OK。
+未確認: スマホでのペイン境界（スプリッター）の操作。確認できたら本項を更新する。
+以降は新規要望待ち
