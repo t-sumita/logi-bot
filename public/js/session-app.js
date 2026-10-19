@@ -6,6 +6,7 @@ import { openZoomModal } from "./mermaid-renderer.js";
 import { copyMarkdown, downloadMarkdown, downloadStatusMd } from "./export.js";
 import { buildRobotDiagram } from "./mermaid-builder.js";
 import { renderHtmlDiagram, printDiagram, redrawConnectors } from "./html-diagram.js";
+import { classifyNode, getNodeText, setNodeText, addDetail, removeDetail, groupLabel } from "./node-edit.js";
 
 // ── ステップ定義 ──────────────────────────────────────────────────
 const STEP_META = {
@@ -130,6 +131,14 @@ const el = {
   sessionBody:      $("sessionBody"),
   diagramPane:      $("diagramPane"),
   paneSplitter:     $("paneSplitter"),
+  nodeEditModal:    $("nodeEditModal"),
+  nodeEditTitle:    $("nodeEditTitle"),
+  nodeEditText:     $("nodeEditText"),
+  nodeEditHint:     $("nodeEditHint"),
+  nodeEditSave:     $("nodeEditSave"),
+  nodeEditAdd:      $("nodeEditAdd"),
+  nodeEditDelete:   $("nodeEditDelete"),
+  nodeEditClose:    $("nodeEditClose"),
 };
 
 // ── 初期化 ────────────────────────────────────────────────────────
@@ -362,12 +371,102 @@ function initSplitter() {
   splitter.addEventListener("pointercancel", endDrag);
 }
 
-/** ノードクリック時: チャット入力欄に番号付き修正テキストを挿入してフォーカス */
+// ── ノード編集ダイアログ（追加・修正・削除。通常／手動作図モード共通） ──────────
+
+/** 編集中のノード番号 */
+let editingNodeId = null;
+
+/** ノードクリック時: 編集ダイアログを開く */
 function onNodeClick(nodeId, label) {
-  const insertText = `【[${nodeId}] ${label}の修正】 `;
-  el.chatInput.value = insertText + el.chatInput.value;
-  el.chatInput.focus();
-  el.chatInput.setSelectionRange(insertText.length, insertText.length);
+  openNodeEditor(nodeId, label);
+}
+
+/**
+ * ノード種別に応じてボタン構成を切り替え、編集ダイアログを開く。
+ * @param {string} nodeId
+ * @param {string} [label]
+ */
+function openNodeEditor(nodeId, label) {
+  const info = classifyNode(nodeId);
+  if (info.kind === "unknown") return;
+  editingNodeId = nodeId;
+
+  const hasText = info.kind !== "group";
+  const heading = info.kind === "group" ? groupLabel(info.group) : (label || nodeId);
+  el.nodeEditTitle.textContent = `[${nodeId}] ${heading}`;
+
+  el.nodeEditText.hidden = !hasText;
+  el.nodeEditText.value = hasText ? getNodeText(session.parts, nodeId) : "";
+  el.nodeEditSave.hidden = !hasText;
+  el.nodeEditAdd.hidden = !(info.kind === "parent" || info.kind === "group");
+  el.nodeEditDelete.hidden = info.kind !== "detail";
+
+  const busy = isLoading;
+  [el.nodeEditSave, el.nodeEditAdd, el.nodeEditDelete].forEach((b) => { b.disabled = busy; });
+  el.nodeEditHint.hidden = !(busy || info.kind === "group");
+  el.nodeEditHint.textContent = busy
+    ? "AI の応答中は編集できません。応答が終わってからお試しください。"
+    : `「➕ 詳細を追加」で ${groupLabel(info.group)} に新しい項目を追加します。`;
+
+  el.nodeEditModal.hidden = false;
+  if (hasText) {
+    el.nodeEditText.focus();
+    el.nodeEditText.setSelectionRange(el.nodeEditText.value.length, el.nodeEditText.value.length);
+  }
+}
+
+function closeNodeEditor() {
+  el.nodeEditModal.hidden = true;
+  editingNodeId = null;
+}
+
+/**
+ * 編集結果を保存し、図を再描画して接続線を引き直す。
+ * 手動編集後に Undo すると編集が巻き戻るため、Undo スナップショットは破棄する。
+ */
+function commitNodeEdit() {
+  undoSnapshot = null;
+  saveSession(session);
+  renderAll();
+  redrawConnectors(el.diagramContent);
+  updateUndoBtn();
+}
+
+/** 「更新」: テキストを上書き保存 */
+function saveNodeEdit() {
+  if (!editingNodeId || isLoading) return;
+  if (!setNodeText(session.parts, editingNodeId, el.nodeEditText.value)) {
+    el.nodeEditHint.hidden = false;
+    el.nodeEditHint.textContent = "このノードは更新できませんでした（すでに削除された可能性があります）。";
+    return;
+  }
+  closeNodeEditor();
+  commitNodeEdit();
+}
+
+/** 「➕ 詳細を追加」: 配下に空の詳細ノードを追加し、そのまま入力できるよう編集ダイアログを開き直す */
+function addNodeDetail() {
+  if (!editingNodeId || isLoading) return;
+  const info = classifyNode(editingNodeId);
+  // 親ノード（現実／理想）のテキスト編集が入力済みなら、追加前に保存して失わないようにする
+  if (info.kind === "parent") setNodeText(session.parts, editingNodeId, el.nodeEditText.value);
+  const newId = addDetail(session.parts, editingNodeId);
+  closeNodeEditor();
+  if (!newId) return;
+  commitNodeEdit();
+  openNodeEditor(newId, `${groupLabel(classifyNode(newId).group)} ${classifyNode(newId).index + 1}番目`);
+}
+
+/** 「🗑️ 削除」: 詳細ノードを削除 */
+function deleteNodeDetail() {
+  if (!editingNodeId || isLoading) return;
+  if (!removeDetail(session.parts, editingNodeId)) {
+    el.nodeEditHint.hidden = false;
+    el.nodeEditHint.textContent = "このノードは削除できませんでした（すでに削除された可能性があります）。";
+    return;
+  }
+  closeNodeEditor();
+  commitNodeEdit();
 }
 
 // ── Undo（1手戻し）─────────────────────────────────────────────────
@@ -586,6 +685,16 @@ function bindEvents() {
     el.modalCode.hidden    = mode !== "code";
   });
 
+  // ノード編集ダイアログ
+  el.nodeEditSave.addEventListener("click", saveNodeEdit);
+  el.nodeEditAdd.addEventListener("click", addNodeDetail);
+  el.nodeEditDelete.addEventListener("click", deleteNodeDetail);
+  el.nodeEditClose.addEventListener("click", closeNodeEditor);
+  el.nodeEditModal.addEventListener("click", (e) => { if (e.target === el.nodeEditModal) closeNodeEditor(); });
+  el.nodeEditText.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveNodeEdit(); }
+  });
+
   // ペイン境界スプリッター
   initSplitter();
 
@@ -607,6 +716,7 @@ function bindEvents() {
   // キーボードショートカット
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !el.zoomModal.hidden) el.zoomModal.hidden = true;
+    if (e.key === "Escape" && !el.nodeEditModal.hidden) closeNodeEditor();
   });
 }
 

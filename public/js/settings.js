@@ -98,8 +98,8 @@ const MODAL_HTML = `
       <label class="mode-option" for="modeMock">
         <input type="radio" name="logiMode" id="modeMock" value="mock">
         <div class="mode-option-body">
-          <div class="mode-option-title">🎭 デモ / MOCK モード（デフォルト・無料）</div>
-          <div class="mode-option-desc">APIキー不要。サンプルシナリオ体験 + 手動入力でMermaid作図ができます。</div>
+          <div class="mode-option-title">🎭 手動作図モード（デフォルト・無料）</div>
+          <div class="mode-option-desc">APIキー不要。サンプルシナリオ体験 + 手動入力で図を組み立てられます。</div>
         </div>
       </label>
 

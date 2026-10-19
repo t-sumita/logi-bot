@@ -78,6 +78,8 @@ export const ROBOT_CSS = `
 .robot-upper { gap: 10px; }
 .rb-limb { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 130px; }
 .rb-limb-title { font-size: .7rem; font-weight: 800; color: var(--rb-sub); white-space: nowrap; }
+.rb-limb-parent.rb-clickable { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+.rb-limb-parent.rb-clickable:hover { color: var(--rb-ink); }
 
 /* 胴体（コア）: 上段に [1]現実←→[2]理想 を横並び、下段中央に [3]提案（T字／逆三角形） */
 .rb-torso { display: flex; flex-direction: column; align-items: center; gap: 0; }
@@ -163,14 +165,25 @@ function boxHtml({ nodeId, cls, tag, value }) {
  * @returns {string}
  */
 function limbBoxesHtml(items, group, cls, emoji) {
-  const filled = (items || []).filter((x) => x && x.trim());
-  if (filled.length === 0) {
+  // 空文字の要素も含め配列の全要素を描画する（DOM の番号とデータ配列の添字を一致させるため）
+  const list = Array.isArray(items) ? items : [];
+  if (list.length === 0) {
     return boxHtml({ nodeId: group, cls, tag: `${emoji} [${group}]`, value: "" });
   }
   // 箱は縦に積むだけ（箱同士のつながりは接続線 SVG が描画する）
-  return filled
+  return list
     .map((v, i) => boxHtml({ nodeId: `${group}-${i + 1}`, cls, tag: `${emoji} [${group}-${i + 1}]`, value: v }))
     .join("");
+}
+
+/**
+ * 足の見出し（クリックで「詳細を追加」できる親ノード）の HTML を生成する。
+ * @param {string} group - "6" または "7"
+ * @param {string} text  - 見出しテキスト
+ * @returns {string}
+ */
+function legTitleHtml(group, text) {
+  return `<div class="rb-limb-title rb-limb-parent" data-node="${group}" data-label="${escHtml(labelOf(group))}">${escHtml(text)}</div>`;
 }
 
 /**
@@ -217,8 +230,8 @@ export function buildDiagramMarkup(plotData) {
         `<div class="rb-limb"><div class="rb-limb-title">🛡️ 右腕 / 理想の詳細</div>${rightArm}</div>` +
       '</div>' +
       '<div class="robot-row robot-legs">' +
-        `<div class="rb-limb"><div class="rb-limb-title">🦿 左足 / What（何を）</div>${leftLeg}</div>` +
-        `<div class="rb-limb"><div class="rb-limb-title">⚡ 右足 / How（どうやって）</div>${rightLeg}</div>` +
+        `<div class="rb-limb">${legTitleHtml("6", "🦿 左足 / What（何を）")}${leftLeg}</div>` +
+        `<div class="rb-limb">${legTitleHtml("7", "⚡ 右足 / How（どうやって）")}${rightLeg}</div>` +
       '</div>' +
       `<div class="robot-row robot-base-row">${base}</div>` +
     '</div>'
@@ -343,7 +356,7 @@ export function renderHtmlDiagram(plotData, opts = {}) {
   container.innerHTML = buildDiagramMarkup(plotData);
 
   if (typeof onNodeClick === "function") {
-    container.querySelectorAll(".rb-box").forEach((box) => {
+    container.querySelectorAll(".rb-box, .rb-limb-parent").forEach((box) => {
       box.classList.add("rb-clickable");
       box.addEventListener("click", (ev) => {
         ev.stopPropagation();

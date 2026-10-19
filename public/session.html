@@ -203,6 +203,25 @@
     </div>
   </div>
 
+  <!-- ── ノード編集モーダル ── -->
+  <div class="modal-overlay" id="nodeEditModal" hidden role="dialog" aria-modal="true" aria-labelledby="nodeEditTitle">
+    <div class="modal node-edit-modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="nodeEditTitle">ノードの編集</h3>
+        <button class="btn btn-ghost btn-sm btn-icon modal-close" id="nodeEditClose" aria-label="閉じる">✕</button>
+      </div>
+      <div class="node-edit-body">
+        <textarea class="form-input node-edit-text" id="nodeEditText" aria-label="ノードのテキスト"></textarea>
+        <p class="node-edit-hint" id="nodeEditHint" hidden></p>
+        <div class="node-edit-actions">
+          <button class="btn btn-ghost btn-sm btn-danger-text" id="nodeEditDelete" hidden>🗑️ 削除</button>
+          <button class="btn btn-ghost btn-sm" id="nodeEditAdd" hidden>➕ 詳細を追加</button>
+          <button class="btn btn-primary btn-sm" id="nodeEditSave">更新</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Info モーダル ── -->
   <div class="modal-overlay" id="infoModal" hidden role="dialog" aria-modal="true" aria-labelledby="infoModalTitle">
     <div class="modal">

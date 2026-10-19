@@ -12,6 +12,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildRobotDiagram } from "../public/js/mermaid-builder.js";
 import { buildDiagramMarkup } from "../public/js/html-diagram.js";
+import { classifyNode, getNodeText, setNodeText, addDetail, removeDetail } from "../public/js/node-edit.js";
 
 // ── session.ts の純粋ロジックをインライン再現 ─────────────────────
 
@@ -905,10 +906,77 @@ test("buildDiagramMarkup — 配列が空のときは薄い枠（プレースホ
   const html = buildDiagramMarkup(makeParts());
   // グループ番号のプレースホルダー（is-empty）が 1 つずつ
   for (const g of ["4", "5", "6", "7"]) {
-    const re = new RegExp(`data-node="${g}"`, "g");
+    // 足の見出し（rb-limb-parent）も data-node を持つため、ボックス（rb-box）だけを数える
+    const re = new RegExp(`class="rb-box [^"]*" data-node="${g}"`, "g");
     assert.equal((html.match(re) || []).length, 1, `[${g}] のプレースホルダーが1つでない`);
   }
   assert.ok(html.includes("is-empty"), "is-empty クラスが無い");
+});
+
+test("buildDiagramMarkup — 空文字の詳細も添字どおりに描画される（追加直後のノードが見える）", () => {
+  const p = makeParts();
+  p.drilldown.reality_factors = ["A", "", "C"];
+  const html = buildDiagramMarkup(p);
+  for (const id of ["4-1", "4-2", "4-3"]) {
+    assert.ok(html.includes(`data-node="${id}"`), `[${id}] が描画されていない`);
+  }
+});
+
+test("buildDiagramMarkup — 足の見出しが親ノード（6/7）としてクリック対象になる", () => {
+  const html = buildDiagramMarkup(makeParts());
+  assert.ok(/rb-limb-parent" data-node="6"/.test(html), "[6] 見出しが無い");
+  assert.ok(/rb-limb-parent" data-node="7"/.test(html), "[7] 見出しが無い");
+});
+
+// ── ノード編集ロジック（node-edit.js） ──────────────────────────
+
+test("classifyNode — 親/グループ/詳細/単独ノードを判別する", () => {
+  assert.equal(classifyNode("1").kind, "parent");
+  assert.equal(classifyNode("2").group, "5");
+  assert.equal(classifyNode("6").kind, "group");
+  assert.deepEqual(classifyNode("7-3"), { kind: "detail", group: "7", index: 2 });
+  assert.equal(classifyNode("3").kind, "leaf");
+  assert.equal(classifyNode("9").kind, "unknown");
+});
+
+test("setNodeText / getNodeText — 単一値ノードと詳細ノードを更新できる", () => {
+  const p = makeParts();
+  p.drilldown.reality_factors = ["A", "B"];
+  assert.ok(setNodeText(p, "1", "  新しい現実 "));
+  assert.equal(getNodeText(p, "1"), "新しい現実");
+  assert.ok(setNodeText(p, "4-2", "B2"));
+  assert.deepEqual(p.drilldown.reality_factors, ["A", "B2"]);
+  assert.ok(setNodeText(p, "0", "フック"));
+  assert.equal(p.frame.intro.hook, "フック");
+  assert.equal(setNodeText(p, "4-9", "x"), false, "範囲外は更新しない");
+});
+
+test("addDetail — 親ノード/グループから末尾に空の詳細を追加し新ノード番号を返す", () => {
+  const p = makeParts();
+  assert.equal(addDetail(p, "1"), "4-1");
+  assert.equal(addDetail(p, "1"), "4-2");
+  assert.equal(addDetail(p, "6"), "6-1");
+  assert.equal(addDetail(p, "7"), "7-1");
+  assert.deepEqual(p.drilldown.reality_factors, ["", ""]);
+  assert.equal(addDetail(p, "3"), null, "提案は詳細を持てない");
+  assert.equal(addDetail(p, "4-1"), null, "詳細ノードには追加できない");
+});
+
+test("removeDetail — 詳細のみ削除でき、後続は繰り上がる", () => {
+  const p = makeParts();
+  p.what_how.what_items = ["a", "b", "c"];
+  assert.ok(removeDetail(p, "6-2"));
+  assert.deepEqual(p.what_how.what_items, ["a", "c"]);
+  assert.equal(removeDetail(p, "1"), false, "親ノードは削除不可");
+  assert.equal(removeDetail(p, "6-5"), false, "範囲外は削除しない");
+});
+
+test("追加→描画: 追加した空ノードが DOM に出て、削除すると消える（データとDOMの同期）", () => {
+  const p = makeParts();
+  const id = addDetail(p, "2");
+  assert.ok(buildDiagramMarkup(p).includes(`data-node="${id}"`));
+  removeDetail(p, id);
+  assert.ok(!buildDiagramMarkup(p).includes(`data-node="${id}"`));
 });
 
 console.log("\n✅ 全テスト完了");
