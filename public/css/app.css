@@ -574,6 +574,14 @@ select.form-input { background: var(--c-bg); cursor: pointer; }
 }
 .btn-lang:hover { color: var(--c-primary); border-color: var(--c-primary); }
 
+/* ── ヘッダーの丸型アイコンボタン（info / ☰）: EN ボタンと同じ丸型・枠線・ホバー色に揃える ── */
+.header-icon-btn {
+  width: 28px; height: 28px; padding: 0; flex-shrink: 0; border-radius: 50%;
+  font-size: 1rem; line-height: 1; color: var(--c-text-sub);
+  transition: color var(--ease), border-color var(--ease), background var(--ease);
+}
+.header-icon-btn:not(:disabled):hover { color: var(--c-primary); border-color: var(--c-primary); background: transparent; }
+
 /* ── Info Modal ─────────────────────────────────────────────────── */
 .info-modal-body {
   padding: var(--sp-4) var(--sp-5); overflow-y: auto; display: flex; flex-direction: column; gap: var(--sp-5);

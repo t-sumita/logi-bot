@@ -1,13 +1,13 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.11.1`
+`0.11.2`
 
 ## 最終更新
 2026-10-20
 
 ## 現在地
-- v0.11.1 main マージ・GitHub push・Cloudflare Pages デプロイ済み（本番 URL: https://logi-bot.pages.dev）
+- v0.11.2 main マージ・GitHub push・Cloudflare Pages デプロイ済み（本番 URL: https://logi-bot.pages.dev）
 - typecheck 0エラー / test:unit 77/77 全通過
 - 作業ブランチなし（main のみ）。未コミット変更は無し（この STATUS.md 更新を除く）
 - 注意: Pages は git 連携なし。main への push だけでは本番に反映されない。
@@ -302,6 +302,14 @@
 - **ステップインジケーター**: 先頭・末尾要素に `margin: auto` を付けて中央寄せ。`justify-content:center` は
   狭幅の横スクロール時に左端が切れるため不採用
 
+## v0.11.2（2026-10-20 — info ボタンの見た目改善・info モーダル文言修正）
+
+- **info ボタン**: 絵文字 `ℹ️`（青い角丸四角が枠線と二重に見えていた）を廃止し、インライン SVG の「i」グリフに変更。
+  ボタン自体を 28px の丸型・枠線・ホバー時プライマリ色にして lang（EN）ピルと揃えた（`.header-icon-btn`）。
+  ☰ ボタンにも同クラスを適用して統一。トップ（index.html）の info ボタンも同様に変更
+- **info モーダル文言**: 「Mermaid 図を自動生成」→「思考図解を自動生成（または手動で組み立て）」
+  （英語も "logical thinking diagram ... or lets you build it by hand"）。session.html / index.html 両方
+
 ## 今後の検討事項（アイデア・ロードマップ）
 
 実装は未着手。着手時は先に PLAN.md / `docs/specs/` へ仕様を起こすこと（SDD）。
@@ -313,5 +321,5 @@
 
 ## 次の一手
 
-v0.11.1 本番確認（PC最大化）: ロゴが左端・info/lang/☰ が右端に寄ること、ステップ表示が中央にあること。
+v0.11.2 本番確認: info（丸型 i）・EN・☰ の見た目の調和、info モーダルの文言（日英）。
 以降は新規要望待ち

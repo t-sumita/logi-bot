@@ -18,8 +18,10 @@
       <div class="logo">🤖 <span>logi-bot</span></div>
       <div style="flex:1"></div>
       <div class="header-actions">
-        <button class="btn btn-ghost btn-sm btn-icon" id="infoBtn"
-          data-t-attr="title:header.info.title" aria-label="About">ℹ️</button>
+        <button class="btn btn-ghost header-icon-btn" id="infoBtn" type="button"
+          data-t-attr="title:header.info.title" aria-label="About">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 11v6"/><circle cx="12" cy="7" r=".6" fill="currentColor"/></svg>
+        </button>
         <button class="btn-lang" id="langToggleBtn"
           data-t-attr="aria-label:header.lang.aria" data-t="header.lang.label">EN</button>
         <button class="mode-badge badge-demo" id="modeBadge" title="">🎭 手動作図モード</button>
@@ -170,7 +172,7 @@
           <div class="info-section-heading">logi-bot とは</div>
           <div class="info-section-body">
             <p>5ステップの対話とドリルダウンで、バラバラなアイデアからプレゼンの全体構想（合体ロボ図）を組み立てる思考整理パートナーアプリです。</p>
-            <p>各ステップで AI と一問一答しながら Mermaid 図を自動生成。最終的に「合体ロボ（全体シナリオ図）」が完成したら、Markdown としてエクスポートできます。</p>
+            <p>各ステップで AI と一問一答しながら思考図解を自動生成（または手動で組み立て）。最終的に「合体ロボ（全体シナリオ図）」が完成したら、Markdown としてエクスポートできます。</p>
           </div>
         </div>
         <div data-lang="ja">
@@ -205,7 +207,7 @@
           <div class="info-section-heading">What is logi-bot?</div>
           <div class="info-section-body">
             <p>logi-bot is a thinking-partner app that helps you build a complete presentation outline (the "Combo-Robot diagram") from scattered ideas through 5-step guided Q&A with AI.</p>
-            <p>Each step generates a Mermaid diagram automatically. Once all steps are complete, you can export the full scenario as Markdown.</p>
+            <p>Each step generates a logical thinking diagram automatically (or lets you build it by hand). Once all steps are complete, you can export the full scenario as Markdown.</p>
           </div>
         </div>
         <div data-lang="en" hidden>
