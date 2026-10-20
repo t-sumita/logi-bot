@@ -47,7 +47,7 @@ ul { list-style: none; }
 }
 .header-inner {
   height: 100%; display: flex; align-items: center; gap: var(--sp-4);
-  padding: 0 var(--sp-6); max-width: 1400px; margin: 0 auto;
+  padding: 0 var(--sp-6); width: 100%;
 }
 .logo {
   font-size: 1.125rem; font-weight: 800; color: var(--c-primary);
@@ -213,6 +213,9 @@ ul { list-style: none; }
   overflow-x: auto; scrollbar-width: none; gap: 0; flex-shrink: 0;
 }
 .step-indicator::-webkit-scrollbar { display: none; }
+/* 中央寄せ（justify-content:center だと狭幅でスクロール時に左が切れるため auto マージンで行う） */
+.step-indicator > :first-child { margin-left: auto; }
+.step-indicator > :last-child { margin-right: auto; }
 .step-item {
   display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0;
   min-width: 56px; cursor: default;
