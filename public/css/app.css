@@ -581,6 +581,16 @@ select.form-input { background: var(--c-bg); cursor: pointer; }
 /* session page: ナビバー（56px）の上に表示して「← 前へ」ボタンとの重なりを解消 */
 .page-session .su-badge { bottom: max(calc(var(--nav-h) + 8px), env(safe-area-inset-bottom)) !important; }
 
+/* ── PC フッター: ナビ3要素を中央にまとめ、バッジを左端（ナビ内・縦中央）に置く ─────────── */
+@media (min-width: 721px) {
+  .session-nav { justify-content: center; gap: var(--sp-4); }
+  /* ステップ名の長さでボタン位置が動かないよう固定幅にする */
+  .nav-center { flex: 0 0 17rem; min-width: 0; }
+  .nav-center .step-label { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* ナビ内容域（高さ nav-h − 下余白 12px）の縦中央に 24px アイコンを合わせる */
+  .page-session .su-badge { bottom: 22px !important; }
+}
+
 /* ── Undo button ─────────────────────────────────────────────────── */
 .btn-undo {
   width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
