@@ -58,7 +58,28 @@ ul { list-style: none; }
   flex: 1; font-size: .95rem; font-weight: 600; color: var(--c-text-sub);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.header-actions { display: flex; gap: var(--sp-2); flex-shrink: 0; }
+.header-actions { display: flex; align-items: center; gap: var(--sp-2); flex-shrink: 0; }
+
+/* ── ハンバーガーメニュー（ヘッダー右上） ── */
+.header-menu-wrap { position: relative; }
+.header-menu {
+  position: absolute; top: calc(100% + var(--sp-2)); right: 0; z-index: 200;
+  width: min(92vw, 360px); max-height: calc(100vh - var(--header-h) - 16px); overflow-y: auto;
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: var(--r-lg); box-shadow: var(--sh-lg); padding: var(--sp-1);
+}
+.header-menu[hidden] { display: none; }
+.menu-item {
+  display: flex; align-items: flex-start; gap: var(--sp-3); width: 100%;
+  padding: var(--sp-2) var(--sp-3); background: none; border: none; border-radius: var(--r-md);
+  text-align: left; cursor: pointer; font: inherit; color: var(--c-text);
+  transition: background var(--ease);
+}
+.menu-item:hover, .menu-item:focus-visible { background: var(--c-surface-2); outline: none; }
+.mi-icon { flex: 0 0 1.5rem; text-align: center; font-size: 1rem; line-height: 1.4; }
+.mi-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mi-label { font-size: .875rem; font-weight: 700; }
+.mi-desc { font-size: .72rem; color: var(--c-text-sub); line-height: 1.4; }
 
 /* ── App Footer ─────────────────────────────────────────────────── */
 .app-footer {
@@ -538,8 +559,6 @@ select.form-input { background: var(--c-bg); cursor: pointer; }
   .chat-pane { flex: 1 1 0; border-right: none; min-height: 0; }
   .step-indicator { padding: 0 var(--sp-3); }
   .header-title { font-size: .8rem; }
-  /* ヘッダーボタンを最小化 */
-  #statusMdBtn { display: none; }
 }
 
 /* ── Lang toggle ────────────────────────────────────────────────── */

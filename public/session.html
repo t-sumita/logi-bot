@@ -24,15 +24,62 @@
           data-t-attr="title:header.info.title" aria-label="About">ℹ️</button>
         <button class="btn-lang" id="langToggleBtn"
           data-t-attr="aria-label:header.lang.aria" data-t="header.lang.label">EN</button>
-        <button class="mode-badge badge-demo" id="modeBadge" title="">🎭 手動作図モード</button>
-        <button class="btn btn-ghost btn-sm btn-icon" id="settingsGearBtn"
-          data-t-attr="title:header.gear.title">⚙️</button>
-        <button class="btn btn-ghost btn-sm" id="copyMdBtn"
-          data-t="header.copy" data-t-attr="title:header.copy.title">📋 コピー</button>
-        <button class="btn btn-ghost btn-sm" id="downloadMdBtn"
-          data-t="header.download" data-t-attr="title:header.download.title">⬇ .md</button>
-        <button class="btn btn-ghost btn-sm" id="statusMdBtn"
-          title="STATUS.md（引き継ぎ用）をダウンロード">⬇ STATUS</button>
+        <div class="header-menu-wrap">
+          <button class="btn btn-ghost btn-sm btn-icon" id="menuBtn" type="button"
+            aria-haspopup="true" aria-expanded="false" aria-controls="headerMenu"
+            data-t-attr="title:menu.button.title,aria-label:menu.button.title">☰</button>
+          <div class="header-menu" id="headerMenu" role="menu" hidden>
+            <button class="menu-item" id="modeMenuBtn" type="button" role="menuitem">
+              <span class="mi-icon">🔀</span>
+              <span class="mi-body">
+                <span class="mi-label"><span class="mode-badge badge-demo" id="modeBadge" title="">🎭 手動作図モード</span></span>
+                <span class="mi-desc" data-t="menu.mode.desc">現在の動作モード。手動作図（AIを使わず手動で図を組み立て）／合言葉／APIキーを切り替えます</span>
+              </span>
+            </button>
+            <button class="menu-item" id="settingsGearBtn" type="button" role="menuitem">
+              <span class="mi-icon">⚙️</span>
+              <span class="mi-body">
+                <span class="mi-label" data-t="menu.gear.label">設定</span>
+                <span class="mi-desc" data-t="menu.gear.desc">APIキーや各種設定を変更します</span>
+              </span>
+            </button>
+            <button class="menu-item" id="copyMdBtn" type="button" role="menuitem">
+              <span class="mi-icon">📋</span>
+              <span class="mi-body">
+                <span class="mi-label" data-t="menu.copy.label">コピー</span>
+                <span class="mi-desc" data-t="menu.copy.desc">現在の図解テキスト/データをクリップボードにコピーします</span>
+              </span>
+            </button>
+            <button class="menu-item" id="downloadMdBtn" type="button" role="menuitem">
+              <span class="mi-icon">⬇</span>
+              <span class="mi-body">
+                <span class="mi-label" data-t="menu.md.label">.md</span>
+                <span class="mi-desc" data-t="menu.md.desc">図解内容をMarkdownファイルとしてダウンロードします</span>
+              </span>
+            </button>
+            <button class="menu-item" id="statusMdBtn" type="button" role="menuitem">
+              <span class="mi-icon">⬇</span>
+              <span class="mi-body">
+                <span class="mi-label" data-t="menu.status.label">STATUS</span>
+                <span class="mi-desc" data-t="menu.status.desc">現在の作業状態・履歴をファイルとして保存します</span>
+              </span>
+            </button>
+            <button class="menu-item" id="printDiagramBtn" type="button" role="menuitem">
+              <span class="mi-icon">🖨️</span>
+              <span class="mi-body">
+                <span class="mi-label" data-t="menu.print.label">印刷・PDF</span>
+                <span class="mi-desc" data-t="menu.print.desc">図解を印刷、またはPDFとして保存します（印刷用最適化）</span>
+              </span>
+            </button>
+            <button class="menu-item" id="showCodeBtn" type="button" role="menuitem">
+              <span class="mi-icon">{ }</span>
+              <span class="mi-body">
+                <span class="mi-label" data-t="menu.code.label">Mermaidコード</span>
+                <span class="mi-desc" data-t="menu.code.desc">外部ツール等で使えるMermaid形式のコードを表示・コピーします</span>
+              </span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </header>
@@ -150,12 +197,6 @@
     <div class="diagram-pane" id="diagramPane">
       <div class="diagram-header">
         <div class="diagram-label">🤖 合体ロボ図</div>
-        <div class="diagram-actions">
-          <button class="btn btn-ghost btn-sm" id="printDiagramBtn"
-            title="図を別タブに出力して印刷・PDF保存">🖨️ 印刷・PDF</button>
-          <button class="btn btn-ghost btn-sm" id="showCodeBtn"
-            title="Mermaidコードを表示・編集用にコピー（外部で修正後、トップから再読込可能）"><span class="icon">{ }</span> Mermaidコード</button>
-        </div>
       </div>
       <div class="diagram-content" id="diagramContent" aria-label="Mermaid図プレビュー">
         <div class="diagram-placeholder">
@@ -319,8 +360,24 @@
 
       // 設定モーダル初期化
       initSettings();
-      document.getElementById("modeBadge").addEventListener("click", () =>
+      document.getElementById("modeMenuBtn").addEventListener("click", () =>
         document.getElementById("settingsGearBtn").click());
+
+      // ハンバーガーメニュー（開閉・外側クリック・Esc・項目クリックで閉じる）
+      const menuBtn = document.getElementById("menuBtn");
+      const headerMenu = document.getElementById("headerMenu");
+      const setMenuOpen = (open) => {
+        headerMenu.hidden = !open;
+        menuBtn.setAttribute("aria-expanded", String(open));
+      };
+      menuBtn.addEventListener("click", (e) => { e.stopPropagation(); setMenuOpen(headerMenu.hidden); });
+      headerMenu.addEventListener("click", () => setMenuOpen(false));
+      document.addEventListener("click", (e) => {
+        if (!headerMenu.hidden && !headerMenu.contains(e.target)) setMenuOpen(false);
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !headerMenu.hidden) { setMenuOpen(false); menuBtn.focus(); }
+      });
 
       // 言語切り替えボタン
       document.getElementById("langToggleBtn").addEventListener("click", () => {
