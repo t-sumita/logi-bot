@@ -58,7 +58,7 @@ ul { list-style: none; }
   flex: 1; font-size: .95rem; font-weight: 600; color: var(--c-text-sub);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.header-actions { display: flex; align-items: center; gap: var(--sp-2); flex-shrink: 0; }
+.header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
 /* ── ハンバーガーメニュー（ヘッダー右上） ── */
 .header-menu-wrap { position: relative; }
@@ -574,13 +574,15 @@ select.form-input { background: var(--c-bg); cursor: pointer; }
 }
 .btn-lang:hover { color: var(--c-primary); border-color: var(--c-primary); }
 
-/* ── ヘッダーのアイコンボタン（info / ☰）: 角丸 8px・同寸で揃え、枠線・ホバー色は EN ボタンに合わせる ── */
+/* ── ヘッダーのフラットなアイコンボタン（info / 歯車 / ☰）: 常時は枠・背景なし、ホバー／タップ時のみ薄いグレー背景 ── */
 .header-icon-btn {
-  width: 32px; height: 28px; padding: 0; flex-shrink: 0; border-radius: 8px;
-  font-size: 1rem; line-height: 1; color: var(--c-text-sub);
-  transition: color var(--ease), border-color var(--ease), background var(--ease);
+  width: 32px; height: 32px; padding: 0; flex-shrink: 0; border: none; border-radius: 8px;
+  background: transparent; color: var(--c-text-sub); font-size: 1.1rem; line-height: 1; cursor: pointer;
+  transition: color var(--ease), background var(--ease);
 }
-.header-icon-btn:not(:disabled):hover { color: var(--c-primary); border-color: var(--c-primary); background: transparent; }
+.header-icon-btn:not(:disabled):hover,
+.header-icon-btn:not(:disabled):active,
+.header-icon-btn[aria-expanded="true"] { color: var(--c-text); background: rgba(0, 0, 0, 0.05); }
 
 /* ── Info Modal ─────────────────────────────────────────────────── */
 .info-modal-body {
@@ -600,6 +602,7 @@ select.form-input { background: var(--c-bg); cursor: pointer; }
 .info-steps > li::marker { font-weight: 700; color: var(--c-primary); }
 .info-steps ul { margin: var(--sp-1) 0 0; padding-left: 1.1rem; list-style: disc; }
 .info-steps ul li { margin-top: 2px; }
+.info-section-body .info-note { margin-top: var(--sp-3); font-size: .75rem; color: var(--c-text-mute); line-height: 1.6; }
 .info-ref-list { display: flex; flex-direction: column; gap: var(--sp-3); margin-top: var(--sp-3); }
 .info-ref-item { display: flex; gap: var(--sp-2); align-items: flex-start; }
 .info-ref-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 2px; }

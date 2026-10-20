@@ -1,13 +1,13 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.11.3`
+`0.11.4`
 
 ## 最終更新
 2026-10-20
 
 ## 現在地
-- v0.11.3 main マージ・GitHub push・Cloudflare Pages デプロイ済み（本番 URL: https://logi-bot.pages.dev）
+- v0.11.4 main マージ・GitHub push・Cloudflare Pages デプロイ済み（本番 URL: https://logi-bot.pages.dev）
 - typecheck 0エラー / test:unit 77/77 全通過
 - 作業ブランチなし（main のみ）。未コミット変更は無し（この STATUS.md 更新を除く）
 - 注意: Pages は git 連携なし。main への push だけでは本番に反映されない。
@@ -321,6 +321,17 @@
   アプリの実際のステップは ①胴体 ②腕 ③足 ④合体前の点検 ⑤頭・台座。番号の意味が異なる。
   利用者の混乱を招くなら、見出しを「5つのパーツ」等に変えるか、実ステップ順に合わせる
 
+## v0.11.4（2026-10-20 — ヘッダーアイコンのフラット化・info モーダル見出し調整）
+
+- **確認済み（ユーザー報告）**: v0.11.3 は反映済み。食い違いは見出し変更で解消する方針に決定
+- **フラットなアイコンボタン**: info / トップの歯車 / セッションの ☰ を `.header-icon-btn`（32×32px）に統一。
+  常時は枠線・背景なし（`border:none; background:transparent`）、ホバー／タップ（:active）／メニュー展開中のみ
+  `rgba(0,0,0,.05)` の角丸背景。`.header-actions` の gap は 8px。`btn-ghost` クラスは外した
+- **info モーダル**: 見出しを「💡 合体ロボを構成する5つのパーツ」（英: The 5 Parts of a Combo-Robot）に変更し、
+  リスト直下に注記「※ アプリでの作成は、核となる『胴体』から『腕』『足』へと広げ、最後に『頭・台座』を整える順序で進めます。」
+  を追加（`.info-note`、日英）。出典リンクは従来どおり。文言は i18n.js ではなく HTML 内の `data-lang` ブロックで管理している
+- **AI 対話ロジックの現状調査（次フェーズ準備）**: 結果は下記「次の一手」に要約
+
 ## 今後の検討事項（アイデア・ロードマップ）
 
 実装は未着手。着手時は先に PLAN.md / `docs/specs/` へ仕様を起こすこと（SDD）。
@@ -332,6 +343,14 @@
 
 ## 次の一手
 
-v0.11.3 本番確認: info・EN・☰ の形状の調和、info モーダルの表示（日英・スマホでの折り返し）。
-次の大テーマ: スキルファイル（`.claude/skills/logi-session/SKILL.md`）を AI 対話ロジック（プロンプト・Worker 連携）へ活かす設計。
+v0.11.4 本番確認: info・歯車・☰ のフラット表示とホバー背景、EN／モードバッジとの縦位置、info モーダルの見出し・注記（日英）。
+
+次の大テーマ: スキルを AI 対話ロジックへ活かす設計。現状（調査結果）:
+- AI は Workers AI ではなく **Pages Functions（`functions/`）から Claude / Gemini / OpenAI を直接呼ぶ**構成（`wrangler.toml` に AI バインディングなし）
+- プロンプト生成: `functions/_lib/prompt.ts` の `buildSystemPrompt(step, session)`（通常）／`buildBulkSystemPrompt`（長文一括抽出）。
+  ステップ別メタは同ファイルの `STEP_META`、ドリルダウン質問例は `DRILLDOWN_GUIDANCE`、構造化出力は `SESSION_UPDATE_TOOL`（Tool Use）
+- 対話履歴: **サーバー無状態**。クライアント（sessionStorage）の `session.history` を `/api/chat` が毎回受け取り、`callLLM` に渡して返却
+- プロバイダ切替: `functions/_lib/llm.ts`（`claude.ts` / `gemini.ts` / `openai.ts`）、認証は `chat.ts` の `resolveAuth`（mock / owner / byok）
+- スキル `.claude/skills/logi-session/SKILL.md` は**開発者向け文書で、実行時には読み込まれていない**。プロンプトは `prompt.ts` に直書きで、
+  SKILL.md と二重管理になっている（ノード番号表・NodeStatus・ステップ設計など）
 以降は新規要望待ち
