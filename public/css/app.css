@@ -574,9 +574,9 @@ select.form-input { background: var(--c-bg); cursor: pointer; }
 }
 .btn-lang:hover { color: var(--c-primary); border-color: var(--c-primary); }
 
-/* ── ヘッダーの丸型アイコンボタン（info / ☰）: EN ボタンと同じ丸型・枠線・ホバー色に揃える ── */
+/* ── ヘッダーのアイコンボタン（info / ☰）: 角丸 8px・同寸で揃え、枠線・ホバー色は EN ボタンに合わせる ── */
 .header-icon-btn {
-  width: 28px; height: 28px; padding: 0; flex-shrink: 0; border-radius: 50%;
+  width: 32px; height: 28px; padding: 0; flex-shrink: 0; border-radius: 8px;
   font-size: 1rem; line-height: 1; color: var(--c-text-sub);
   transition: color var(--ease), border-color var(--ease), background var(--ease);
 }
@@ -594,6 +594,12 @@ select.form-input { background: var(--c-bg); cursor: pointer; }
   font-size: .85rem; color: var(--c-text-sub); line-height: 1.7;
 }
 .info-section-body p + p { margin-top: var(--sp-2); }
+.info-lead { font-size: 1rem; font-weight: 800; color: var(--c-text); line-height: 1.5; }
+.info-hr { border: none; border-top: 1px solid var(--c-border); margin: var(--sp-4) 0; }
+.info-steps { margin: 0; padding-left: 1.4rem; display: flex; flex-direction: column; gap: var(--sp-3); }
+.info-steps > li::marker { font-weight: 700; color: var(--c-primary); }
+.info-steps ul { margin: var(--sp-1) 0 0; padding-left: 1.1rem; list-style: disc; }
+.info-steps ul li { margin-top: 2px; }
 .info-ref-list { display: flex; flex-direction: column; gap: var(--sp-3); margin-top: var(--sp-3); }
 .info-ref-item { display: flex; gap: var(--sp-2); align-items: flex-start; }
 .info-ref-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 2px; }

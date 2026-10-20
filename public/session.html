@@ -22,7 +22,7 @@
       <div class="header-actions">
         <button class="btn btn-ghost header-icon-btn" id="infoBtn" type="button"
           data-t-attr="title:header.info.title" aria-label="About">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 11v6"/><circle cx="12" cy="7" r=".6" fill="currentColor"/></svg>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".5" fill="currentColor"/></svg>
         </button>
         <button class="btn-lang" id="langToggleBtn"
           data-t-attr="aria-label:header.lang.aria" data-t="header.lang.label">EN</button>
@@ -277,16 +277,39 @@
 
         <!-- JA コンテンツ -->
         <div data-lang="ja">
-          <div class="info-section-heading">logi-bot とは</div>
+          <div class="info-lead">バラバラなアイデアを、1枚の「合体ロボ（全体構想図）」へ。</div>
           <div class="info-section-body">
-            <p>5ステップの対話とドリルダウンで、バラバラなアイデアからプレゼンの全体構想（合体ロボ図）を組み立てる思考整理パートナーアプリです。</p>
-            <p>各ステップで AI と一問一答しながら思考図解を自動生成（または手動で組み立て）。最終的に「合体ロボ（全体シナリオ図）」が完成したら、Markdown としてエクスポートできます。</p>
+            <p>logi-bot は、問いに答えながら頭の中を整理し、プレゼンや企画書の骨子となるロジカルな思考図解を組み立てる思考パートナーアプリです。</p>
+          </div>
+          <hr class="info-hr">
+          <div class="info-section-heading">💡 5ステップで進める「図解思考」の型</div>
+          <div class="info-section-body">
+            <ol class="info-steps">
+              <li><strong>頭（イントロダクション）</strong>
+                <ul><li>聞き手の関心を引き、前提や全体像を共有する導入部。</li></ul></li>
+              <li><strong>胴体（問題提起とコア提案）</strong>
+                <ul>
+                  <li><strong>現実</strong>：現在起きている事実や課題</li>
+                  <li><strong>理想</strong>：目指したい望ましい状態・目標</li>
+                  <li><strong>提案</strong>：そのギャップを一気に埋める核心のアイデア</li>
+                </ul></li>
+              <li><strong>両腕（課題と効果の要素分解）</strong>
+                <ul><li>現実の背景・原因の深掘りと、理想達成による期待効果を整理。</li></ul></li>
+              <li><strong>両足（実行計画の具体化）</strong>
+                <ul>
+                  <li><strong>左足（What）</strong>：何を提供するのか（施策・機能・アウトプット）</li>
+                  <li><strong>右足（How）</strong>：どう実行するのか（体制・道具・予算・期間）</li>
+                </ul></li>
+              <li><strong>台座（クロージング）</strong>
+                <ul><li>結論の念押しと、次の一歩（ネクストアクション）の合意。</li></ul></li>
+            </ol>
           </div>
         </div>
         <div data-lang="ja">
-          <div class="info-section-heading">図解思考メソッドへのリスペクトと出典</div>
+          <hr class="info-hr">
+          <div class="info-section-heading">出典・リスペクト</div>
           <div class="info-section-body">
-            <p>本アプリの思考ステップおよび「合体ロボ作戦」のフレームワークは、永田豊志氏の著書および解説記事にインスパイアされて開発しました。より深い図解思考の技術については、ぜひ原著および元記事をご覧ください。</p>
+            <p>本ツールの構成フレームワークは、永田豊志氏の図解メソッド（『プレゼンがうまい人の「図解思考」の技術』）に着想を得て設計されています。</p>
             <div class="info-ref-list">
               <div class="info-ref-item">
                 <span class="info-ref-icon">📘</span>
@@ -312,16 +335,39 @@
 
         <!-- EN コンテンツ -->
         <div data-lang="en" hidden>
-          <div class="info-section-heading">What is logi-bot?</div>
+          <div class="info-lead">Turn scattered ideas into one "Combo-Robot" (big-picture diagram).</div>
           <div class="info-section-body">
-            <p>logi-bot is a thinking-partner app that helps you build a complete presentation outline (the "Combo-Robot diagram") from scattered ideas through 5-step guided Q&A with AI.</p>
-            <p>Each step generates a logical thinking diagram automatically (or lets you build it by hand). Once all steps are complete, you can export the full scenario as Markdown.</p>
+            <p>logi-bot is a thinking-partner app. By answering its questions, you organize what is in your head and build a logical thinking diagram that becomes the backbone of a presentation or proposal.</p>
+          </div>
+          <hr class="info-hr">
+          <div class="info-section-heading">💡 The 5-Step "Visual Thinking" Template</div>
+          <div class="info-section-body">
+            <ol class="info-steps">
+              <li><strong>Head (Introduction)</strong>
+                <ul><li>Catch your audience's interest and share the premise and the big picture.</li></ul></li>
+              <li><strong>Body (Problem &amp; Core Proposal)</strong>
+                <ul>
+                  <li><strong>Reality</strong>: the facts and problems at hand today</li>
+                  <li><strong>Ideal</strong>: the desired state or goal you are aiming for</li>
+                  <li><strong>Proposal</strong>: the core idea that closes that gap in one move</li>
+                </ul></li>
+              <li><strong>Arms (Breaking down problems &amp; effects)</strong>
+                <ul><li>Dig into the background and causes of the reality, and organize the benefits expected once the ideal is achieved.</li></ul></li>
+              <li><strong>Legs (Making the plan concrete)</strong>
+                <ul>
+                  <li><strong>Left leg (What)</strong>: what you will deliver (measures, features, outputs)</li>
+                  <li><strong>Right leg (How)</strong>: how you will carry it out (team, tools, budget, timeline)</li>
+                </ul></li>
+              <li><strong>Base (Closing)</strong>
+                <ul><li>Reinforce your conclusion and agree on the next action.</li></ul></li>
+            </ol>
           </div>
         </div>
         <div data-lang="en" hidden>
-          <div class="info-section-heading">Framework Credits &amp; References</div>
+          <hr class="info-hr">
+          <div class="info-section-heading">Credits &amp; Respect</div>
           <div class="info-section-body">
-            <p>The thinking steps and "Combo-Robot Strategy" framework in this app are inspired by the work of Toyoshi Nagata. For a deeper dive into visual thinking techniques, please refer to the original book and article below.</p>
+            <p>The framework of this tool was designed with inspiration from Toyoshi Nagata's visual thinking method (<em>"Visual Thinking Techniques for Great Presentations"</em>).</p>
             <div class="info-ref-list">
               <div class="info-ref-item">
                 <span class="info-ref-icon">📘</span>

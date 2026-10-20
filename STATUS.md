@@ -1,13 +1,13 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.11.2`
+`0.11.3`
 
 ## 最終更新
 2026-10-20
 
 ## 現在地
-- v0.11.2 main マージ・GitHub push・Cloudflare Pages デプロイ済み（本番 URL: https://logi-bot.pages.dev）
+- v0.11.3 main マージ・GitHub push・Cloudflare Pages デプロイ済み（本番 URL: https://logi-bot.pages.dev）
 - typecheck 0エラー / test:unit 77/77 全通過
 - 作業ブランチなし（main のみ）。未コミット変更は無し（この STATUS.md 更新を除く）
 - 注意: Pages は git 連携なし。main への push だけでは本番に反映されない。
@@ -310,6 +310,17 @@
 - **info モーダル文言**: 「Mermaid 図を自動生成」→「思考図解を自動生成（または手動で組み立て）」
   （英語も "logical thinking diagram ... or lets you build it by hand"）。session.html / index.html 両方
 
+## v0.11.3（2026-10-20 — info ボタン形状の統一・info モーダル解説の刷新）
+
+- **info ボタン**: 正円をやめ、☰ と同じ `.header-icon-btn`（32×28px・角丸 8px・枠線・ホバー色）に統一。
+  アイコンは丸囲みの ⓘ（インライン SVG）を中央配置。index.html の info ボタンも同様
+- **info モーダル解説の刷新**（session.html / index.html、日英）: 知財配慮のため「合体ロボ作戦」等の引用表現を減らし、
+  リード文＋「5ステップで進める『図解思考』の型」（頭／胴体／両腕／両足／台座）＋「出典・リスペクト」の構成に。
+  出典の書籍・記事リンク（`info-ref-list`）は従来どおり残した。新規 CSS: `.info-lead` / `.info-hr` / `.info-steps`
+- **既知の食い違い（要判断）**: モーダルの「5ステップ」は図の部位順（頭→胴体→腕→足→台座）だが、
+  アプリの実際のステップは ①胴体 ②腕 ③足 ④合体前の点検 ⑤頭・台座。番号の意味が異なる。
+  利用者の混乱を招くなら、見出しを「5つのパーツ」等に変えるか、実ステップ順に合わせる
+
 ## 今後の検討事項（アイデア・ロードマップ）
 
 実装は未着手。着手時は先に PLAN.md / `docs/specs/` へ仕様を起こすこと（SDD）。
@@ -321,5 +332,6 @@
 
 ## 次の一手
 
-v0.11.2 本番確認: info（丸型 i）・EN・☰ の見た目の調和、info モーダルの文言（日英）。
+v0.11.3 本番確認: info・EN・☰ の形状の調和、info モーダルの表示（日英・スマホでの折り返し）。
+次の大テーマ: スキルファイル（`.claude/skills/logi-session/SKILL.md`）を AI 対話ロジック（プロンプト・Worker 連携）へ活かす設計。
 以降は新規要望待ち
