@@ -146,6 +146,8 @@ const el = {
   debugToggleBtn:   $("debugToggleBtn"),
   debugPanel:       $("debugPanel"),
   debugPanelBody:   $("debugPanelBody"),
+  debugPanelHeader: $("debugPanelHeader"),
+  debugMinBtn:      $("debugMinBtn"),
   debugCloseBtn:    $("debugCloseBtn"),
 };
 
@@ -441,6 +443,25 @@ function derivePattern(res) {
   if (hasText)             return { label: "[テキストのみ]",        cls: "ok" };
   if (hasTool)             return { label: "[ツール呼び出しのみ]",  cls: "warn" };
   return                          { label: "[フォールバック]",      cls: "error" };
+}
+
+/**
+ * デバッグパネルの開閉を切り替える。
+ * 展開時はパネルを表示してバッジを隠し、最小化時はその逆にする。
+ * hidden 属性ではなく class で制御する（CSS の display 宣言に負けないため）。
+ * @param {boolean} open true で展開、false で最小化
+ */
+function setDebugOpen(open) {
+  if (!el.debugPanel || !el.debugToggleBtn) return;
+  el.debugPanel.classList.toggle("is-open", open);
+  el.debugToggleBtn.classList.toggle("is-collapsed", open);
+  el.debugToggleBtn.setAttribute("aria-expanded", open ? "true" : "false");
+  if (open) refreshDebugPanel();
+}
+
+/** デバッグパネルが展開中かを返す */
+function isDebugOpen() {
+  return !!el.debugPanel?.classList.contains("is-open");
 }
 
 /** デバッグパネルの表示内容を最新の API レスポンスで更新する */
@@ -865,18 +886,24 @@ function bindEvents() {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !el.zoomModal.hidden) el.zoomModal.hidden = true;
     if (e.key === "Escape" && !el.nodeEditModal.hidden) closeNodeEditor();
-    if (e.key === "Escape" && el.debugPanel && !el.debugPanel.hidden) el.debugPanel.hidden = true;
+    if (e.key === "Escape" && isDebugOpen()) setDebugOpen(false);
   });
 
-  // デバッグパネル トグル
-  el.debugToggleBtn?.addEventListener("click", () => {
-    if (!el.debugPanel) return;
-    const opening = el.debugPanel.hidden;
-    el.debugPanel.hidden = !opening;
-    if (opening) refreshDebugPanel();
-  });
-  if (el.debugCloseBtn) {
-    el.debugCloseBtn.addEventListener("click", () => { if (el.debugPanel) el.debugPanel.hidden = true; });
+  // デバッグパネル: バッジクリックで展開
+  if (el.debugToggleBtn) {
+    el.debugToggleBtn.addEventListener("click", () => setDebugOpen(true));
+  }
+  // ✕ / − はどちらも最小化（バッジ待機状態）にする
+  for (const btn of [el.debugMinBtn, el.debugCloseBtn]) {
+    if (!btn) continue;
+    btn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      setDebugOpen(false);
+    });
+  }
+  // ヘッダー自体のクリックでも最小化できるようにする
+  if (el.debugPanelHeader) {
+    el.debugPanelHeader.addEventListener("click", () => setDebugOpen(false));
   }
 }
 

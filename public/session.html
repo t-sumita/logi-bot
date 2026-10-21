@@ -459,11 +459,14 @@
   </script>
 
   <!-- ── Debug Panel ── -->
-  <button class="debug-toggle-btn" id="debugToggleBtn" title="APIデバッグパネルを表示/非表示" aria-label="デバッグパネル">🐞</button>
-  <div class="debug-panel" id="debugPanel" hidden aria-label="デバッグパネル">
-    <div class="debug-panel-header">
-      <span>🐞 Debug — 直近 API レスポンス</span>
-      <button class="debug-close-btn" id="debugCloseBtn" aria-label="デバッグパネルを閉じる">✕</button>
+  <button class="debug-toggle-btn" id="debugToggleBtn" title="APIデバッグパネルを開く" aria-label="デバッグパネルを開く" aria-expanded="false">🐞 Debug</button>
+  <div class="debug-panel" id="debugPanel" aria-label="デバッグパネル">
+    <div class="debug-panel-header" id="debugPanelHeader" title="クリックで最小化">
+      <span class="debug-panel-title">🐞 Debug — 直近 API レスポンス</span>
+      <span class="debug-panel-actions">
+        <button type="button" class="debug-ctl-btn" id="debugMinBtn" title="最小化" aria-label="デバッグパネルを最小化">−</button>
+        <button type="button" class="debug-ctl-btn" id="debugCloseBtn" title="閉じる" aria-label="デバッグパネルを閉じる">✕</button>
+      </span>
     </div>
     <div class="debug-panel-body" id="debugPanelBody">
       <p class="debug-empty">まだ API 呼び出しがありません。</p>

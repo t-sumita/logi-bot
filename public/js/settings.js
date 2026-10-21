@@ -141,6 +141,18 @@ const MODAL_HTML = `
               <input class="form-input form-input-sm" type="password" id="byokApiKey"
                 placeholder="sk-ant-... / AIza... / sk-..." autocomplete="off">
             </div>
+            <details class="keyguide">
+              <summary class="keyguide-summary">Gemini API キーの取得手順（無料）</summary>
+              <div class="keyguide-body">
+                <p class="keyguide-lead"><strong>無料 Gemini API キーの取得手順（約1分・無料）</strong></p>
+                <ol class="keyguide-steps">
+                  <li><a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer">Google AI Studio</a> に Google アカウントでログイン。</li>
+                  <li>「Get API key」→「Create API key」をクリック。</li>
+                  <li>発行されたキー（<code>AIza...</code>）をコピーし、本ツールの設定欄に貼り付けて保存。</li>
+                </ol>
+                <p class="keyguide-note">※ Google アカウントがあれば無料枠（Free Tier）で即座に発行でき、クレジットカード登録は不要です。キーはお使いのブラウザ内にのみ保存されます。</p>
+              </div>
+            </details>
           </div>
         </div>
       </label>
