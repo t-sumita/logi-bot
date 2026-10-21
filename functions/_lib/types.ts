@@ -133,6 +133,12 @@ export interface ChatResponse {
   first_incomplete_step?: StepName;
   diagrams?: Partial<SessionDiagrams>;
   session: LogiSession;
+  /** 本文が空でツール抽出のみ → 定型文で自動補完した場合 true */
+  synthesized?: boolean;
+  /** LLM の終了理由（MAX_TOKENS / SAFETY / STOP など） */
+  stop_reason?: string;
+  /** ツール呼び出しがあったか */
+  has_tool_call?: boolean;
 }
 
 export interface AdvanceRequest {

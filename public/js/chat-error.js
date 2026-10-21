@@ -3,6 +3,11 @@
 /** AI の返答が空だったときにチャットへ表示する文言 */
 export const EMPTY_REPLY_MESSAGE = "応答を取得できませんでした。再度お試しください。";
 
+/** HTML エスケープ（XSS 対策） */
+function escHtml(str) {
+  return String(str ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 /** 詳細として表示する元メッセージの最大文字数 */
 const MAX_DETAIL_LENGTH = 300;
 
@@ -14,6 +19,33 @@ const MAX_DETAIL_LENGTH = 300;
 export function normalizeReply(reply) {
   const text = typeof reply === "string" ? reply.trim() : "";
   return text ? { text, empty: false } : { text: EMPTY_REPLY_MESSAGE, empty: true };
+}
+
+/**
+ * フォールバック（自動補完）バッジの HTML を生成する。
+ * AI 本文が空でツール抽出だけ返った際に定型文で補完した場合に表示する。
+ * @param {{ synthesized?: boolean, stopReason?: string, hasToolCall?: boolean }} opts
+ * @returns {string} バッジ HTML（バッジ不要な場合は空文字）
+ */
+export function buildFallbackBadgeHtml({ synthesized, stopReason, hasToolCall } = {}) {
+  if (!synthesized) return "";
+
+  const debugParts = [];
+  if (stopReason)           debugParts.push(`終了理由: ${escHtml(stopReason)}`);
+  if (hasToolCall != null)  debugParts.push(`ツール呼出: ${hasToolCall ? "あり" : "なし"}`);
+  const debugHtml = debugParts.length
+    ? `<span class="chat-debug-info" title="${debugParts.join(" ／ ")}" aria-label="デバッグ情報">🔍 ${escHtml(stopReason || "")}</span>`
+    : "";
+
+  return `<div class="chat-fallback-badge">` +
+    `<span class="cfb-header"><span class="cfb-icon">⚠️</span>` +
+    `<span class="cfb-label">システム自動補完</span>${debugHtml}</span>` +
+    `<p class="cfb-note">AIからのテキスト応答がなかったため、確認メッセージを自動生成しました。</p>` +
+    `<p class="cfb-guide">次のアクション：` +
+    `<span class="cfb-action">入力内容を変えて再送</span> ／ ` +
+    `<span class="cfb-action">ノードを手動編集</span> ／ ` +
+    `<span class="cfb-action">「次のステップへ」で進む</span>` +
+    `</p></div>`;
 }
 
 /**

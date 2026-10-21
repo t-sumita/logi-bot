@@ -112,6 +112,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   // LLM 呼び出し
   let reply: string;
   let extracted: ReturnType<typeof mergeExtracted>["parts"] | undefined;
+  let synthesized: boolean | undefined;
+  let stopReason: string | undefined;
+  let hasToolCall: boolean | undefined;
   try {
     const result = await invokeLLM(auth, context.env, {
       systemPrompt,
@@ -129,6 +132,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       console.warn(`[chat] 本文が空のため定型文で補完 step=${body.step} stop=${result.stopReason ?? "-"}`);
     }
     reply = resolved.reply;
+    synthesized = resolved.synthesized;
+    stopReason = result.stopReason;
+    hasToolCall = !!(extracted && typeof extracted === "object" && Object.keys(extracted).length > 0);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "不明なエラー";
     console.error(`[chat] upstream_error step=${body.step}: ${msg}`);
@@ -167,6 +173,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       first_incomplete_step: targetStep as StepName,
       diagrams,
       session: updatedSession,
+      synthesized: synthesized || undefined,
+      stop_reason: stopReason || undefined,
+      has_tool_call: hasToolCall || undefined,
     } satisfies ChatResponse & {
       fast_track: boolean;
       first_incomplete_step: StepName;
@@ -174,5 +183,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     });
   }
 
-  return Response.json({ ok: true, reply, extracted, session: updatedSession } satisfies ChatResponse);
+  return Response.json({
+    ok: true, reply, extracted, session: updatedSession,
+    synthesized: synthesized || undefined,
+    stop_reason: stopReason || undefined,
+    has_tool_call: hasToolCall || undefined,
+  } satisfies ChatResponse);
 };

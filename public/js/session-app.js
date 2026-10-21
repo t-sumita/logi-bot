@@ -2,7 +2,7 @@
 
 import { loadSession, saveSession, createNewSession, consumePendingMessage } from "./storage.js";
 import { chat as apiChat, advance as apiAdvance } from "./api.js";
-import { normalizeReply, describeApiError } from "./chat-error.js";
+import { normalizeReply, describeApiError, buildFallbackBadgeHtml } from "./chat-error.js";
 import { openZoomModal } from "./mermaid-renderer.js";
 import { copyMarkdown, downloadMarkdown, downloadStatusMd } from "./export.js";
 import { buildRobotDiagram } from "./mermaid-builder.js";
@@ -140,6 +140,7 @@ const el = {
   nodeEditAdd:      $("nodeEditAdd"),
   nodeEditDelete:   $("nodeEditDelete"),
   nodeEditClose:    $("nodeEditClose"),
+  diagramTitle:     $("diagramTitle"),
 };
 
 // ── 初期化 ────────────────────────────────────────────────────────
@@ -200,6 +201,9 @@ function restoreHistory() {
 function renderAll() {
   el.title.textContent = session.title;
   document.title = `${session.title} — logi-bot`;
+  if (el.diagramTitle && !el.diagramTitle.classList.contains("editing")) {
+    el.diagramTitle.textContent = session.title;
+  }
   renderStepIndicator();
   updateStep1SubstepIndicator();
   renderNavButtons();
@@ -421,6 +425,49 @@ function closeNodeEditor() {
   editingNodeId = null;
 }
 
+// ── ロボ図タイトルのインライン編集 ────────────────────────────────
+
+/** 図パネルのタイトルをクリックしてインライン編集する */
+function startTitleEdit() {
+  if (!el.diagramTitle || el.diagramTitle.classList.contains("editing")) return;
+  el.diagramTitle.classList.add("editing");
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "diagram-title-input";
+  input.value = session.title;
+  input.maxLength = 100;
+  el.diagramTitle.textContent = "";
+  el.diagramTitle.appendChild(input);
+  input.focus();
+  input.select();
+
+  let committed = false;
+  const commit = () => {
+    if (committed) return;
+    committed = true;
+    const v = input.value.trim();
+    el.diagramTitle.classList.remove("editing");
+    if (v && v !== session.title) {
+      session = { ...session, title: v, updatedAt: new Date().toISOString() };
+      saveSession(session);
+    }
+    renderAll();
+  };
+  const cancel = () => {
+    if (committed) return;
+    committed = true;
+    el.diagramTitle.classList.remove("editing");
+    el.diagramTitle.textContent = session.title;
+  };
+
+  input.addEventListener("blur", commit);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter")  { e.preventDefault(); input.removeEventListener("blur", commit); commit(); }
+    if (e.key === "Escape") { e.preventDefault(); input.removeEventListener("blur", commit); cancel(); }
+  });
+}
+
 /**
  * 編集結果を保存し、図を再描画して接続線を引き直す。
  * 手動編集後に Undo すると編集が巻き戻るため、Undo スナップショットは破棄する。
@@ -492,12 +539,21 @@ function undoLastTurn() {
 }
 
 // ── チャット ──────────────────────────────────────────────────────
-function addMessage(role, content) {
+
+/**
+ * チャットにメッセージを追加する。
+ * @param {"user"|"assistant"|"system"} role
+ * @param {string} content
+ * @param {{ synthesized?: boolean, stopReason?: string, hasToolCall?: boolean }} [meta]
+ */
+function addMessage(role, content, meta = {}) {
   const div = document.createElement("div");
   div.className = `chat-message ${role}`;
   const bubble = document.createElement("div");
   bubble.className = "chat-bubble";
   bubble.innerHTML = formatMessage(role === "assistant" ? normalizeReply(content).text : content);
+  const badge = buildFallbackBadgeHtml(meta);
+  if (badge) bubble.insertAdjacentHTML("beforeend", badge);
   div.appendChild(bubble);
   el.chatMessages.appendChild(div);
   el.chatMessages.scrollTop = el.chatMessages.scrollHeight;
@@ -559,7 +615,11 @@ async function sendChat() {
     saveSession(session);
     const reply = normalizeReply(res.reply);
     if (reply.empty) console.warn("[logi-bot] AI の返答が空でした", res);
-    addMessage("assistant", reply.text);
+    addMessage("assistant", reply.text, {
+      synthesized: res.synthesized,
+      stopReason: res.stop_reason,
+      hasToolCall: res.has_tool_call,
+    });
 
     // ファストトラック後: 最初の未完ステップへ自動遷移済み
     if (res.fast_track && res.first_incomplete_step) {
@@ -703,6 +763,12 @@ function bindEvents() {
   el.nodeEditText.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveNodeEdit(); }
   });
+
+  // 図パネルタイトルのインライン編集
+  if (el.diagramTitle) {
+    el.diagramTitle.addEventListener("click", startTitleEdit);
+    el.diagramTitle.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); startTitleEdit(); } });
+  }
 
   // ペイン境界スプリッター
   initSplitter();

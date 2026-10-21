@@ -1,13 +1,13 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.12.2`
+`0.13.0`
 
 ## 最終更新
 2026-10-21
 
 ## 現在地
-- v0.12.2 は feature/empty-reply-guard で実装・検証済み（typecheck / test:unit 92/92）。ユーザー確認待ち（main 未マージ・未デプロイ）
+- v0.13.0 は feature/fallback-badge-and-title-edit で実装・検証済み（typecheck 0エラー / test:unit 96/96）。ユーザー確認待ち（main 未マージ・未デプロイ）
 - 直前の v0.12.1 は main マージ・push・デプロイ済み（本番 URL: https://logi-bot.pages.dev）
 - オーナーモードの AI は環境変数 `AI_PROVIDER` / `AI_MODEL` / `AI_API_KEY` で切り替え（コード修正不要）。詳細は docs/specs/api.md「オーナーモードの AI 設定」
 - Gemini の既定モデルは `gemini-3.8-flash`（実在はこちらで未検証。404 の場合は `AI_MODEL` で上書きする）
@@ -375,6 +375,21 @@
 - **フロント**: 新規 `public/js/chat-error.js`。`reply` が空なら「応答を取得できませんでした。再度お試しください。」を表示（過去の履歴の空ターンも同様）。
   `api.js` が通信失敗・非 JSON 応答・エラーコードを判別。チャット上にレートリミット／認証／モデル不明／APIキー／通信／解析の原因別メッセージを表示し、コンソールにも出力。失敗時は入力欄に送信文を戻す
 - 単体テスト 15 件追加（計 92 件）
+
+## v0.13.0（2026-10-21 — フォールバックバッジ・タイトル直接編集）
+
+- **1. フォールバック（自動補完）の可視化**:
+  - `reply-guard.ts` 既存の `synthesized` フラグを `chat.ts` レスポンスで返すよう拡張
+  - `ChatResponse` に `synthesized?: boolean` / `stop_reason?: string` / `has_tool_call?: boolean` を追加
+  - フロント: `chat-error.js` に `buildFallbackBadgeHtml()` を追加。`synthesized=true` の吹き出しに
+    「⚠️ システム自動補完」バッジを表示（注記 + 次のアクションガイド）
+  - デバッグ情報（stopReason / ツール呼出）をバッジ内にツールチップ付きで表示
+  - XSS 対策: stopReason など外部由来の文字列を HTML エスケープ
+- **2. ロボ図タイトルのインライン編集**:
+  - 図パネルヘッダーに `#diagramTitle` を追加（クリックでインライン編集）
+  - Enter で確定、Escape でキャンセル。`session.title` に即反映・保存
+  - ホバー時に ✏️ アイコンを表示してクリッカブルと示す
+- **テスト**: 追加4件（buildFallbackBadgeHtml）。計 96/96 全通過。typecheck 0 エラー
 
 ## 今後の検討事項（アイデア・ロードマップ）
 

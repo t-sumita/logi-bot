@@ -15,7 +15,7 @@ import { buildDiagramMarkup } from "../public/js/html-diagram.js";
 import { classifyNode, getNodeText, setNodeText, addDetail, removeDetail } from "../public/js/node-edit.js";
 import { resolveOwnerLlm, DEFAULT_MODELS } from "../functions/_lib/ai-config.ts";
 import { resolveReply, dropEmptyTurns, EXTRACTED_ONLY_REPLY } from "../functions/_lib/reply-guard.ts";
-import { normalizeReply, describeApiError, EMPTY_REPLY_MESSAGE } from "../public/js/chat-error.js";
+import { normalizeReply, describeApiError, buildFallbackBadgeHtml, EMPTY_REPLY_MESSAGE } from "../public/js/chat-error.js";
 
 // ── 空応答ガード（サーバー）────────────────────────────────────────
 
@@ -1083,6 +1083,34 @@ test("追加→描画: 追加した空ノードが DOM に出て、削除する�
   assert.ok(buildDiagramMarkup(p).includes(`data-node="${id}"`));
   removeDetail(p, id);
   assert.ok(!buildDiagramMarkup(p).includes(`data-node="${id}"`));
+});
+
+// ── フォールバックバッジ生成（chat-error.js） ────────────────────
+
+test("buildFallbackBadgeHtml — synthesized=false なら空文字を返す", () => {
+  assert.equal(buildFallbackBadgeHtml({ synthesized: false }), "");
+  assert.equal(buildFallbackBadgeHtml({}), "");
+  assert.equal(buildFallbackBadgeHtml(), "");
+});
+
+test("buildFallbackBadgeHtml — synthesized=true ならバッジ HTML を返す", () => {
+  const html = buildFallbackBadgeHtml({ synthesized: true });
+  assert.ok(html.includes("chat-fallback-badge"), "バッジクラスが含まれない");
+  assert.ok(html.includes("システム自動補完"), "バッジラベルが含まれない");
+  assert.ok(html.includes("cfb-guide"), "ガイドが含まれない");
+});
+
+test("buildFallbackBadgeHtml — stopReason がデバッグ情報に含まれる", () => {
+  const html = buildFallbackBadgeHtml({ synthesized: true, stopReason: "MAX_TOKENS", hasToolCall: true });
+  assert.ok(html.includes("chat-debug-info"), "デバッグ情報クラスが含まれない");
+  assert.ok(html.includes("MAX_TOKENS"), "stopReason が含まれない");
+  assert.ok(html.includes("ツール呼出: あり"), "ツール呼出情報が含まれない");
+});
+
+test("buildFallbackBadgeHtml — XSS 対策: stopReason の特殊文字がエスケープされる", () => {
+  const html = buildFallbackBadgeHtml({ synthesized: true, stopReason: '<script>alert(1)</script>' });
+  assert.ok(!html.includes("<script>"), "スクリプトタグがエスケープされていない");
+  assert.ok(html.includes("&lt;script&gt;"), "エスケープ済みタグが含まれない");
 });
 
 console.log("\n✅ 全テスト完了");
