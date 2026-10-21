@@ -1,14 +1,15 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.14.0`
+`0.15.0`
 
 ## 最終更新
 2026-10-22
 
 ## 現在地
-- v0.14.0 は feature/debug-panel で実装・検証済み（typecheck 0エラー / test:unit 96/96）。ユーザー確認待ち（main 未マージ・未デプロイ）
-- 直前の v0.12.1 は main マージ・push・デプロイ済み（本番 URL: https://logi-bot.pages.dev）
+- v0.15.0 を main へマージ・push・本番デプロイ済み（デプロイ URL: https://da989f96.logi-bot.pages.dev / 本番 URL: https://logi-bot.pages.dev）
+- v0.14.1（バグ修正3件）と v0.15.0（デバッグパネル改修＋APIキー取得ガイド）を同一ブランチで実装・マージ済み。作業ブランチは削除済み
+- v0.15.0 のブラウザ実機確認はユーザー未実施（デバッグパネルの最小化・再展開、設定モーダルのキー取得ガイド表示）
 - オーナーモードの AI は環境変数 `AI_PROVIDER` / `AI_MODEL` / `AI_API_KEY` で切り替え（コード修正不要）。詳細は docs/specs/api.md「オーナーモードの AI 設定」
 - Gemini の既定モデルは `gemini-3.8-flash`（実在はこちらで未検証。404 の場合は `AI_MODEL` で上書きする）
 - typecheck 0エラー / test:unit 84/84 全通過（実 API を使う検証は未実施 = Level 2）
@@ -21,6 +22,24 @@
   （`git add` はファイル名を個別指定すること）
 
 ## 完了したこと
+
+### v0.14.1 — 不具合修正3件
+- `functions/_lib/gemini.ts` — `max_output_tokens` を `forceTool ? 2048 : 1024` → **8192 固定**。
+  Gemini 2.5 Flash 系の thinking モデルが内部思考でトークンを使い切り、finishReason=MAX_TOKENS で本文ゼロ（empty_reply）になる問題を解消
+- `public/js/session-app.js` — `sendChat()` の catch で `lastApiDebug = { error, status, code, message }` を保存し `refreshDebugPanel()` を呼ぶ。
+  `refreshDebugPanel()` にエラー表示パスを追加（エラー時も「まだ API 呼び出しがありません」のままにならない）
+- `public/css/app.css` — `.debug-value.error` 追加
+
+### v0.15.0 — デバッグパネル改修・APIキー取得ガイド
+- **✕ が効かなかった真因**: `.debug-panel { display: flex }` が UA スタイルの `[hidden] { display: none }` に勝つため、
+  `hidden = true` をセットしても消えなかった。class ベース制御に全面変更して解消
+- `public/session.html` — ヘッダーに `−`(最小化) / `✕`(閉じる) の2ボタン。バッジ表記を「🐞 Debug」に
+- `public/js/session-app.js` — `setDebugOpen(open)` / `isDebugOpen()` を追加。
+  ✕・−・ヘッダークリック・Escape のいずれでも最小化バッジに折りたたみ、バッジクリックで再展開
+- `public/css/app.css` — `.debug-panel.is-open { display: flex }` / `.debug-toggle-btn.is-collapsed { display: none }`。
+  `.debug-ctl-btn` に `pointer-events: auto`
+- `public/js/settings.js` — BYOK の API キー欄直下に Gemini キー取得手順を `<details>` で折りたたみ追加（Google AI Studio へのリンク付き）
+- `public/css/app.css` — `.keyguide` 系スタイル追加
 
 ### フェーズ 0〜7a（v0.7.1まで）
 （上記 STATUS.md 履歴参照）
