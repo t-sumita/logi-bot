@@ -60,7 +60,9 @@ export async function callGeminiApi(
   }
 
   const data = (await res.json()) as {
+    promptFeedback?: { blockReason?: string };
     candidates?: Array<{
+      finishReason?: string;
       content?: {
         parts?: Array<
           | { text?: string }
@@ -85,5 +87,6 @@ export async function callGeminiApi(
     }
   }
 
-  return { reply: reply.trim(), extracted };
+  const stopReason = data.candidates?.[0]?.finishReason ?? data.promptFeedback?.blockReason;
+  return { reply: reply.trim(), extracted, stopReason };
 }

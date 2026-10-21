@@ -19,6 +19,8 @@ export interface ClaudeRequest {
 export interface ClaudeResponse {
   reply: string;
   extracted?: Partial<SessionParts>;
+  /** 終了理由（空応答の診断用。MAX_TOKENS / SAFETY / max_tokens など） */
+  stopReason?: string;
 }
 
 // ── 本番 API 呼び出し ────────────────────────────────────────────
@@ -53,7 +55,7 @@ export async function callClaudeApi(
     else if (block.type === "tool_use" && block.name === "update_session_parts")
       extracted = block.input as Partial<SessionParts>;
   }
-  return { reply: reply.trim(), extracted };
+  return { reply: reply.trim(), extracted, stopReason: response.stop_reason ?? undefined };
 }
 
 // ── MOCK レスポンス ───────────────────────────────────────────────

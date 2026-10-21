@@ -14,6 +14,69 @@ import { buildRobotDiagram } from "../public/js/mermaid-builder.js";
 import { buildDiagramMarkup } from "../public/js/html-diagram.js";
 import { classifyNode, getNodeText, setNodeText, addDetail, removeDetail } from "../public/js/node-edit.js";
 import { resolveOwnerLlm, DEFAULT_MODELS } from "../functions/_lib/ai-config.ts";
+import { resolveReply, dropEmptyTurns, EXTRACTED_ONLY_REPLY } from "../functions/_lib/reply-guard.ts";
+import { normalizeReply, describeApiError, EMPTY_REPLY_MESSAGE } from "../public/js/chat-error.js";
+
+// ── 空応答ガード（サーバー）────────────────────────────────────────
+
+test("resolveReply — 本文があればそのまま返す", () => {
+  assert.deepEqual(resolveReply("  こんにちは ", undefined), { ok: true, reply: "こんにちは", synthesized: false });
+});
+
+test("resolveReply — 本文が空でも抽出があれば定型文で補う", () => {
+  const r = resolveReply("", { core: { reality: "a", ideal: "", proposal: "" } }, "STOP");
+  assert.deepEqual(r, { ok: true, reply: EXTRACTED_ONLY_REPLY, synthesized: true });
+});
+
+test("resolveReply — 本文も抽出も空なら empty_reply（終了理由つき）", () => {
+  const r = resolveReply("   ", undefined, "MAX_TOKENS");
+  assert.equal(r.ok, false);
+  assert.equal(r.code, "empty_reply");
+  assert.equal(r.status, 502);
+  assert.match(r.message, /終了理由: MAX_TOKENS/);
+});
+
+test("resolveReply — 抽出が空オブジェクトだけでも空応答扱い", () => {
+  assert.equal(resolveReply("", {}).ok, false);
+});
+
+test("dropEmptyTurns — 本文が空のターンだけを除く", () => {
+  const h = [
+    { role: "user", content: "a" },
+    { role: "assistant", content: "" },
+    { role: "assistant", content: "  " },
+    { role: "user", content: "b" },
+  ];
+  assert.deepEqual(dropEmptyTurns(h).map((x) => x.content), ["a", "b"]);
+});
+
+// ── 空吹き出し防止・エラー文言（フロント）──────────────────────────
+
+test("normalizeReply — 空・空白・非文字列は代替文言になる", () => {
+  for (const v of ["", "  \n", undefined, null, 5]) {
+    assert.deepEqual(normalizeReply(v), { text: EMPTY_REPLY_MESSAGE, empty: true });
+  }
+  assert.deepEqual(normalizeReply(" ok "), { text: "ok", empty: false });
+});
+
+test("describeApiError — 原因別に分類される", () => {
+  const mk = (message, code, status) => Object.assign(new Error(message), { code, status });
+  assert.match(describeApiError(mk("fetch failed", "network_error")), /^通信エラー/);
+  assert.match(describeApiError(mk("x", "parse_error")), /^応答の解析に失敗/);
+  assert.match(describeApiError(mk("パスコードが正しくありません", "auth_failed", 401)), /^認証エラー/);
+  assert.match(describeApiError(mk("Gemini API error 429: RESOURCE_EXHAUSTED", "upstream_error", 502)), /^レートリミット/);
+  assert.match(describeApiError(mk("Gemini API error 404: NOT_FOUND", "upstream_error", 502)), /^モデルエラー/);
+  assert.match(describeApiError(mk("OpenAI API error 401", "upstream_error", 502)), /^APIキーエラー/);
+  assert.match(describeApiError(mk("boom", "upstream_error", 502)), /^AI API エラー: boom/);
+  assert.match(describeApiError(mk("HTTP 503", "http_error", 503)), /^サーバーエラー \(HTTP 503\)/);
+  assert.equal(describeApiError(mk("AI から空の応答が返りました。もう一度送信してください。", "empty_reply", 502)),
+    "AI から空の応答が返りました。もう一度送信してください。");
+});
+
+test("describeApiError — 長い詳細は切り詰められる", () => {
+  const msg = describeApiError(Object.assign(new Error("x".repeat(1000)), { code: "upstream_error", status: 502 }));
+  assert.ok(msg.length < 400);
+});
 
 // ── resolveOwnerLlm（オーナーモードの環境変数解決）─────────────────
 

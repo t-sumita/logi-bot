@@ -67,6 +67,7 @@ export async function callOpenAiApi(
 
   const data = (await res.json()) as {
     choices?: Array<{
+      finish_reason?: string;
       message?: {
         content?: string | null;
         tool_calls?: Array<{
@@ -90,5 +91,5 @@ export async function callOpenAiApi(
     }
   }
 
-  return { reply: reply.trim(), extracted };
+  return { reply: reply.trim(), extracted, stopReason: data.choices?.[0]?.finish_reason };
 }

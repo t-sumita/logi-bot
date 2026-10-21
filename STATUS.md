@@ -1,13 +1,14 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.12.1`
+`0.12.2`
 
 ## 最終更新
 2026-10-21
 
 ## 現在地
-- v0.12.1 main マージ・GitHub push・Cloudflare Pages デプロイ済み（本番 URL: https://logi-bot.pages.dev）
+- v0.12.2 は feature/empty-reply-guard で実装・検証済み（typecheck / test:unit 92/92）。ユーザー確認待ち（main 未マージ・未デプロイ）
+- 直前の v0.12.1 は main マージ・push・デプロイ済み（本番 URL: https://logi-bot.pages.dev）
 - オーナーモードの AI は環境変数 `AI_PROVIDER` / `AI_MODEL` / `AI_API_KEY` で切り替え（コード修正不要）。詳細は docs/specs/api.md「オーナーモードの AI 設定」
 - Gemini の既定モデルは `gemini-3.8-flash`（実在はこちらで未検証。404 の場合は `AI_MODEL` で上書きする）
 - typecheck 0エラー / test:unit 84/84 全通過（実 API を使う検証は未実施 = Level 2）
@@ -358,6 +359,22 @@
 - UI: 設定モーダルのオーナーモード説明とバッジのツールチップから「Gemini」固定の表記を除去／BYOK モデル欄の例を `gemini-3.8-flash` に更新
 - `.dev.vars.example` と `docs/specs/api.md`（「オーナーモードの AI 設定」節）を更新／`resolveOwnerLlm` の単体テスト 7 件を追加（`.ts` を Node の型除去機能で直接 import）
 - Cloudflare 側の操作例: 環境変数 `AI_PROVIDER` / `AI_MODEL` / `AI_API_KEY` を Pages の設定に追加し、再デプロイすると有効になる
+
+## v0.12.2（2026-10-21 — 空の吹き出し対策・修正/割り込み発言の許容）
+
+- **症状**: 修正依頼や連続入力で AI の吹き出しが中身のない枠になる
+- **推定原因**（本番ログは未確認。コードからの推定）:
+  1. ツール呼び出し（`update_session_parts`）だけが返り本文が空 → `reply=""` がそのまま 200 で返り、空の吹き出しになる。
+     プロンプト規則3「必ずツールで返す」と、修正依頼のように「更新だけで足りる」入力が重なると起きやすい
+  2. 空の assistant ターンが `history` に保存され、次のリクエストで Claude / Gemini が「空のコンテンツ」として 400 を返す（連続入力で連鎖）
+  3. Gemini 2.5 系は思考トークンが `max_output_tokens`(1024) を消費し、`finishReason=MAX_TOKENS` で本文が空になることがある（要確認）
+  4. 安全フィルタ（SAFETY / blockReason）や上流エラー（429・404）は、従来は画面に「HTTP 502」程度しか出なかった
+- **サーバー**: 新規 `functions/_lib/reply-guard.ts`。本文が空でも抽出があれば定型文で補完、両方空なら 502 `empty_reply`（終了理由つき・履歴に保存しない）。
+  LLM へ送る履歴から空ターンを除去。`console.error/warn` で Functions ログに `empty_reply` / `upstream_error` を出力。各アダプタが `stopReason` を返す
+- **プロンプト**: 規則7「ツール呼び出し時も本文を必ず返す」と「修正・割り込み発言の扱い」節を追加（修正・変更・確認の要望では無理に先へ進めず、更新・回答してから戻る）。一括抽出プロンプトにも同旨を追加
+- **フロント**: 新規 `public/js/chat-error.js`。`reply` が空なら「応答を取得できませんでした。再度お試しください。」を表示（過去の履歴の空ターンも同様）。
+  `api.js` が通信失敗・非 JSON 応答・エラーコードを判別。チャット上にレートリミット／認証／モデル不明／APIキー／通信／解析の原因別メッセージを表示し、コンソールにも出力。失敗時は入力欄に送信文を戻す
+- 単体テスト 15 件追加（計 92 件）
 
 ## 今後の検討事項（アイデア・ロードマップ）
 

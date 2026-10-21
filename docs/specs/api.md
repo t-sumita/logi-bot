@@ -85,7 +85,13 @@ Content-Type: application/json
 | 422 | `invalid_step` | 指定ステップがステートマシン上不正 |
 | 500 | `server_misconfigured` | オーナーモードで API キー未設定（`AI_API_KEY` またはプロバイダ別キー）／ `AI_PROVIDER` が不正 |
 | 500 | `internal_error` | 想定外の例外 |
-| 502 | `upstream_error` | Claude API エラー |
+| 502 | `upstream_error` | LLM API エラー（レートリミット 429・モデル不明 404・キー不正 401/403 など。メッセージに上流の内容を含む） |
+| 502 | `empty_reply` | LLM の本文が空で、ツール抽出結果もない（メッセージに終了理由を含む。履歴には保存しない） |
+
+空応答の扱い（`functions/_lib/reply-guard.ts`）:
+- 本文が空でも抽出結果がある場合は、定型文「内容を反映しました。…」で補って正常応答にする
+- 履歴に残った空ターンは LLM へ送る前に除去する（空の assistant ターンは Claude / Gemini が 400 で拒否するため）
+- クライアントは `reply` が空・`session` 欠落・JSON 不正でも空の吹き出しを出さず、原因別のメッセージを表示する（`public/js/chat-error.js`）
 
 ---
 

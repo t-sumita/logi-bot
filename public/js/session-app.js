@@ -2,6 +2,7 @@
 
 import { loadSession, saveSession, createNewSession, consumePendingMessage } from "./storage.js";
 import { chat as apiChat, advance as apiAdvance } from "./api.js";
+import { normalizeReply, describeApiError } from "./chat-error.js";
 import { openZoomModal } from "./mermaid-renderer.js";
 import { copyMarkdown, downloadMarkdown, downloadStatusMd } from "./export.js";
 import { buildRobotDiagram } from "./mermaid-builder.js";
@@ -496,7 +497,7 @@ function addMessage(role, content) {
   div.className = `chat-message ${role}`;
   const bubble = document.createElement("div");
   bubble.className = "chat-bubble";
-  bubble.innerHTML = formatMessage(content);
+  bubble.innerHTML = formatMessage(role === "assistant" ? normalizeReply(content).text : content);
   div.appendChild(bubble);
   el.chatMessages.appendChild(div);
   el.chatMessages.scrollTop = el.chatMessages.scrollHeight;
@@ -551,9 +552,14 @@ async function sendChat() {
   try {
     const res = await apiChat(session, message);
     typingEl.remove();
+    if (!res?.session) {
+      throw Object.assign(new Error("応答に session が含まれていません"), { code: "parse_error" });
+    }
     session = res.session;
     saveSession(session);
-    addMessage("assistant", res.reply);
+    const reply = normalizeReply(res.reply);
+    if (reply.empty) console.warn("[logi-bot] AI の返答が空でした", res);
+    addMessage("assistant", reply.text);
 
     // ファストトラック後: 最初の未完ステップへ自動遷移済み
     if (res.fast_track && res.first_incomplete_step) {
@@ -563,7 +569,9 @@ async function sendChat() {
     renderAll();
   } catch (e) {
     typingEl.remove();
-    addMessage("assistant", `❌ エラーが発生しました: ${escHtml(e.message)}`);
+    console.error("[logi-bot] チャット送信に失敗", e);
+    addMessage("assistant", `❌ ${describeApiError(e)}`);
+    if (!el.chatInput.value) el.chatInput.value = message;
   } finally {
     setLoading(false);
   }
@@ -597,7 +605,8 @@ async function doAdvance(event) {
     if (data && !data.ok && data.error?.code === "guard_failed") {
       showGuardNotice(data.missing_fields ?? []);
     } else {
-      addMessage("assistant", `❌ エラー: ${escHtml(e.message)}`);
+      console.error("[logi-bot] ステップ進行に失敗", e);
+      addMessage("assistant", `❌ ${describeApiError(e)}`);
     }
   } finally {
     setLoading(false);

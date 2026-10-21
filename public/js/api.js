@@ -3,15 +3,28 @@
 import { getModeHeaders } from "./settings.js";
 
 async function request(path, body, extraHeaders = {}) {
-  const res = await fetch(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...getModeHeaders(), ...extraHeaders },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json().catch(() => ({}));
+  let res;
+  try {
+    res = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getModeHeaders(), ...extraHeaders },
+      body: JSON.stringify(body),
+    });
+  } catch (e) {
+    console.error(`[logi-bot] ${path} 通信失敗`, e);
+    throw Object.assign(new Error(e?.message ?? "fetch failed"), { code: "network_error" });
+  }
+  let parseFailed = false;
+  const data = await res.json().catch(() => { parseFailed = true; return {}; });
   if (!res.ok) {
-    const err = Object.assign(new Error(data?.error?.message ?? `HTTP ${res.status}`), { data, status: res.status });
-    throw err;
+    console.error(`[logi-bot] ${path} HTTP ${res.status}`, data);
+    throw Object.assign(new Error(data?.error?.message ?? `HTTP ${res.status}`), {
+      data, status: res.status, code: data?.error?.code ?? "http_error",
+    });
+  }
+  if (parseFailed) {
+    console.error(`[logi-bot] ${path} 応答が JSON ではありません (HTTP ${res.status})`);
+    throw Object.assign(new Error("応答が JSON ではありません"), { status: res.status, code: "parse_error" });
   }
   return data;
 }

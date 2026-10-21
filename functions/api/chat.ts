@@ -15,6 +15,7 @@ import { callClaude } from "../_lib/claude.js";
 import type { ClaudeRequest, ClaudeResponse } from "../_lib/claude.js";
 import { callLLM } from "../_lib/llm.js";
 import { resolveOwnerLlm, SUPPORTED_PROVIDERS } from "../_lib/ai-config.js";
+import { resolveReply, dropEmptyTurns } from "../_lib/reply-guard.js";
 import { buildBulkDiagrams } from "../_lib/mermaid.js";
 
 // ── 認証解決 ─────────────────────────────────────────────────────
@@ -114,14 +115,23 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   try {
     const result = await invokeLLM(auth, context.env, {
       systemPrompt,
-      history: body.session.history,
+      history: dropEmptyTurns(body.session.history),
       message: body.message,
       forceTool: isBulk,
     });
-    reply = result.reply;
     extracted = result.extracted as typeof extracted;
+    const resolved = resolveReply(result.reply, extracted, result.stopReason);
+    if (!resolved.ok) {
+      console.error(`[chat] empty_reply step=${body.step} bulk=${isBulk} stop=${result.stopReason ?? "-"} extracted=${extracted ? "yes" : "no"}`);
+      return err(resolved.status, resolved.code, resolved.message);
+    }
+    if (resolved.synthesized) {
+      console.warn(`[chat] 本文が空のため定型文で補完 step=${body.step} stop=${result.stopReason ?? "-"}`);
+    }
+    reply = resolved.reply;
   } catch (e) {
     const msg = e instanceof Error ? e.message : "不明なエラー";
+    console.error(`[chat] upstream_error step=${body.step}: ${msg}`);
     return err(502, "upstream_error", msg);
   }
 
