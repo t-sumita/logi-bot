@@ -1,14 +1,16 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.12.0`
+`0.12.1`
 
 ## 最終更新
 2026-10-21
 
 ## 現在地
-- v0.12.0 main マージ・GitHub push・Cloudflare Pages デプロイ済み（本番 URL: https://logi-bot.pages.dev）
-- typecheck 0エラー / test:unit 77/77 全通過
+- v0.12.1 main マージ・GitHub push・Cloudflare Pages デプロイ済み（本番 URL: https://logi-bot.pages.dev）
+- オーナーモードの AI は環境変数 `AI_PROVIDER` / `AI_MODEL` / `AI_API_KEY` で切り替え（コード修正不要）。詳細は docs/specs/api.md「オーナーモードの AI 設定」
+- Gemini の既定モデルは `gemini-3.8-flash`（実在はこちらで未検証。404 の場合は `AI_MODEL` で上書きする）
+- typecheck 0エラー / test:unit 84/84 全通過（実 API を使う検証は未実施 = Level 2）
 - 作業ブランチなし（main のみ）。未コミット変更は無し（この STATUS.md 更新を除く）
 - 注意: Pages は git 連携なし。main への push だけでは本番に反映されない。
   デプロイは `npx wrangler pages deploy public --project-name=logi-bot --branch=main --commit-dirty=true`
@@ -343,6 +345,20 @@
   `docs/specs/api.md` のエラー表とモデル設定を更新／設定モーダルとバッジの説明文を Claude → Gemini に修正
 - 注意: Claude は BYOK モードでのみ利用可能（サーバー側の ANTHROPIC_API_KEY はもう参照しない）
 
+## v0.12.1（2026-10-21 — AI プロバイダ・モデルを環境変数化）
+
+- **背景**: プロバイダやモデルがコードに固定されていると、切替のたびに修正・再デプロイが要るため
+- **新規 `functions/_lib/ai-config.ts`**: 実行時 import なしの解決モジュール。`DEFAULT_MODELS`（単一の定義元）と `resolveOwnerLlm(env)`
+  - `AI_PROVIDER`（gemini | anthropic | openai、既定 gemini。大文字小文字・空白は無視、不正値は 500）
+  - `AI_MODEL`（既定: gemini=`gemini-3.8-flash` / anthropic=`claude-sonnet-4-6` / openai=`gpt-4o-mini`）
+  - キー: `AI_API_KEY` を優先、無ければ `GEMINI_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`（後方互換。既存の Cloudflare 設定のままでも動く）
+- **`chat.ts`**: owner 分岐を `resolveOwnerLlm` に置換。BYOK のプロバイダ検証も `SUPPORTED_PROVIDERS` を使用
+- **`llm.ts` / `claude.ts`**: `DEFAULT_MODELS` を `ai-config.ts` に一本化。`callClaudeApi` がモデルを受け取る（従来は `claude-sonnet-4-6` 固定で BYOK の X-Model が無視されていた）
+- **Gemini 既定を `gemini-3.8-flash` に変更**（404 対策。BYOK でモデル未指定の場合も同じ既定）
+- UI: 設定モーダルのオーナーモード説明とバッジのツールチップから「Gemini」固定の表記を除去／BYOK モデル欄の例を `gemini-3.8-flash` に更新
+- `.dev.vars.example` と `docs/specs/api.md`（「オーナーモードの AI 設定」節）を更新／`resolveOwnerLlm` の単体テスト 7 件を追加（`.ts` を Node の型除去機能で直接 import）
+- Cloudflare 側の操作例: 環境変数 `AI_PROVIDER` / `AI_MODEL` / `AI_API_KEY` を Pages の設定に追加し、再デプロイすると有効になる
+
 ## 今後の検討事項（アイデア・ロードマップ）
 
 実装は未着手。着手時は先に PLAN.md / `docs/specs/` へ仕様を起こすこと（SDD）。
@@ -354,7 +370,7 @@
 
 ## 次の一手
 
-v0.12.0 本番確認（要・実 API＝無料枠消費）: 合言葉モードで Gemini が応答すること、パスコード誤りで 401 になること。
+v0.12.1 本番確認（要・実 API＝無料枠消費）: 合言葉モードで `gemini-3.8-flash` が応答すること（404 の場合は Cloudflare に `AI_MODEL` を設定して再デプロイ）、パスコード誤りで 401 になること。
 v0.11.4 本番確認: info・歯車・☰ のフラット表示とホバー背景、EN／モードバッジとの縦位置、info モーダルの見出し・注記（日英）。
 
 次の大テーマ: スキルを AI 対話ロジックへ活かす設計。現状（調査結果）:

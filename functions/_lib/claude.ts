@@ -4,6 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { MessageParam } from "@anthropic-ai/sdk/resources/messages.js";
 import type { Env, ConversationTurn, SessionParts } from "./types.js";
 import { SESSION_UPDATE_TOOL } from "./prompt.js";
+import { DEFAULT_MODELS } from "./ai-config.js";
 
 // ── 公開インターフェース ──────────────────────────────────────────
 
@@ -24,6 +25,7 @@ export interface ClaudeResponse {
 
 export async function callClaudeApi(
   apiKey: string,
+  model: string,
   req: ClaudeRequest
 ): Promise<ClaudeResponse> {
   const client = new Anthropic({ apiKey });
@@ -34,7 +36,7 @@ export async function callClaudeApi(
   ];
 
   const response = await client.messages.create({
-    model: "claude-sonnet-4-6",
+    model,
     max_tokens: req.forceTool ? 2048 : 1024,
     system: req.systemPrompt,
     messages,
@@ -339,5 +341,5 @@ export async function callClaude(
   if (env.LOGI_MOCK === "1") return getMockResponse(req);
   if (!env.ANTHROPIC_API_KEY)
     throw new Error("ANTHROPIC_API_KEY が設定されていません（LOGI_MOCK=1 でモックモードを使用してください）");
-  return callClaudeApi(env.ANTHROPIC_API_KEY, req);
+  return callClaudeApi(env.ANTHROPIC_API_KEY, DEFAULT_MODELS.anthropic, req);
 }

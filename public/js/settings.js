@@ -108,7 +108,7 @@ const MODAL_HTML = `
         <input type="radio" name="logiMode" id="modeOwner" value="owner">
         <div class="mode-option-body">
           <div class="mode-option-title">🔑 オーナーモード（合言葉認証）</div>
-          <div class="mode-option-desc">サーバーの GEMINI_API_KEY（Google Gemini）を使ってAIを呼び出します。</div>
+          <div class="mode-option-desc">サーバーに設定されたAI（プロバイダ・モデル・APIキー）を使って呼び出します。</div>
           <div class="mode-option-form" id="ownerForm">
             <input class="form-input form-input-sm" type="password" id="ownerPasscode"
               placeholder="オーナーパスコードを入力" autocomplete="current-password">
@@ -134,7 +134,7 @@ const MODAL_HTML = `
             <div class="byok-row">
               <label class="byok-label" for="byokModel">モデル（省略可）</label>
               <input class="form-input form-input-sm" type="text" id="byokModel"
-                placeholder="例: claude-sonnet-4-6 / gemini-2.5-flash / gpt-4o-mini">
+                placeholder="例: claude-sonnet-4-6 / gemini-3.8-flash / gpt-4o-mini">
             </div>
             <div class="byok-row">
               <label class="byok-label" for="byokApiKey">API キー</label>

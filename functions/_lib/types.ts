@@ -179,8 +179,13 @@ export type AppMode = "mock" | "owner" | "byok";
 // ── Cloudflare 環境変数 ───────────────────────────────────────────
 
 export interface Env {
+  /** オーナーモードの AI 設定（ai-config.ts 参照）。AI_API_KEY が優先、無ければ下の従来キー */
+  AI_PROVIDER?: string;
+  AI_MODEL?: string;
+  AI_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;
   GEMINI_API_KEY?: string;
+  OPENAI_API_KEY?: string;
   LOGI_MOCK?: string;
   OWNER_PASSCODE?: string;
 }

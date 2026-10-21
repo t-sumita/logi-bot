@@ -83,7 +83,7 @@ Content-Type: application/json
 |---|---|---|
 | 400 | `invalid_input` | JSON 不正 / 必須フィールド欠落 |
 | 422 | `invalid_step` | 指定ステップがステートマシン上不正 |
-| 500 | `server_misconfigured` | オーナーモードで `GEMINI_API_KEY` 未設定 |
+| 500 | `server_misconfigured` | オーナーモードで API キー未設定（`AI_API_KEY` またはプロバイダ別キー）／ `AI_PROVIDER` が不正 |
 | 500 | `internal_error` | 想定外の例外 |
 | 502 | `upstream_error` | Claude API エラー |
 
@@ -215,10 +215,32 @@ Claude API レスポンスからこのタグを正規表現で抽出し、セッ
 
 | 設定 | 値 |
 |---|---|
-| モデル | オーナーモード: Gemini `gemini-2.5-flash`（`llm.ts` の `DEFAULT_MODELS.gemini`）／ BYOK: 利用者指定（既定は `claude-sonnet-4-6`） |
+| モデル | オーナーモード: 環境変数で指定（下記「オーナーモードの AI 設定」）／ BYOK: 利用者指定（空なら `DEFAULT_MODELS[provider]`） |
 | max_tokens | 1024（通常の応答）/ 2048（合体ロボ図生成時） |
 | temperature | 0.7 |
 | システムプロンプト | 毎リクエスト動的構築 |
+
+### オーナーモードの AI 設定（環境変数）
+
+プロバイダ・モデル・キーは環境変数で決まり、切り替えにコード修正は不要。解決ロジックは `functions/_lib/ai-config.ts` の `resolveOwnerLlm`。
+
+| 変数 | 値 | 既定 |
+|---|---|---|
+| `AI_PROVIDER` | `gemini` / `anthropic` / `openai`（大文字小文字・前後空白は無視） | `gemini` |
+| `AI_MODEL` | モデル名（任意の文字列） | プロバイダ別の既定（下表） |
+| `AI_API_KEY` | API キー（プロバイダ共通・最優先） | なし |
+| `GEMINI_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | `AI_API_KEY` 未設定時のフォールバック（後方互換）。`AI_PROVIDER` に対応する 1 つだけ参照 | なし |
+| `OWNER_PASSCODE` | 合言葉（必須） | なし |
+
+| プロバイダ | 既定モデル（`DEFAULT_MODELS`） |
+|---|---|
+| gemini | `gemini-3.8-flash` |
+| anthropic | `claude-sonnet-4-6` |
+| openai | `gpt-4o-mini` |
+
+- `DEFAULT_MODELS` は `ai-config.ts` を単一の定義元とし、BYOK でモデル未指定のときも同じ値を使う。
+- Claude 呼び出しも指定モデルを使用する（v0.12.1 以前は BYOK の X-Model が無視されていた）。
+- 環境変数の変更は新しいデプロイから有効になる。
 
 ---
 

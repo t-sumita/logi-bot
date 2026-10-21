@@ -13,7 +13,8 @@ import { isBulkInput, mergeExtracted, firstIncompleteStep } from "../_lib/sessio
 import { buildSystemPrompt, buildBulkSystemPrompt } from "../_lib/prompt.js";
 import { callClaude } from "../_lib/claude.js";
 import type { ClaudeRequest, ClaudeResponse } from "../_lib/claude.js";
-import { callLLM, DEFAULT_MODELS } from "../_lib/llm.js";
+import { callLLM } from "../_lib/llm.js";
+import { resolveOwnerLlm, SUPPORTED_PROVIDERS } from "../_lib/ai-config.js";
 import { buildBulkDiagrams } from "../_lib/mermaid.js";
 
 // ── 認証解決 ─────────────────────────────────────────────────────
@@ -37,17 +38,18 @@ function resolveAuth(request: Request, env: Env): AuthOk | AuthError {
     if (!env.OWNER_PASSCODE || passcode !== env.OWNER_PASSCODE) {
       return { type: "error", status: 401, code: "auth_failed", message: "パスコードが正しくありません" };
     }
-    if (!env.GEMINI_API_KEY) {
-      return { type: "error", status: 500, code: "server_misconfigured", message: "サーバーに GEMINI_API_KEY が設定されていません" };
+    const resolved = resolveOwnerLlm(env);
+    if (!resolved.ok) {
+      return { type: "error", status: resolved.status, code: resolved.code, message: resolved.message };
     }
-    return { type: "llm", provider: "gemini", model: DEFAULT_MODELS.gemini, apiKey: env.GEMINI_API_KEY };
+    return { type: "llm", provider: resolved.provider, model: resolved.model, apiKey: resolved.apiKey };
   }
 
   if (mode === "byok") {
     const provider = request.headers.get("X-Provider") as LLMProvider | null;
     const model    = request.headers.get("X-Model") ?? "";
     const apiKey   = request.headers.get("X-Api-Key") ?? "";
-    if (!provider || !["anthropic","gemini","openai"].includes(provider)) {
+    if (!provider || !SUPPORTED_PROVIDERS.includes(provider)) {
       return { type: "error", status: 400, code: "invalid_provider", message: "X-Provider が不正です（anthropic / gemini / openai）" };
     }
     if (!apiKey) {

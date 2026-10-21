@@ -5,6 +5,7 @@ import type { ClaudeRequest, ClaudeResponse } from "./claude.js";
 import { callClaudeApi } from "./claude.js";
 import { callGeminiApi } from "./gemini.js";
 import { callOpenAiApi } from "./openai.js";
+import { DEFAULT_MODELS } from "./ai-config.js";
 
 /** プロバイダ・モデル・APIキーをまとめた設定 */
 export interface LLMConfig {
@@ -13,12 +14,7 @@ export interface LLMConfig {
   apiKey: string;
 }
 
-/** デフォルトモデル（BYOK モードで省略されたとき使用） */
-export const DEFAULT_MODELS: Record<LLMProvider, string> = {
-  anthropic: "claude-sonnet-4-6",
-  gemini:    "gemini-2.5-flash",
-  openai:    "gpt-4o-mini",
-};
+export { DEFAULT_MODELS };
 
 /**
  * プロバイダに応じて対応 LLM API を呼び出し、
@@ -31,7 +27,7 @@ export async function callLLM(
   const model = config.model || DEFAULT_MODELS[config.provider];
   switch (config.provider) {
     case "anthropic":
-      return callClaudeApi(config.apiKey, req);
+      return callClaudeApi(config.apiKey, model, req);
     case "gemini":
       return callGeminiApi(config.apiKey, model, req);
     case "openai":

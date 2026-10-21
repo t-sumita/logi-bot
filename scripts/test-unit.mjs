@@ -13,6 +13,49 @@ import assert from "node:assert/strict";
 import { buildRobotDiagram } from "../public/js/mermaid-builder.js";
 import { buildDiagramMarkup } from "../public/js/html-diagram.js";
 import { classifyNode, getNodeText, setNodeText, addDetail, removeDetail } from "../public/js/node-edit.js";
+import { resolveOwnerLlm, DEFAULT_MODELS } from "../functions/_lib/ai-config.ts";
+
+// ── resolveOwnerLlm（オーナーモードの環境変数解決）─────────────────
+
+test("resolveOwnerLlm — 既定は gemini / gemini-3.8-flash（従来キー）", () => {
+  const r = resolveOwnerLlm({ GEMINI_API_KEY: "g-key" });
+  assert.deepEqual(r, { ok: true, provider: "gemini", model: "gemini-3.8-flash", apiKey: "g-key" });
+});
+
+test("resolveOwnerLlm — AI_API_KEY が従来キーより優先される", () => {
+  const r = resolveOwnerLlm({ AI_API_KEY: "generic", GEMINI_API_KEY: "legacy" });
+  assert.equal(r.ok && r.apiKey, "generic");
+});
+
+test("resolveOwnerLlm — AI_PROVIDER / AI_MODEL で切り替え（大文字・空白は無視）", () => {
+  const r = resolveOwnerLlm({ AI_PROVIDER: " OpenAI ", AI_MODEL: "gpt-x", AI_API_KEY: "k" });
+  assert.deepEqual(r, { ok: true, provider: "openai", model: "gpt-x", apiKey: "k" });
+});
+
+test("resolveOwnerLlm — AI_MODEL 未指定はプロバイダ別の既定モデル", () => {
+  const r = resolveOwnerLlm({ AI_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "a" });
+  assert.equal(r.ok && r.model, DEFAULT_MODELS.anthropic);
+});
+
+test("resolveOwnerLlm — プロバイダに対応しない従来キーは使わない", () => {
+  const r = resolveOwnerLlm({ AI_PROVIDER: "openai", GEMINI_API_KEY: "g" });
+  assert.equal(r.ok, false);
+  assert.equal(r.message, "サーバーに OPENAI_API_KEY が設定されていません");
+});
+
+test("resolveOwnerLlm — キー未設定は server_misconfigured", () => {
+  const r = resolveOwnerLlm({});
+  assert.equal(r.ok, false);
+  assert.equal(r.status, 500);
+  assert.equal(r.code, "server_misconfigured");
+  assert.equal(r.message, "サーバーに GEMINI_API_KEY が設定されていません");
+});
+
+test("resolveOwnerLlm — 不正な AI_PROVIDER はエラー", () => {
+  const r = resolveOwnerLlm({ AI_PROVIDER: "foo", AI_API_KEY: "k" });
+  assert.equal(r.ok, false);
+  assert.match(r.message, /AI_PROVIDER が不正です: foo/);
+});
 
 // ── session.ts の純粋ロジックをインライン再現 ─────────────────────
 
