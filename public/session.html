@@ -458,6 +458,18 @@
     });
   </script>
 
+  <!-- ── Debug Panel ── -->
+  <button class="debug-toggle-btn" id="debugToggleBtn" title="APIデバッグパネルを表示/非表示" aria-label="デバッグパネル">🐞</button>
+  <div class="debug-panel" id="debugPanel" hidden aria-label="デバッグパネル">
+    <div class="debug-panel-header">
+      <span>🐞 Debug — 直近 API レスポンス</span>
+      <button class="debug-close-btn" id="debugCloseBtn" aria-label="デバッグパネルを閉じる">✕</button>
+    </div>
+    <div class="debug-panel-body" id="debugPanelBody">
+      <p class="debug-empty">まだ API 呼び出しがありません。</p>
+    </div>
+  </div>
+
   <!-- Subutomo バッジ（左下フローティング） -->
   <script>
     window.SUBUTOMO_BADGE_CONFIG = {

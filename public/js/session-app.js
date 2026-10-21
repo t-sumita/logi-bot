@@ -97,6 +97,8 @@ let currentDiagramSource = "";
 let undoSnapshot = null;
 /** 固定レイアウト図の表示倍率（ズームコントローラー用） */
 let diagramScale = 1;
+/** デバッグパネル用: 直近の API レスポンスのメタ情報 */
+let lastApiDebug = null;
 
 // ── DOM refs ─────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
@@ -141,6 +143,10 @@ const el = {
   nodeEditDelete:   $("nodeEditDelete"),
   nodeEditClose:    $("nodeEditClose"),
   diagramTitle:     $("diagramTitle"),
+  debugToggleBtn:   $("debugToggleBtn"),
+  debugPanel:       $("debugPanel"),
+  debugPanelBody:   $("debugPanelBody"),
+  debugCloseBtn:    $("debugCloseBtn"),
 };
 
 // ── 初期化 ────────────────────────────────────────────────────────
@@ -425,6 +431,53 @@ function closeNodeEditor() {
   editingNodeId = null;
 }
 
+// ── デバッグパネル ────────────────────────────────────────────────
+
+/** 応答パターンラベルとスタイルクラスを導出する */
+function derivePattern(res) {
+  const hasText = !!(res?.reply && String(res.reply).trim());
+  const hasTool = !!res?.has_tool_call;
+  if (hasText && hasTool)  return { label: "[テキスト＋ツール]",    cls: "ok" };
+  if (hasText)             return { label: "[テキストのみ]",        cls: "ok" };
+  if (hasTool)             return { label: "[ツール呼び出しのみ]",  cls: "warn" };
+  return                          { label: "[フォールバック]",      cls: "error" };
+}
+
+/** デバッグパネルの表示内容を最新の API レスポンスで更新する */
+function refreshDebugPanel() {
+  if (!el.debugPanelBody) return;
+  if (!lastApiDebug) {
+    el.debugPanelBody.innerHTML = '<p class="debug-empty">まだ API 呼び出しがありません。</p>';
+    return;
+  }
+  const res = lastApiDebug;
+  const pattern   = derivePattern(res);
+  const stopReason = escHtml(res.stop_reason || "—");
+  const hasTool    = !!res.has_tool_call;
+  const synthVal   = res.synthesized ? "true" : "false";
+  const toolName   = hasTool ? "update_session_parts" : "—";
+
+  const rawReply     = escHtml(res.reply || "（空）");
+  const rawExtracted = escHtml(
+    res.extracted ? JSON.stringify(res.extracted, null, 2) : "（なし）"
+  );
+
+  el.debugPanelBody.innerHTML =
+    `<div class="debug-row"><span class="debug-label">応答パターン</span>` +
+      `<span class="debug-value ${pattern.cls}">${escHtml(pattern.label)}</span></div>` +
+    `<div class="debug-row"><span class="debug-label">終了理由</span>` +
+      `<span class="debug-value">${stopReason}</span></div>` +
+    `<div class="debug-row"><span class="debug-label">ツール呼出</span>` +
+      `<span class="debug-value ${hasTool ? "ok" : ""}">${hasTool ? "true" : "false"}` +
+      `${hasTool ? " / " + escHtml(toolName) : ""}</span></div>` +
+    `<div class="debug-row"><span class="debug-label">synthesized</span>` +
+      `<span class="debug-value ${res.synthesized ? "warn" : ""}">${synthVal}</span></div>` +
+    `<div class="debug-raw">` +
+      `<details><summary>応答テキスト</summary><pre>${rawReply}</pre></details>` +
+      `<details><summary>ツール引数 (extracted)</summary><pre>${rawExtracted}</pre></details>` +
+    `</div>`;
+}
+
 // ── ロボ図タイトルのインライン編集 ────────────────────────────────
 
 /** 図パネルのタイトルをクリックしてインライン編集する */
@@ -610,10 +663,18 @@ async function sendChat() {
     }
     session = res.session;
     saveSession(session);
+
+    // デバッグ情報を保存してパネルを更新する
+    lastApiDebug = res;
+    refreshDebugPanel();
+
     const replyData = normalizeReply(res.reply);
     if (res.synthesized && replyData.empty) {
       // ツール呼び出しのみで本文なし → AI の発言に見せかけず、システム通知として表示する
-      addMessage("system", "[システム通知] AIからのテキスト応答を受信できませんでした。もう一度送信するか、画面上のボタンから次の操作を行ってください。");
+      const sysMsg = res.has_tool_call
+        ? "[システム通知] 図の各ノードを更新しました。右パネルの合体ロボ図をご確認ください。問題がなければ「次のステップへ」進めます。"
+        : "[システム通知] AIからの応答を受信できませんでした。もう一度送信してください。";
+      addMessage("system", sysMsg);
     } else {
       if (replyData.empty) console.warn("[logi-bot] AI の返答が空でした", res);
       addMessage("assistant", replyData.text);
@@ -790,7 +851,17 @@ function bindEvents() {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !el.zoomModal.hidden) el.zoomModal.hidden = true;
     if (e.key === "Escape" && !el.nodeEditModal.hidden) closeNodeEditor();
+    if (e.key === "Escape" && el.debugPanel && !el.debugPanel.hidden) el.debugPanel.hidden = true;
   });
+
+  // デバッグパネル トグル
+  el.debugToggleBtn?.addEventListener("click", () => {
+    if (!el.debugPanel) return;
+    const opening = el.debugPanel.hidden;
+    el.debugPanel.hidden = !opening;
+    if (opening) refreshDebugPanel();
+  });
+  el.debugCloseBtn?.addEventListener("click", () => { if (el.debugPanel) el.debugPanel.hidden = true; });
 }
 
 // ── Bootstrap ────────────────────────────────────────────────────
