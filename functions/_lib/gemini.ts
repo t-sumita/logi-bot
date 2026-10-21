@@ -44,7 +44,7 @@ export async function callGeminiApi(
         : { mode: "AUTO" },
     },
     generation_config: {
-      max_output_tokens: req.forceTool ? 2048 : 1024,
+      max_output_tokens: 8192,
     },
   };
 

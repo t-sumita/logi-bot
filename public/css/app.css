@@ -720,6 +720,7 @@ select.form-input { background: var(--c-bg); cursor: pointer; }
 }
 .debug-toggle-btn:hover { opacity: 1; }
 
+.debug-panel[hidden] { display: none; }
 .debug-panel {
   position: fixed;
   bottom: calc(var(--nav-h) + 46px);
@@ -757,6 +758,7 @@ select.form-input { background: var(--c-bg); cursor: pointer; }
 .debug-value { font-family: monospace; color: var(--c-text); word-break: break-all; }
 .debug-value.ok    { color: #059669; font-weight: 700; }
 .debug-value.warn  { color: #D97706; font-weight: 700; }
+.debug-value.error { color: #DC2626; font-weight: 700; }
 .debug-value.error { color: #DC2626; font-weight: 700; }
 .debug-empty { color: var(--c-text-mute); font-style: italic; margin: 0; }
 .debug-raw { margin-top: 6px; }

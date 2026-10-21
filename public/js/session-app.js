@@ -451,6 +451,18 @@ function refreshDebugPanel() {
     return;
   }
   const res = lastApiDebug;
+
+  if (res.error) {
+    el.debugPanelBody.innerHTML =
+      `<div class="debug-row"><span class="debug-label">ステータス</span>` +
+        `<span class="debug-value error">${escHtml(String(res.status || "—"))}</span></div>` +
+      `<div class="debug-row"><span class="debug-label">エラーコード</span>` +
+        `<span class="debug-value error">${escHtml(res.code || "—")}</span></div>` +
+      `<div class="debug-row"><span class="debug-label">エラー詳細</span>` +
+        `<span class="debug-value">${escHtml(res.message || "—")}</span></div>`;
+    return;
+  }
+
   const pattern   = derivePattern(res);
   const stopReason = escHtml(res.stop_reason || "—");
   const hasTool    = !!res.has_tool_call;
@@ -689,6 +701,8 @@ async function sendChat() {
   } catch (e) {
     typingEl.remove();
     console.error("[logi-bot] チャット送信に失敗", e);
+    lastApiDebug = { error: true, status: e?.status ?? 0, code: e?.code ?? "unknown", message: e?.message ?? "不明なエラー" };
+    refreshDebugPanel();
     addMessage("assistant", `❌ ${describeApiError(e)}`);
     if (!el.chatInput.value) el.chatInput.value = message;
   } finally {
@@ -861,7 +875,9 @@ function bindEvents() {
     el.debugPanel.hidden = !opening;
     if (opening) refreshDebugPanel();
   });
-  el.debugCloseBtn?.addEventListener("click", () => { if (el.debugPanel) el.debugPanel.hidden = true; });
+  if (el.debugCloseBtn) {
+    el.debugCloseBtn.addEventListener("click", () => { if (el.debugPanel) el.debugPanel.hidden = true; });
+  }
 }
 
 // ── Bootstrap ────────────────────────────────────────────────────
