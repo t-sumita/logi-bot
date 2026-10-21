@@ -1,13 +1,13 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.11.4`
+`0.12.0`
 
 ## 最終更新
-2026-10-20
+2026-10-21
 
 ## 現在地
-- v0.11.4 main マージ・GitHub push・Cloudflare Pages デプロイ済み（本番 URL: https://logi-bot.pages.dev）
+- v0.12.0 main マージ・GitHub push・Cloudflare Pages デプロイ済み（本番 URL: https://logi-bot.pages.dev）
 - typecheck 0エラー / test:unit 77/77 全通過
 - 作業ブランチなし（main のみ）。未コミット変更は無し（この STATUS.md 更新を除く）
 - 注意: Pages は git 連携なし。main への push だけでは本番に反映されない。
@@ -332,6 +332,17 @@
   を追加（`.info-note`、日英）。出典リンクは従来どおり。文言は i18n.js ではなく HTML 内の `data-lang` ブロックで管理している
 - **AI 対話ロジックの現状調査（次フェーズ準備）**: 結果は下記「次の一手」に要約
 
+## v0.12.0（2026-10-21 — オーナー（合言葉）モードを Gemini に切替）
+
+- **背景**: 無料でテスト運用するため。Cloudflare Pages に `GEMINI_API_KEY` / `OWNER_PASSCODE` を登録済み（ユーザー作業）
+- **`chat.ts` の `resolveAuth`**: owner モードのプロバイダを anthropic → **gemini**、モデルは `DEFAULT_MODELS.gemini`（`gemini-2.5-flash`）、
+  参照する環境変数を `GEMINI_API_KEY` に変更。未設定時は 500 `server_misconfigured`「サーバーに GEMINI_API_KEY が設定されていません」
+  （クライアントが「❌ エラーが発生しました: 」を前置するため、画面表示は指定どおりの全文になる）
+- **モデル選定**: 指示の `gemini-1.5-pro` は Google 側で提供終了済みかつ無料枠対象外のため採用せず、実装既定の `gemini-2.5-flash`（無料枠あり）を使用
+- `types.ts` の `Env` に `GEMINI_API_KEY` を追加／`.dev.vars.example` を Gemini 前提に更新（ANTHROPIC は任意・現在未使用）／
+  `docs/specs/api.md` のエラー表とモデル設定を更新／設定モーダルとバッジの説明文を Claude → Gemini に修正
+- 注意: Claude は BYOK モードでのみ利用可能（サーバー側の ANTHROPIC_API_KEY はもう参照しない）
+
 ## 今後の検討事項（アイデア・ロードマップ）
 
 実装は未着手。着手時は先に PLAN.md / `docs/specs/` へ仕様を起こすこと（SDD）。
@@ -343,6 +354,7 @@
 
 ## 次の一手
 
+v0.12.0 本番確認（要・実 API＝無料枠消費）: 合言葉モードで Gemini が応答すること、パスコード誤りで 401 になること。
 v0.11.4 本番確認: info・歯車・☰ のフラット表示とホバー背景、EN／モードバッジとの縦位置、info モーダルの見出し・注記（日英）。
 
 次の大テーマ: スキルを AI 対話ロジックへ活かす設計。現状（調査結果）:

@@ -83,7 +83,7 @@ Content-Type: application/json
 |---|---|---|
 | 400 | `invalid_input` | JSON 不正 / 必須フィールド欠落 |
 | 422 | `invalid_step` | 指定ステップがステートマシン上不正 |
-| 500 | `server_misconfigured` | `ANTHROPIC_API_KEY` 未設定 |
+| 500 | `server_misconfigured` | オーナーモードで `GEMINI_API_KEY` 未設定 |
 | 500 | `internal_error` | 想定外の例外 |
 | 502 | `upstream_error` | Claude API エラー |
 
@@ -215,7 +215,7 @@ Claude API レスポンスからこのタグを正規表現で抽出し、セッ
 
 | 設定 | 値 |
 |---|---|
-| モデル | `claude-sonnet-4-6` |
+| モデル | オーナーモード: Gemini `gemini-2.5-flash`（`llm.ts` の `DEFAULT_MODELS.gemini`）／ BYOK: 利用者指定（既定は `claude-sonnet-4-6`） |
 | max_tokens | 1024（通常の応答）/ 2048（合体ロボ図生成時） |
 | temperature | 0.7 |
 | システムプロンプト | 毎リクエスト動的構築 |

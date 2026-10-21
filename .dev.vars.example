@@ -2,11 +2,17 @@
 # このファイルをコピーして .dev.vars を作成し、実際の値を設定してください
 # .dev.vars は .gitignore により git 管理外です
 
-# Claude API キー（必須）
-ANTHROPIC_API_KEY=sk-ant-...
+# オーナー（合言葉）モードは Gemini（gemini-2.5-flash）で動作します。
+# オーナーモードを使う場合は GEMINI_API_KEY と OWNER_PASSCODE の両方が必要です。
 
-# モックモード（1 = Claude API を呼ばず固定レスポンスを返す）
+# Gemini API キー（オーナーモードで必須。Google AI Studio で無料枠のキーを取得できます）
+GEMINI_API_KEY=your-gemini-api-key-here
+
+# オーナーモードのパスコード（画面の設定で入力する合言葉）
+OWNER_PASSCODE=your-passcode-here
+
+# モックモード（1 = AI を呼ばず固定レスポンスを返す。ヘッダーのモード指定より優先される）
 LOGI_MOCK=1
 
-# オーナーモードのパスコード（オーナーモードを使う場合は設定）
-OWNER_PASSCODE=your-passcode-here
+# Claude API キー（任意・現在サーバー側では未使用。Claude は APIキー(BYOK)モードで利用者が自分のキーを入力して使う）
+# ANTHROPIC_API_KEY=sk-ant-...

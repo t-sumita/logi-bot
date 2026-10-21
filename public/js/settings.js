@@ -108,7 +108,7 @@ const MODAL_HTML = `
         <input type="radio" name="logiMode" id="modeOwner" value="owner">
         <div class="mode-option-body">
           <div class="mode-option-title">🔑 オーナーモード（合言葉認証）</div>
-          <div class="mode-option-desc">サーバーの ANTHROPIC_API_KEY を使ってAIを呼び出します。</div>
+          <div class="mode-option-desc">サーバーの GEMINI_API_KEY（Google Gemini）を使ってAIを呼び出します。</div>
           <div class="mode-option-form" id="ownerForm">
             <input class="form-input form-input-sm" type="password" id="ownerPasscode"
               placeholder="オーナーパスコードを入力" autocomplete="current-password">

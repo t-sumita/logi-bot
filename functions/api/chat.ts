@@ -13,7 +13,7 @@ import { isBulkInput, mergeExtracted, firstIncompleteStep } from "../_lib/sessio
 import { buildSystemPrompt, buildBulkSystemPrompt } from "../_lib/prompt.js";
 import { callClaude } from "../_lib/claude.js";
 import type { ClaudeRequest, ClaudeResponse } from "../_lib/claude.js";
-import { callLLM } from "../_lib/llm.js";
+import { callLLM, DEFAULT_MODELS } from "../_lib/llm.js";
 import { buildBulkDiagrams } from "../_lib/mermaid.js";
 
 // ── 認証解決 ─────────────────────────────────────────────────────
@@ -37,10 +37,10 @@ function resolveAuth(request: Request, env: Env): AuthOk | AuthError {
     if (!env.OWNER_PASSCODE || passcode !== env.OWNER_PASSCODE) {
       return { type: "error", status: 401, code: "auth_failed", message: "パスコードが正しくありません" };
     }
-    if (!env.ANTHROPIC_API_KEY) {
-      return { type: "error", status: 500, code: "server_misconfigured", message: "サーバーに ANTHROPIC_API_KEY が設定されていません" };
+    if (!env.GEMINI_API_KEY) {
+      return { type: "error", status: 500, code: "server_misconfigured", message: "サーバーに GEMINI_API_KEY が設定されていません" };
     }
-    return { type: "llm", provider: "anthropic", model: "claude-sonnet-4-6", apiKey: env.ANTHROPIC_API_KEY };
+    return { type: "llm", provider: "gemini", model: DEFAULT_MODELS.gemini, apiKey: env.GEMINI_API_KEY };
   }
 
   if (mode === "byok") {

@@ -180,6 +180,7 @@ export type AppMode = "mock" | "owner" | "byok";
 
 export interface Env {
   ANTHROPIC_API_KEY?: string;
+  GEMINI_API_KEY?: string;
   LOGI_MOCK?: string;
   OWNER_PASSCODE?: string;
 }
