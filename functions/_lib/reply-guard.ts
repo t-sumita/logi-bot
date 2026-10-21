@@ -2,17 +2,15 @@
 
 import type { ConversationTurn } from "./types.js";
 
-/** ツール呼び出しだけで本文が空だったときに補う返答 */
-export const EXTRACTED_ONLY_REPLY =
-  "内容を反映しました。続けて入力するか、問題なければ「次のステップへ」で進めてください。";
-
 export type ReplyResolution =
   | { ok: true; reply: string; synthesized: boolean }
   | { ok: false; status: number; code: string; message: string };
 
 /**
  * LLM の応答本文が空のときの扱いを決める。
- * 本文あり → そのまま／本文なし＋抽出あり → 定型文で補う／両方なし → empty_reply エラー。
+ * 本文あり → そのまま返す。
+ * 本文なし＋抽出あり → synthesized=true・reply="" を返す（フロントがシステム通知を表示する）。
+ * 本文なし＋抽出なし → empty_reply エラー。
  * @param {string} reply LLM が返した本文
  * @param {unknown} extracted ツール呼び出しによる抽出結果
  * @param {string} [stopReason] 終了理由（MAX_TOKENS / SAFETY など。診断用）
@@ -22,7 +20,7 @@ export function resolveReply(reply: string, extracted: unknown, stopReason?: str
   const text = (reply ?? "").trim();
   if (text) return { ok: true, reply: text, synthesized: false };
   if (extracted && typeof extracted === "object" && Object.keys(extracted).length > 0) {
-    return { ok: true, reply: EXTRACTED_ONLY_REPLY, synthesized: true };
+    return { ok: true, reply: "", synthesized: true };
   }
   const detail = stopReason ? `（終了理由: ${stopReason}）` : "";
   return {

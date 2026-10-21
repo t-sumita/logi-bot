@@ -14,7 +14,7 @@ import { buildRobotDiagram } from "../public/js/mermaid-builder.js";
 import { buildDiagramMarkup } from "../public/js/html-diagram.js";
 import { classifyNode, getNodeText, setNodeText, addDetail, removeDetail } from "../public/js/node-edit.js";
 import { resolveOwnerLlm, DEFAULT_MODELS } from "../functions/_lib/ai-config.ts";
-import { resolveReply, dropEmptyTurns, EXTRACTED_ONLY_REPLY } from "../functions/_lib/reply-guard.ts";
+import { resolveReply, dropEmptyTurns } from "../functions/_lib/reply-guard.ts";
 import { normalizeReply, describeApiError, buildFallbackBadgeHtml, EMPTY_REPLY_MESSAGE } from "../public/js/chat-error.js";
 
 // ── 空応答ガード（サーバー）────────────────────────────────────────
@@ -23,9 +23,9 @@ test("resolveReply — 本文があればそのまま返す", () => {
   assert.deepEqual(resolveReply("  こんにちは ", undefined), { ok: true, reply: "こんにちは", synthesized: false });
 });
 
-test("resolveReply — 本文が空でも抽出があれば定型文で補う", () => {
+test("resolveReply — 本文が空でも抽出があれば synthesized=true・reply='' を返す（定型文補完廃止）", () => {
   const r = resolveReply("", { core: { reality: "a", ideal: "", proposal: "" } }, "STOP");
-  assert.deepEqual(r, { ok: true, reply: EXTRACTED_ONLY_REPLY, synthesized: true });
+  assert.deepEqual(r, { ok: true, reply: "", synthesized: true });
 });
 
 test("resolveReply — 本文も抽出も空なら empty_reply（終了理由つき）", () => {

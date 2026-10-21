@@ -144,14 +144,20 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   // セッション更新
   const now = new Date().toISOString();
   let updatedSession = mergeExtracted(body.session, extracted);
+  // reply が空（synthesized=true）のときは空の assistant ターンを履歴に残さない。
+  // 空ターンが蓄積すると次リクエストで LLM が 400 を返す原因になる。
+  const historyAdditions: typeof updatedSession.history = [
+    { role: "user", content: body.message, step: body.step, timestamp: now },
+  ];
+  if (reply) {
+    historyAdditions.push({
+      role: "assistant", content: reply, step: body.step, timestamp: now,
+      extracted: extracted as Partial<typeof body.session.parts> | undefined,
+    });
+  }
   updatedSession = {
     ...updatedSession,
-    history: [
-      ...updatedSession.history,
-      { role: "user",      content: body.message, step: body.step, timestamp: now },
-      { role: "assistant", content: reply,         step: body.step, timestamp: now,
-        extracted: extracted as Partial<typeof body.session.parts> | undefined },
-    ],
+    history: [...updatedSession.history, ...historyAdditions],
   };
 
   // バルク抽出: ファストトラック遷移

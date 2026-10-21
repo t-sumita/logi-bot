@@ -2,7 +2,7 @@
 
 import { loadSession, saveSession, createNewSession, consumePendingMessage } from "./storage.js";
 import { chat as apiChat, advance as apiAdvance } from "./api.js";
-import { normalizeReply, describeApiError, buildFallbackBadgeHtml } from "./chat-error.js";
+import { normalizeReply, describeApiError } from "./chat-error.js";
 import { openZoomModal } from "./mermaid-renderer.js";
 import { copyMarkdown, downloadMarkdown, downloadStatusMd } from "./export.js";
 import { buildRobotDiagram } from "./mermaid-builder.js";
@@ -544,16 +544,13 @@ function undoLastTurn() {
  * チャットにメッセージを追加する。
  * @param {"user"|"assistant"|"system"} role
  * @param {string} content
- * @param {{ synthesized?: boolean, stopReason?: string, hasToolCall?: boolean }} [meta]
  */
-function addMessage(role, content, meta = {}) {
+function addMessage(role, content) {
   const div = document.createElement("div");
   div.className = `chat-message ${role}`;
   const bubble = document.createElement("div");
   bubble.className = "chat-bubble";
   bubble.innerHTML = formatMessage(role === "assistant" ? normalizeReply(content).text : content);
-  const badge = buildFallbackBadgeHtml(meta);
-  if (badge) bubble.insertAdjacentHTML("beforeend", badge);
   div.appendChild(bubble);
   el.chatMessages.appendChild(div);
   el.chatMessages.scrollTop = el.chatMessages.scrollHeight;
@@ -613,13 +610,14 @@ async function sendChat() {
     }
     session = res.session;
     saveSession(session);
-    const reply = normalizeReply(res.reply);
-    if (reply.empty) console.warn("[logi-bot] AI の返答が空でした", res);
-    addMessage("assistant", reply.text, {
-      synthesized: res.synthesized,
-      stopReason: res.stop_reason,
-      hasToolCall: res.has_tool_call,
-    });
+    const replyData = normalizeReply(res.reply);
+    if (res.synthesized && replyData.empty) {
+      // ツール呼び出しのみで本文なし → AI の発言に見せかけず、システム通知として表示する
+      addMessage("system", "[システム通知] AIからのテキスト応答を受信できませんでした。もう一度送信するか、画面上のボタンから次の操作を行ってください。");
+    } else {
+      if (replyData.empty) console.warn("[logi-bot] AI の返答が空でした", res);
+      addMessage("assistant", replyData.text);
+    }
 
     // ファストトラック後: 最初の未完ステップへ自動遷移済み
     if (res.fast_track && res.first_incomplete_step) {
