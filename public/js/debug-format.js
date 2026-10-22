@@ -14,6 +14,47 @@ function escHtml(str) {
   return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+/** 送信中プレビューで表示するユーザーメッセージの最大文字数 */
+export const DEBUG_SENT_MAX_CHARS = 160;
+
+/**
+ * 送信先 AI を「モード / プロバイダ / モデル」の表示文字列にする。
+ * API キーは絶対に含めない。
+ * @param {{mode?: string, byokProvider?: string, byokModel?: string}} settings 設定オブジェクト
+ * @returns {string} 送信先の表示文字列
+ */
+export function describeTarget(settings) {
+  const mode = settings?.mode ?? "mock";
+  if (mode === "mock")  return "手動作図モード（AI 呼び出しなし）";
+  if (mode === "owner") return "オーナーモード（サーバー設定の AI）";
+  if (mode === "byok") {
+    const provider = settings?.byokProvider || "（プロバイダ未設定）";
+    const model = settings?.byokModel || "（既定モデル）";
+    return `BYOK / ${provider} / ${model}`;
+  }
+  return mode;
+}
+
+/**
+ * 送信開始時点のデバッグ情報を組み立てる（レスポンス待ちの状態）。
+ * @param {{message: string, step: string, settings: object}} req 送信内容
+ * @returns {object} デバッグパネル用のオブジェクト
+ */
+export function buildRequestDebug({ message, step, settings }) {
+  const text = String(message ?? "");
+  return {
+    pending: true,
+    status: "sending…",
+    sentAt: new Date().toLocaleTimeString("ja-JP"),
+    step: step ?? "—",
+    target: describeTarget(settings),
+    sentMessage: text.length > DEBUG_SENT_MAX_CHARS
+      ? `${text.slice(0, DEBUG_SENT_MAX_CHARS)}…`
+      : text,
+    sentChars: text.length,
+  };
+}
+
 /**
  * 値を持つ末端フィールドの数を再帰的に数える。
  * 空文字・null・undefined は「更新なし」として数えない。

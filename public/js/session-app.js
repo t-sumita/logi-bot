@@ -8,7 +8,8 @@ import { copyMarkdown, downloadMarkdown, downloadStatusMd } from "./export.js";
 import { buildRobotDiagram } from "./mermaid-builder.js";
 import { renderHtmlDiagram, printDiagram, redrawConnectors } from "./html-diagram.js";
 import { classifyNode, getNodeText, setNodeText, addDetail, removeDetail, groupLabel } from "./node-edit.js";
-import { countLeaves, buildExtractedChips, buildExtractedEssence } from "./debug-format.js";
+import { countLeaves, buildExtractedChips, buildExtractedEssence, buildRequestDebug } from "./debug-format.js";
+import { getSettings } from "./settings.js";
 
 // ── ステップ定義 ──────────────────────────────────────────────────
 const STEP_META = {
@@ -474,6 +475,23 @@ function refreshDebugPanel() {
   }
   const res = lastApiDebug;
 
+  if (res.pending) {
+    el.debugPanelBody.innerHTML =
+      `<div class="debug-row"><span class="debug-label">ステータス</span>` +
+        `<span class="debug-value warn">${escHtml(res.status)}</span></div>` +
+      `<div class="debug-row"><span class="debug-label">送信時刻</span>` +
+        `<span class="debug-value">${escHtml(res.sentAt)}</span></div>` +
+      `<div class="debug-row"><span class="debug-label">ステップ</span>` +
+        `<span class="debug-value">${escHtml(res.step)}</span></div>` +
+      `<div class="debug-row"><span class="debug-label">送信先</span>` +
+        `<span class="debug-value">${escHtml(res.target)}</span></div>` +
+      `<div class="debug-raw">` +
+        `<details open><summary>送信メッセージ（${res.sentChars} 文字）</summary>` +
+          `<pre>${escHtml(res.sentMessage || "（空）")}</pre></details>` +
+      `</div>`;
+    return;
+  }
+
   if (res.error) {
     el.debugPanelBody.innerHTML =
       `<div class="debug-row"><span class="debug-label">ステータス</span>` +
@@ -695,6 +713,10 @@ async function sendChat() {
   addMessage("user", message);
   setLoading(true);
   const typingEl = addTypingIndicator();
+
+  // 送信直前の内容をデバッグパネルへ即時反映する（レスポンス待ちの間も中身が分かるように）
+  lastApiDebug = buildRequestDebug({ message, step: session.step, settings: getSettings() });
+  refreshDebugPanel();
 
   try {
     const res = await apiChat(session, message);

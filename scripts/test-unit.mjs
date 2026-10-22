@@ -18,8 +18,10 @@ import { resolveReply, dropEmptyTurns } from "../functions/_lib/reply-guard.ts";
 import { normalizeReply, describeApiError, buildFallbackBadgeHtml, EMPTY_REPLY_MESSAGE } from "../public/js/chat-error.js";
 import {
   countLeaves, flattenExtracted, buildExtractedChips, buildExtractedEssence,
-  DEBUG_ESSENCE_MAX_CHARS, DEBUG_ESSENCE_MAX_ROWS,
+  describeTarget, buildRequestDebug,
+  DEBUG_ESSENCE_MAX_CHARS, DEBUG_ESSENCE_MAX_ROWS, DEBUG_SENT_MAX_CHARS,
 } from "../public/js/debug-format.js";
+import { describeMissingField, describeMissingFields, checkGuard } from "../functions/_lib/session.ts";
 
 // ── 空応答ガード（サーバー）────────────────────────────────────────
 
@@ -1194,6 +1196,78 @@ test("buildExtractedEssence — XSS 対策: 値の特殊文字がエスケープ
   const html = buildExtractedEssence({ core: { reality: '<script>alert(1)</script>' } });
   assert.ok(!html.includes("<script>"), "スクリプトタグがエスケープされていない");
   assert.ok(html.includes("&lt;script&gt;"), "エスケープ済みタグが含まれない");
+});
+
+// ── guard-messages（ガード警告文のユーザー向け変換） ──────────────
+
+test("describeMissingField — 内部識別子をユーザー向け文言に変換する", () => {
+  const msg = describeMissingField("verification.is_consistent");
+  assert.ok(msg.includes("整合性"), "整合性の説明が含まれない");
+  assert.ok(msg.includes("問題なし"), "次の行動の案内が含まれない");
+  assert.ok(!msg.includes("verification"), "内部識別子が露出している");
+  assert.ok(!msg.includes("parts."), "内部プロパティ名が露出している");
+});
+
+test("describeMissingFields — すべての GuardField が変数名を露出させない", () => {
+  const fields = [
+    "core.reality", "core.ideal", "core.proposal",
+    "drilldown.reality_factors", "drilldown.ideal_goals",
+    "what_how.what_items", "what_how.how_items",
+    "verification.is_consistent", "verification.contradictions",
+    "frame.intro.hook", "frame.closing.cta",
+  ];
+  for (const msg of describeMissingFields(fields)) {
+    assert.ok(!/[a-z_]+\.[a-z_]+/.test(msg), `内部識別子らしい文字列が残っている: ${msg}`);
+    assert.ok(msg.length > 10, `文言が短すぎる: ${msg}`);
+  }
+});
+
+test("checkGuard — Step 4 の警告が内部変数名ではなく行動文言を返す", () => {
+  const parts = createSession("s1", "t").parts;
+  const res = checkGuard("step4_verify", parts);
+  assert.equal(res.ok, false);
+  assert.ok(!res.missing[0].includes("is_consistent"), "内部変数名が露出している");
+  assert.ok(res.missing[0].includes("チャット"), "次の行動の案内が含まれない");
+});
+
+test("checkGuard — Step 1 の未入力3件がすべて行動文言になる", () => {
+  const parts = createSession("s1", "t").parts;
+  const res = checkGuard("step1_core", parts);
+  assert.equal(res.ok, false);
+  assert.equal(res.missing.length, 3);
+  for (const msg of res.missing) {
+    assert.ok(!msg.includes("parts."), `内部プロパティ名が露出: ${msg}`);
+  }
+});
+
+// ── debug-format（送信中プレビュー） ─────────────────────────────
+
+test("describeTarget — モードごとの送信先表示を返し、APIキーは含めない", () => {
+  assert.ok(describeTarget({ mode: "mock" }).includes("手動作図"));
+  assert.ok(describeTarget({ mode: "owner" }).includes("オーナー"));
+  const byok = describeTarget({ mode: "byok", byokProvider: "gemini", byokModel: "gemini-2.5-flash", byokApiKey: "AIzaSECRET" });
+  assert.ok(byok.includes("gemini-2.5-flash"), "モデル名が含まれない");
+  assert.ok(!byok.includes("AIzaSECRET"), "APIキーが露出している");
+});
+
+test("buildRequestDebug — 送信直前の状態を pending として組み立てる", () => {
+  const dbg = buildRequestDebug({
+    message: "こんちゃ", step: "step1_core",
+    settings: { mode: "byok", byokProvider: "gemini", byokModel: "", byokApiKey: "AIzaSECRET" },
+  });
+  assert.equal(dbg.pending, true);
+  assert.equal(dbg.status, "sending…");
+  assert.equal(dbg.step, "step1_core");
+  assert.equal(dbg.sentMessage, "こんちゃ");
+  assert.equal(dbg.sentChars, 4);
+  assert.ok(!JSON.stringify(dbg).includes("AIzaSECRET"), "APIキーが露出している");
+});
+
+test("buildRequestDebug — 長い送信メッセージは切り詰める", () => {
+  const long = "あ".repeat(DEBUG_SENT_MAX_CHARS + 40);
+  const dbg = buildRequestDebug({ message: long, step: "step2_drilldown", settings: { mode: "owner" } });
+  assert.ok(dbg.sentMessage.endsWith("…"), "省略記号が付いていない");
+  assert.equal(dbg.sentChars, long.length, "元の文字数が保持されていない");
 });
 
 console.log("\n✅ 全テスト完了");

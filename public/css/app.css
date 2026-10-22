@@ -400,6 +400,9 @@ ul { list-style: none; }
 }
 
 /* ── パン・ズームコントローラー ─── */
+/* 実寸: 3ボタン×28px + gap 2px×2 + padding 3px×2 + border 1px×2 = 96px。
+   デバッグバッジの退避位置（--dzc-w）の算出に使う */
+:root { --dzc-w: 96px; }
 .diagram-zoom-controls {
   position: absolute; bottom: var(--sp-3); right: var(--sp-3); z-index: 10;
   display: flex; gap: 2px;
@@ -741,7 +744,8 @@ select.form-input { background: var(--c-bg); cursor: pointer; }
 .debug-toggle-btn {
   position: fixed;
   bottom: calc(var(--nav-h) + 10px);
-  right: 12px;
+  /* 図のズームコントローラー（右下）の左隣へ退避し、拡大・縮小操作と重ならないようにする */
+  right: calc(var(--sp-3) + var(--dzc-w) + var(--sp-2));
   z-index: 201;
   font-size: .68rem;
   padding: 4px 9px;
