@@ -1,16 +1,21 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.16.0`
+`0.17.0`
 
 ## 最終更新
 2026-10-22
 
 ## 現在地
-- v0.16.0 を main へマージ・push・本番デプロイ済み（デプロイ URL: https://f9218ced.logi-bot.pages.dev / 本番 URL: https://logi-bot.pages.dev）
-- typecheck 0エラー / test:unit 107/107 全通過（実 API を使う検証は未実施 = Level 2）
-- 作業ブランチなし（main のみ）。v0.16.0 のブラウザ実機確認はユーザー未実施
-  （パネルのドラッグリサイズ、エッセンス表示、アコーディオン内スクロール）
+- v0.17.0 を main へマージ・push・本番デプロイ済み（デプロイ URL: https://c3d04e6d.logi-bot.pages.dev / 本番 URL: https://logi-bot.pages.dev）
+- typecheck 0エラー / test:unit 114/114 全通過（実 API を使う検証は未実施 = Level 2）
+- 作業ブランチなし（main のみ）。v0.17.0 のブラウザ実機確認はユーザー未実施
+  （バッジ位置、ガード警告文、送信中デバッグ表示、AI の解説応答）
+- **重要な制約（ハマりどころ）**: `scripts/test-unit.mjs` は Node の型ストリッピングで `.ts` を直接読む。
+  `.ts` から別の `.ts` への**値インポート**（`import { x } from "./y.js"`）は
+  `ERR_MODULE_NOT_FOUND`（`y.js` が無い）で落ちる。型のみの import は消えるので問題ない。
+  → テスト対象のロジックは「値インポートを持たない .ts」に置くこと。
+  v0.17.0 では guard-messages.ts を新設しかけて落ちたため、session.ts に統合して解決した
 - 既知の仕様: `.debug-panel` は bottom/right 固定のため `resize: both` では左上方向に伸びる。
   画面外にはみ出さない利点がある一方、ハンドルがカーソルに追従しない（CSS ネイティブ resize の制約）
 - オーナーモードの AI は環境変数 `AI_PROVIDER` / `AI_MODEL` / `AI_API_KEY` で切り替え（コード修正不要）。詳細は docs/specs/api.md「オーナーモードの AI 設定」
@@ -43,6 +48,23 @@
   `.debug-ctl-btn` に `pointer-events: auto`
 - `public/js/settings.js` — BYOK の API キー欄直下に Gemini キー取得手順を `<details>` で折りたたみ追加（Google AI Studio へのリンク付き）
 - `public/css/app.css` — `.keyguide` 系スタイル追加
+
+### v0.17.0 — バッジ配置・ガード警告文・送信中デバッグ・対話ファシリテーション
+- `public/css/app.css` — `:root { --dzc-w: 96px }`（ズームコントローラー実寸）を定義し、
+  `.debug-toggle-btn` の `right` を `calc(var(--sp-3) + var(--dzc-w) + var(--sp-2))` にして
+  図の拡大・縮小ボタンの左隣へ退避（左下は subutomo バッジが占有しているため使えない）
+- `functions/_lib/session.ts` — `GuardField` 型 + `GUARD_MESSAGES` マップ +
+  `describeMissingField()` / `describeMissingFields()` を追加。
+  `guardStep1〜5` は内部識別子（`core.reality` 等）のみを返し、`checkGuard()` が変換して返す。
+  → 警告バーに `parts.verification.is_consistent（整合性確認）` が出る問題を解消
+- `public/js/debug-format.js` — `describeTarget(settings)` / `buildRequestDebug()` を追加。
+  **API キーは表示文字列に一切含めない**（テストで検証済み）
+- `public/js/session-app.js` — `apiChat()` 直前に `lastApiDebug` を `pending` 状態で記録。
+  `refreshDebugPanel()` に送信中モード（ステータス / 送信時刻 / ステップ / 送信先 / 送信メッセージ）を追加
+- `functions/_lib/prompt.ts` — `FACILITATION_GUIDANCE` を追加。
+  質問・相談・確認（「どうすればいい？」「これで合ってる？」等）には**解説テキストを最優先**し、
+  具体例 2〜3 個 + 叩き台（AI案）を提示、次の問いは 1 つだけ、内容が未確定ならツールを呼ばない方針を明示
+- `scripts/test-unit.mjs` — ガード文言・送信中デバッグのテスト 7 件を追加（107 → **114 件**）
 
 ### v0.16.0 — デバッグパネルのリサイズ対応・ログのエッセンス化
 - `public/css/app.css` — `.debug-panel` に `resize: both` / `min-width:240px` / `min-height:120px` /
