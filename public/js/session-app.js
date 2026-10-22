@@ -390,6 +390,10 @@ function initSplitter() {
 /** 編集中のノード番号 */
 let editingNodeId = null;
 
+/** 追加ボタンの文言: 親ノード／足の見出しからは配下へ、詳細ノードからは同階層（直後）へ追加する */
+const NODE_ADD_LABEL_CHILD = "➕ 詳細を追加";
+const NODE_ADD_LABEL_SIBLING = "➕ 下に項目を追加";
+
 /** ノードクリック時: 編集ダイアログを開く */
 function onNodeClick(nodeId, label) {
   openNodeEditor(nodeId, label);
@@ -412,7 +416,8 @@ function openNodeEditor(nodeId, label) {
   el.nodeEditText.hidden = !hasText;
   el.nodeEditText.value = hasText ? getNodeText(session.parts, nodeId) : "";
   el.nodeEditSave.hidden = !hasText;
-  el.nodeEditAdd.hidden = !(info.kind === "parent" || info.kind === "group");
+  el.nodeEditAdd.hidden = !(info.kind === "parent" || info.kind === "group" || info.kind === "detail");
+  el.nodeEditAdd.textContent = info.kind === "detail" ? NODE_ADD_LABEL_SIBLING : NODE_ADD_LABEL_CHILD;
   el.nodeEditDelete.hidden = info.kind !== "detail";
 
   const busy = isLoading;
@@ -526,6 +531,8 @@ function startTitleEdit() {
  */
 function commitNodeEdit() {
   undoSnapshot = null;
+  // 編集前の判定結果は古くなるため消す。ガードは「次へ」押下時に最新の session.parts で再判定される
+  el.guardNotice.hidden = true;
   saveSession(session);
   renderAll();
   redrawConnectors(el.diagramContent);
@@ -544,12 +551,12 @@ function saveNodeEdit() {
   commitNodeEdit();
 }
 
-/** 「➕ 詳細を追加」: 配下に空の詳細ノードを追加し、そのまま入力できるよう編集ダイアログを開き直す */
+/** 「➕ 追加」: 空の詳細ノードを追加（親は配下の末尾／詳細は直後）し、そのまま入力できるよう編集ダイアログを開き直す */
 function addNodeDetail() {
   if (!editingNodeId || isLoading) return;
   const info = classifyNode(editingNodeId);
-  // 親ノード（現実／理想）のテキスト編集が入力済みなら、追加前に保存して失わないようにする
-  if (info.kind === "parent") setNodeText(session.parts, editingNodeId, el.nodeEditText.value);
+  // 親ノード（現実／理想）・詳細ノードのテキスト編集が入力済みなら、追加前に保存して失わないようにする
+  if (info.kind === "parent" || info.kind === "detail") setNodeText(session.parts, editingNodeId, el.nodeEditText.value);
   const newId = addDetail(session.parts, editingNodeId);
   closeNodeEditor();
   if (!newId) return;

@@ -96,15 +96,22 @@ export function setNodeText(parts, nodeId, text) {
 }
 
 /**
- * グループの末尾に空の詳細ノードを追加する。
+ * 空の詳細ノードを追加する。
+ * 親ノード／グループ番号なら配下の末尾へ、詳細ノードなら同階層のその直後へ挿入する
+ * （後続ノードの番号は繰り下がる）。
  * @param {object} parts
- * @param {string} nodeId - 親ノード（"1"/"2"）またはグループ番号（"4"〜"7"）
+ * @param {string} nodeId - 親ノード（"1"/"2"）・グループ番号（"4"〜"7"）・詳細ノード（"4-1" 等）
  * @returns {string|null} 追加したノード番号（例 "4-3"）。追加できなければ null
  */
 export function addDetail(parts, nodeId) {
   const info = classifyNode(nodeId);
-  if (info.kind !== "parent" && info.kind !== "group") return null;
+  if (info.kind !== "parent" && info.kind !== "group" && info.kind !== "detail") return null;
   const arr = groupArray(parts, info.group);
+  if (info.kind === "detail") {
+    if (info.index < 0 || info.index >= arr.length) return null;
+    arr.splice(info.index + 1, 0, "");
+    return `${info.group}-${info.index + 2}`;
+  }
   arr.push("");
   return `${info.group}-${arr.length}`;
 }

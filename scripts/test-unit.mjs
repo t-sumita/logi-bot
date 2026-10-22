@@ -1070,7 +1070,35 @@ test("addDetail — 親ノード/グループから末尾に空の詳細を追�
   assert.equal(addDetail(p, "7"), "7-1");
   assert.deepEqual(p.drilldown.reality_factors, ["", ""]);
   assert.equal(addDetail(p, "3"), null, "提案は詳細を持てない");
-  assert.equal(addDetail(p, "4-1"), null, "詳細ノードには追加できない");
+  assert.equal(addDetail(p, "0"), null, "頭は詳細を持てない");
+});
+
+test("addDetail — 詳細ノードからは同階層の直後に挿入し、後続は繰り下がる", () => {
+  const p = makeParts();
+  p.drilldown.reality_factors = ["a", "b", "c"];
+  assert.equal(addDetail(p, "4-1"), "4-2");
+  assert.deepEqual(p.drilldown.reality_factors, ["a", "", "b", "c"]);
+  assert.equal(addDetail(p, "4-4"), "4-5", "末尾の詳細からは末尾に追加される");
+  assert.deepEqual(p.drilldown.reality_factors, ["a", "", "b", "c", ""]);
+  p.what_how.how_items = ["x"];
+  assert.equal(addDetail(p, "7-1"), "7-2");
+  assert.deepEqual(p.what_how.how_items, ["x", ""]);
+});
+
+test("addDetail — 範囲外の詳細ノードは追加しない", () => {
+  const p = makeParts();
+  p.drilldown.ideal_goals = ["g"];
+  assert.equal(addDetail(p, "5-9"), null);
+  assert.deepEqual(p.drilldown.ideal_goals, ["g"]);
+});
+
+test("addDetail — 追加後の空ノードに setNodeText で書き込める（session.parts へ即反映）", () => {
+  const p = makeParts();
+  p.what_how.what_items = ["w1", "w2"];
+  const id = addDetail(p, "6-1");
+  assert.equal(id, "6-2");
+  assert.ok(setNodeText(p, id, "  挿入した項目  "));
+  assert.deepEqual(p.what_how.what_items, ["w1", "挿入した項目", "w2"]);
 });
 
 test("removeDetail — 詳細のみ削除でき、後続は繰り上がる", () => {
