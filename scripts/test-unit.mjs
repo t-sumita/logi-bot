@@ -16,6 +16,10 @@ import { classifyNode, getNodeText, setNodeText, addDetail, removeDetail } from 
 import { resolveOwnerLlm, DEFAULT_MODELS } from "../functions/_lib/ai-config.ts";
 import { resolveReply, dropEmptyTurns } from "../functions/_lib/reply-guard.ts";
 import { normalizeReply, describeApiError, buildFallbackBadgeHtml, EMPTY_REPLY_MESSAGE } from "../public/js/chat-error.js";
+import {
+  countLeaves, flattenExtracted, buildExtractedChips, buildExtractedEssence,
+  DEBUG_ESSENCE_MAX_CHARS, DEBUG_ESSENCE_MAX_ROWS,
+} from "../public/js/debug-format.js";
 
 // ── 空応答ガード（サーバー）────────────────────────────────────────
 
@@ -1109,6 +1113,85 @@ test("buildFallbackBadgeHtml — stopReason がデバッグ情報に含まれる
 
 test("buildFallbackBadgeHtml — XSS 対策: stopReason の特殊文字がエスケープされる", () => {
   const html = buildFallbackBadgeHtml({ synthesized: true, stopReason: '<script>alert(1)</script>' });
+  assert.ok(!html.includes("<script>"), "スクリプトタグがエスケープされていない");
+  assert.ok(html.includes("&lt;script&gt;"), "エスケープ済みタグが含まれない");
+});
+
+// ── debug-format（デバッグパネルのエッセンス表示） ────────────────
+
+test("countLeaves — 値を持つ末端フィールドのみを数える", () => {
+  assert.equal(countLeaves({ core: { reality: "a", ideal: "b", proposal: "" } }), 2);
+  assert.equal(countLeaves({ drilldown: { reality_factors: ["x", "y", "z"] } }), 3);
+  assert.equal(countLeaves({}), 0);
+  assert.equal(countLeaves(null), 0);
+  assert.equal(countLeaves({ a: null, b: undefined, c: "" }), 0);
+});
+
+test("countLeaves — boolean の false も「値あり」として数える", () => {
+  assert.equal(countLeaves({ verification: { is_consistent: false } }), 1);
+});
+
+test("flattenExtracted — ネストを「パス: 値」に平坦化し、配列は1始まりの添字を付ける", () => {
+  const rows = flattenExtracted({
+    core: { reality: "現実", ideal: "理想" },
+    drilldown: { reality_factors: ["要因A", "要因B"] },
+  });
+  assert.deepEqual(rows, [
+    { path: "core.reality", value: "現実" },
+    { path: "core.ideal", value: "理想" },
+    { path: "drilldown.reality_factors[1]", value: "要因A" },
+    { path: "drilldown.reality_factors[2]", value: "要因B" },
+  ]);
+});
+
+test("flattenExtracted — 空の値はスキップされる", () => {
+  const rows = flattenExtracted({ core: { reality: "a", ideal: "", proposal: null } });
+  assert.deepEqual(rows, [{ path: "core.reality", value: "a" }]);
+});
+
+test("buildExtractedChips — 更新されたトップレベルキーと件数をチップ化する", () => {
+  const html = buildExtractedChips({
+    core: { reality: "a", ideal: "b" },
+    frame: { title: "t" },
+    what_how: { what_items: [] },
+  });
+  assert.ok(html.includes("core(2)"), "core の件数が含まれない");
+  assert.ok(html.includes("frame(1)"), "frame の件数が含まれない");
+  assert.ok(!html.includes("what_how"), "空のキーが除外されていない");
+});
+
+test("buildExtractedChips — extracted が無い場合はプレースホルダを返す", () => {
+  assert.ok(buildExtractedChips(undefined).includes("debug-chip-none"));
+  assert.ok(buildExtractedChips({}).includes("debug-chip-none"));
+});
+
+test("buildExtractedEssence — パスと値の行を生成する", () => {
+  const html = buildExtractedEssence({ core: { reality: "現実の課題" } });
+  assert.ok(html.includes("debug-essence"), "エッセンスクラスが含まれない");
+  assert.ok(html.includes("core.reality"), "パスが含まれない");
+  assert.ok(html.includes("現実の課題"), "値が含まれない");
+});
+
+test("buildExtractedEssence — 長い値は省略記号で切り詰める", () => {
+  const long = "あ".repeat(DEBUG_ESSENCE_MAX_CHARS + 30);
+  const html = buildExtractedEssence({ core: { reality: long } });
+  assert.ok(html.includes("…"), "省略記号が含まれない");
+  assert.ok(!html.includes(long), "切り詰められていない");
+});
+
+test("buildExtractedEssence — 行数が上限を超えると「ほか N 件」に畳む", () => {
+  const items = Array.from({ length: DEBUG_ESSENCE_MAX_ROWS + 5 }, (_v, i) => `項目${i}`);
+  const html = buildExtractedEssence({ drilldown: { reality_factors: items } });
+  assert.ok(html.includes("…ほか 5 件"), "超過件数の表示が含まれない");
+});
+
+test("buildExtractedEssence — 更新フィールドが無い場合は空メッセージを返す", () => {
+  assert.ok(buildExtractedEssence({}).includes("debug-empty"));
+  assert.ok(buildExtractedEssence(undefined).includes("debug-empty"));
+});
+
+test("buildExtractedEssence — XSS 対策: 値の特殊文字がエスケープされる", () => {
+  const html = buildExtractedEssence({ core: { reality: '<script>alert(1)</script>' } });
   assert.ok(!html.includes("<script>"), "スクリプトタグがエスケープされていない");
   assert.ok(html.includes("&lt;script&gt;"), "エスケープ済みタグが含まれない");
 });

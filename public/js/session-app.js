@@ -8,6 +8,7 @@ import { copyMarkdown, downloadMarkdown, downloadStatusMd } from "./export.js";
 import { buildRobotDiagram } from "./mermaid-builder.js";
 import { renderHtmlDiagram, printDiagram, redrawConnectors } from "./html-diagram.js";
 import { classifyNode, getNodeText, setNodeText, addDetail, removeDetail, groupLabel } from "./node-edit.js";
+import { countLeaves, buildExtractedChips, buildExtractedEssence } from "./debug-format.js";
 
 // ── ステップ定義 ──────────────────────────────────────────────────
 const STEP_META = {
@@ -494,6 +495,8 @@ function refreshDebugPanel() {
   const rawExtracted = escHtml(
     res.extracted ? JSON.stringify(res.extracted, null, 2) : "（なし）"
   );
+  const replyChars   = (res.reply || "").length;
+  const updatedCount = countLeaves(res.extracted);
 
   el.debugPanelBody.innerHTML =
     `<div class="debug-row"><span class="debug-label">応答パターン</span>` +
@@ -505,9 +508,14 @@ function refreshDebugPanel() {
       `${hasTool ? " / " + escHtml(toolName) : ""}</span></div>` +
     `<div class="debug-row"><span class="debug-label">synthesized</span>` +
       `<span class="debug-value ${res.synthesized ? "warn" : ""}">${synthVal}</span></div>` +
+    `<div class="debug-row"><span class="debug-label">更新キー</span>` +
+      `${buildExtractedChips(res.extracted)}</div>` +
     `<div class="debug-raw">` +
-      `<details><summary>応答テキスト</summary><pre>${rawReply}</pre></details>` +
-      `<details><summary>ツール引数 (extracted)</summary><pre>${rawExtracted}</pre></details>` +
+      `<details><summary>応答テキスト（${replyChars} 文字）</summary><pre>${rawReply}</pre></details>` +
+      `<details><summary>ツール引数 エッセンス（${updatedCount} 件）</summary>` +
+        buildExtractedEssence(res.extracted) +
+        `<details><summary>生 JSON を表示</summary><pre>${rawExtracted}</pre></details>` +
+      `</details>` +
     `</div>`;
 }
 
