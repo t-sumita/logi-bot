@@ -17,9 +17,8 @@ import { resolveOwnerLlm, DEFAULT_MODELS } from "../functions/_lib/ai-config.ts"
 import { resolveReply, dropEmptyTurns } from "../functions/_lib/reply-guard.ts";
 import { normalizeReply, describeApiError, buildFallbackBadgeHtml, EMPTY_REPLY_MESSAGE } from "../public/js/chat-error.js";
 import {
-  countLeaves, flattenExtracted, buildExtractedChips, buildExtractedEssence,
-  describeTarget, buildRequestDebug,
-  DEBUG_ESSENCE_MAX_CHARS, DEBUG_ESSENCE_MAX_ROWS, DEBUG_SENT_MAX_CHARS,
+  formatClock, shortStep, formatReqLog, formatResLog, formatErrLog, appendLog,
+  DEBUG_REQ_PREVIEW_CHARS, DEBUG_LOG_MAX,
 } from "../public/js/debug-format.js";
 import { describeMissingField, describeMissingFields, checkGuard } from "../functions/_lib/session.ts";
 
@@ -1119,84 +1118,6 @@ test("buildFallbackBadgeHtml — XSS 対策: stopReason の特殊文字がエス
   assert.ok(html.includes("&lt;script&gt;"), "エスケープ済みタグが含まれない");
 });
 
-// ── debug-format（デバッグパネルのエッセンス表示） ────────────────
-
-test("countLeaves — 値を持つ末端フィールドのみを数える", () => {
-  assert.equal(countLeaves({ core: { reality: "a", ideal: "b", proposal: "" } }), 2);
-  assert.equal(countLeaves({ drilldown: { reality_factors: ["x", "y", "z"] } }), 3);
-  assert.equal(countLeaves({}), 0);
-  assert.equal(countLeaves(null), 0);
-  assert.equal(countLeaves({ a: null, b: undefined, c: "" }), 0);
-});
-
-test("countLeaves — boolean の false も「値あり」として数える", () => {
-  assert.equal(countLeaves({ verification: { is_consistent: false } }), 1);
-});
-
-test("flattenExtracted — ネストを「パス: 値」に平坦化し、配列は1始まりの添字を付ける", () => {
-  const rows = flattenExtracted({
-    core: { reality: "現実", ideal: "理想" },
-    drilldown: { reality_factors: ["要因A", "要因B"] },
-  });
-  assert.deepEqual(rows, [
-    { path: "core.reality", value: "現実" },
-    { path: "core.ideal", value: "理想" },
-    { path: "drilldown.reality_factors[1]", value: "要因A" },
-    { path: "drilldown.reality_factors[2]", value: "要因B" },
-  ]);
-});
-
-test("flattenExtracted — 空の値はスキップされる", () => {
-  const rows = flattenExtracted({ core: { reality: "a", ideal: "", proposal: null } });
-  assert.deepEqual(rows, [{ path: "core.reality", value: "a" }]);
-});
-
-test("buildExtractedChips — 更新されたトップレベルキーと件数をチップ化する", () => {
-  const html = buildExtractedChips({
-    core: { reality: "a", ideal: "b" },
-    frame: { title: "t" },
-    what_how: { what_items: [] },
-  });
-  assert.ok(html.includes("core(2)"), "core の件数が含まれない");
-  assert.ok(html.includes("frame(1)"), "frame の件数が含まれない");
-  assert.ok(!html.includes("what_how"), "空のキーが除外されていない");
-});
-
-test("buildExtractedChips — extracted が無い場合はプレースホルダを返す", () => {
-  assert.ok(buildExtractedChips(undefined).includes("debug-chip-none"));
-  assert.ok(buildExtractedChips({}).includes("debug-chip-none"));
-});
-
-test("buildExtractedEssence — パスと値の行を生成する", () => {
-  const html = buildExtractedEssence({ core: { reality: "現実の課題" } });
-  assert.ok(html.includes("debug-essence"), "エッセンスクラスが含まれない");
-  assert.ok(html.includes("core.reality"), "パスが含まれない");
-  assert.ok(html.includes("現実の課題"), "値が含まれない");
-});
-
-test("buildExtractedEssence — 長い値は省略記号で切り詰める", () => {
-  const long = "あ".repeat(DEBUG_ESSENCE_MAX_CHARS + 30);
-  const html = buildExtractedEssence({ core: { reality: long } });
-  assert.ok(html.includes("…"), "省略記号が含まれない");
-  assert.ok(!html.includes(long), "切り詰められていない");
-});
-
-test("buildExtractedEssence — 行数が上限を超えると「ほか N 件」に畳む", () => {
-  const items = Array.from({ length: DEBUG_ESSENCE_MAX_ROWS + 5 }, (_v, i) => `項目${i}`);
-  const html = buildExtractedEssence({ drilldown: { reality_factors: items } });
-  assert.ok(html.includes("…ほか 5 件"), "超過件数の表示が含まれない");
-});
-
-test("buildExtractedEssence — 更新フィールドが無い場合は空メッセージを返す", () => {
-  assert.ok(buildExtractedEssence({}).includes("debug-empty"));
-  assert.ok(buildExtractedEssence(undefined).includes("debug-empty"));
-});
-
-test("buildExtractedEssence — XSS 対策: 値の特殊文字がエスケープされる", () => {
-  const html = buildExtractedEssence({ core: { reality: '<script>alert(1)</script>' } });
-  assert.ok(!html.includes("<script>"), "スクリプトタグがエスケープされていない");
-  assert.ok(html.includes("&lt;script&gt;"), "エスケープ済みタグが含まれない");
-});
 
 // ── guard-messages（ガード警告文のユーザー向け変換） ──────────────
 
@@ -1240,34 +1161,103 @@ test("checkGuard — Step 1 の未入力3件がすべて行動文言になる", 
   }
 });
 
-// ── debug-format（送信中プレビュー） ─────────────────────────────
+// ── debug-format（API ログ行の整形） ─────────────────────────────
 
-test("describeTarget — モードごとの送信先表示を返し、APIキーは含めない", () => {
-  assert.ok(describeTarget({ mode: "mock" }).includes("手動作図"));
-  assert.ok(describeTarget({ mode: "owner" }).includes("オーナー"));
-  const byok = describeTarget({ mode: "byok", byokProvider: "gemini", byokModel: "gemini-2.5-flash", byokApiKey: "AIzaSECRET" });
-  assert.ok(byok.includes("gemini-2.5-flash"), "モデル名が含まれない");
-  assert.ok(!byok.includes("AIzaSECRET"), "APIキーが露出している");
+/** テストを時刻に依存させないための固定時刻（19:00:15） */
+const AT = new Date(2026, 9, 22, 19, 0, 15);
+
+test("formatClock — HH:MM:SS でゼロ埋めする", () => {
+  assert.equal(formatClock(new Date(2026, 9, 22, 9, 5, 3)), "09:05:03");
+  assert.equal(formatClock(AT), "19:00:15");
 });
 
-test("buildRequestDebug — 送信直前の状態を pending として組み立てる", () => {
-  const dbg = buildRequestDebug({
-    message: "こんちゃ", step: "step1_core",
-    settings: { mode: "byok", byokProvider: "gemini", byokModel: "", byokApiKey: "AIzaSECRET" },
+test("shortStep — ステップ名を Step4 形式に短縮する", () => {
+  assert.equal(shortStep("step4_verify"), "Step4");
+  assert.equal(shortStep("step1_core"), "Step1");
+  assert.equal(shortStep("complete"), "Complete");
+  assert.equal(shortStep(undefined), "—");
+});
+
+test("formatReqLog — REQ 行に送信メッセージのプレビューと文字数を出す", () => {
+  const { text, cls } = formatReqLog({ step: "step4_verify", message: "どうすればいいですか？", at: AT });
+  assert.equal(text, '[19:00:15] REQ Step4 -> "どうすればいいですか？" (11文字)');
+  assert.equal(cls, "log-req");
+});
+
+test("formatReqLog — 長い送信メッセージは切り詰めるが文字数は実数を出す", () => {
+  const long = "あ".repeat(DEBUG_REQ_PREVIEW_CHARS + 20);
+  const { text } = formatReqLog({ step: "step1_core", message: long, at: AT });
+  assert.ok(text.includes("…"), "省略記号が付いていない");
+  assert.ok(text.includes(`(${long.length}文字)`), "実際の文字数が出ていない");
+});
+
+test("formatReqLog — 改行を含む入力でも1行に収まる", () => {
+  const { text } = formatReqLog({ step: "step1_core", message: "一行目\n二行目", at: AT });
+  assert.ok(!text.includes("\n"), "改行が残っている");
+  assert.ok(text.includes("一行目 二行目"), "改行が空白に潰されていない");
+});
+
+test("formatResLog — ツール呼び出しのみの場合は [ツールのみ: ...] を出す", () => {
+  const { text, cls } = formatResLog({
+    step: "step4_verify", stopReason: "STOP", hasToolCall: true, reply: "", at: AT,
   });
-  assert.equal(dbg.pending, true);
-  assert.equal(dbg.status, "sending…");
-  assert.equal(dbg.step, "step1_core");
-  assert.equal(dbg.sentMessage, "こんちゃ");
-  assert.equal(dbg.sentChars, 4);
-  assert.ok(!JSON.stringify(dbg).includes("AIzaSECRET"), "APIキーが露出している");
+  assert.equal(text, "[19:00:15] RES Step4 <- 200 STOP [ツールのみ: update_session_parts]");
+  assert.equal(cls, "log-res");
 });
 
-test("buildRequestDebug — 長い送信メッセージは切り詰める", () => {
-  const long = "あ".repeat(DEBUG_SENT_MAX_CHARS + 40);
-  const dbg = buildRequestDebug({ message: long, step: "step2_drilldown", settings: { mode: "owner" } });
-  assert.ok(dbg.sentMessage.endsWith("…"), "省略記号が付いていない");
-  assert.equal(dbg.sentChars, long.length, "元の文字数が保持されていない");
+test("formatResLog — 本文があれば冒頭をプレビューする", () => {
+  const { text } = formatResLog({
+    step: "step1_core", stopReason: "STOP", hasToolCall: false,
+    reply: "承知しました。まずは現実の課題から教えてください。", at: AT,
+  });
+  assert.ok(text.startsWith("[19:00:15] RES Step1 <- 200 STOP "), `先頭が想定と違う: ${text}`);
+  assert.ok(text.includes("承知しました。まずは現実の課題から"), "本文プレビューが含まれない");
+  assert.ok(text.includes("…"), "20文字で切り詰められていない");
+});
+
+test("formatResLog — 本文とツールの両方があれば [+ツール] を付ける", () => {
+  const { text } = formatResLog({
+    step: "step2_drilldown", stopReason: "STOP", hasToolCall: true, reply: "記録しました", at: AT,
+  });
+  assert.ok(text.includes('"記録しました"'), "本文プレビューが含まれない");
+  assert.ok(text.includes("[+ツール: update_session_parts]"), "ツール付記が含まれない");
+});
+
+test("formatResLog — 本文もツールも無ければ [本文・ツールなし] を出す", () => {
+  const { text } = formatResLog({
+    step: "step1_core", stopReason: "MAX_TOKENS", hasToolCall: false, reply: "", at: AT,
+  });
+  assert.equal(text, "[19:00:15] RES Step1 <- 200 MAX_TOKENS [本文・ツールなし]");
+});
+
+test("formatErrLog — ERR 行にステータス・コード・詳細を出す", () => {
+  const { text, cls } = formatErrLog({
+    step: "step4_verify", status: 502, code: "upstream_error", message: "Gemini API 524", at: AT,
+  });
+  assert.equal(text, "[19:00:15] ERR Step4 <- 502 upstream_error (Gemini API 524)");
+  assert.equal(cls, "log-err");
+});
+
+test("formatErrLog — status/code が無い場合もプレースホルダで落ちない", () => {
+  const { text } = formatErrLog({ step: "step1_core", at: AT });
+  assert.equal(text, "[19:00:15] ERR Step1 <- — unknown");
+});
+
+test("appendLog — 1行追記し、上限を超えたら古い行から捨てる", () => {
+  let log = [];
+  for (let i = 1; i <= DEBUG_LOG_MAX + 5; i++) {
+    log = appendLog(log, { text: `line${i}`, cls: "log-res" });
+  }
+  assert.equal(log.length, DEBUG_LOG_MAX, "保持件数が上限と一致しない");
+  assert.equal(log[0].text, "line6", "古い行が捨てられていない");
+  assert.equal(log[log.length - 1].text, `line${DEBUG_LOG_MAX + 5}`, "最新行が末尾にない");
+});
+
+test("appendLog — 元の配列を破壊しない", () => {
+  const log = [{ text: "a", cls: "log-res" }];
+  const next = appendLog(log, { text: "b", cls: "log-res" });
+  assert.equal(log.length, 1, "元の配列が変更されている");
+  assert.equal(next.length, 2);
 });
 
 console.log("\n✅ 全テスト完了");

@@ -8,8 +8,7 @@ import { copyMarkdown, downloadMarkdown, downloadStatusMd } from "./export.js";
 import { buildRobotDiagram } from "./mermaid-builder.js";
 import { renderHtmlDiagram, printDiagram, redrawConnectors } from "./html-diagram.js";
 import { classifyNode, getNodeText, setNodeText, addDetail, removeDetail, groupLabel } from "./node-edit.js";
-import { countLeaves, buildExtractedChips, buildExtractedEssence, buildRequestDebug } from "./debug-format.js";
-import { getSettings } from "./settings.js";
+import { formatReqLog, formatResLog, formatErrLog, appendLog } from "./debug-format.js";
 
 // ── ステップ定義 ──────────────────────────────────────────────────
 const STEP_META = {
@@ -99,8 +98,8 @@ let currentDiagramSource = "";
 let undoSnapshot = null;
 /** 固定レイアウト図の表示倍率（ズームコントローラー用） */
 let diagramScale = 1;
-/** デバッグパネル用: 直近の API レスポンスのメタ情報 */
-let lastApiDebug = null;
+/** デバッグパネル用: API 送受信の1行ログ（直近 DEBUG_LOG_MAX 件） */
+let apiLog = [];
 
 // ── DOM refs ─────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
@@ -437,14 +436,13 @@ function closeNodeEditor() {
 
 // ── デバッグパネル ────────────────────────────────────────────────
 
-/** 応答パターンラベルとスタイルクラスを導出する */
-function derivePattern(res) {
-  const hasText = !!(res?.reply && String(res.reply).trim());
-  const hasTool = !!res?.has_tool_call;
-  if (hasText && hasTool)  return { label: "[テキスト＋ツール]",    cls: "ok" };
-  if (hasText)             return { label: "[テキストのみ]",        cls: "ok" };
-  if (hasTool)             return { label: "[ツール呼び出しのみ]",  cls: "warn" };
-  return                          { label: "[フォールバック]",      cls: "error" };
+/**
+ * ログを1行追記してパネルを再描画する。
+ * @param {{text: string, cls: string}} entry ログ行
+ */
+function pushApiLog(entry) {
+  apiLog = appendLog(apiLog, entry);
+  refreshDebugPanel();
 }
 
 /**
@@ -466,75 +464,17 @@ function isDebugOpen() {
   return !!el.debugPanel?.classList.contains("is-open");
 }
 
-/** デバッグパネルの表示内容を最新の API レスポンスで更新する */
+/** API ログを1行ずつ描画し、常に最下部へ自動スクロールする */
 function refreshDebugPanel() {
   if (!el.debugPanelBody) return;
-  if (!lastApiDebug) {
+  if (apiLog.length === 0) {
     el.debugPanelBody.innerHTML = '<p class="debug-empty">まだ API 呼び出しがありません。</p>';
     return;
   }
-  const res = lastApiDebug;
-
-  if (res.pending) {
-    el.debugPanelBody.innerHTML =
-      `<div class="debug-row"><span class="debug-label">ステータス</span>` +
-        `<span class="debug-value warn">${escHtml(res.status)}</span></div>` +
-      `<div class="debug-row"><span class="debug-label">送信時刻</span>` +
-        `<span class="debug-value">${escHtml(res.sentAt)}</span></div>` +
-      `<div class="debug-row"><span class="debug-label">ステップ</span>` +
-        `<span class="debug-value">${escHtml(res.step)}</span></div>` +
-      `<div class="debug-row"><span class="debug-label">送信先</span>` +
-        `<span class="debug-value">${escHtml(res.target)}</span></div>` +
-      `<div class="debug-raw">` +
-        `<details open><summary>送信メッセージ（${res.sentChars} 文字）</summary>` +
-          `<pre>${escHtml(res.sentMessage || "（空）")}</pre></details>` +
-      `</div>`;
-    return;
-  }
-
-  if (res.error) {
-    el.debugPanelBody.innerHTML =
-      `<div class="debug-row"><span class="debug-label">ステータス</span>` +
-        `<span class="debug-value error">${escHtml(String(res.status || "—"))}</span></div>` +
-      `<div class="debug-row"><span class="debug-label">エラーコード</span>` +
-        `<span class="debug-value error">${escHtml(res.code || "—")}</span></div>` +
-      `<div class="debug-row"><span class="debug-label">エラー詳細</span>` +
-        `<span class="debug-value">${escHtml(res.message || "—")}</span></div>`;
-    return;
-  }
-
-  const pattern   = derivePattern(res);
-  const stopReason = escHtml(res.stop_reason || "—");
-  const hasTool    = !!res.has_tool_call;
-  const synthVal   = res.synthesized ? "true" : "false";
-  const toolName   = hasTool ? "update_session_parts" : "—";
-
-  const rawReply     = escHtml(res.reply || "（空）");
-  const rawExtracted = escHtml(
-    res.extracted ? JSON.stringify(res.extracted, null, 2) : "（なし）"
-  );
-  const replyChars   = (res.reply || "").length;
-  const updatedCount = countLeaves(res.extracted);
-
-  el.debugPanelBody.innerHTML =
-    `<div class="debug-row"><span class="debug-label">応答パターン</span>` +
-      `<span class="debug-value ${pattern.cls}">${escHtml(pattern.label)}</span></div>` +
-    `<div class="debug-row"><span class="debug-label">終了理由</span>` +
-      `<span class="debug-value">${stopReason}</span></div>` +
-    `<div class="debug-row"><span class="debug-label">ツール呼出</span>` +
-      `<span class="debug-value ${hasTool ? "ok" : ""}">${hasTool ? "true" : "false"}` +
-      `${hasTool ? " / " + escHtml(toolName) : ""}</span></div>` +
-    `<div class="debug-row"><span class="debug-label">synthesized</span>` +
-      `<span class="debug-value ${res.synthesized ? "warn" : ""}">${synthVal}</span></div>` +
-    `<div class="debug-row"><span class="debug-label">更新キー</span>` +
-      `${buildExtractedChips(res.extracted)}</div>` +
-    `<div class="debug-raw">` +
-      `<details><summary>応答テキスト（${replyChars} 文字）</summary><pre>${rawReply}</pre></details>` +
-      `<details><summary>ツール引数 エッセンス（${updatedCount} 件）</summary>` +
-        buildExtractedEssence(res.extracted) +
-        `<details><summary>生 JSON を表示</summary><pre>${rawExtracted}</pre></details>` +
-      `</details>` +
-    `</div>`;
+  el.debugPanelBody.innerHTML = apiLog
+    .map((entry) => `<div class="debug-log-line ${entry.cls}">${escHtml(entry.text)}</div>`)
+    .join("");
+  el.debugPanelBody.scrollTop = el.debugPanelBody.scrollHeight;
 }
 
 // ── ロボ図タイトルのインライン編集 ────────────────────────────────
@@ -714,9 +654,9 @@ async function sendChat() {
   setLoading(true);
   const typingEl = addTypingIndicator();
 
-  // 送信直前の内容をデバッグパネルへ即時反映する（レスポンス待ちの間も中身が分かるように）
-  lastApiDebug = buildRequestDebug({ message, step: session.step, settings: getSettings() });
-  refreshDebugPanel();
+  // 送信直前に REQ 行をログへ追記する（レスポンス待ちの間も何を送ったか分かるように）
+  const reqStep = session.step;
+  pushApiLog(formatReqLog({ step: reqStep, message }));
 
   try {
     const res = await apiChat(session, message);
@@ -727,9 +667,12 @@ async function sendChat() {
     session = res.session;
     saveSession(session);
 
-    // デバッグ情報を保存してパネルを更新する
-    lastApiDebug = res;
-    refreshDebugPanel();
+    pushApiLog(formatResLog({
+      step: reqStep,
+      stopReason: res.stop_reason,
+      hasToolCall: res.has_tool_call,
+      reply: res.reply,
+    }));
 
     const replyData = normalizeReply(res.reply);
     if (res.synthesized && replyData.empty) {
@@ -752,8 +695,9 @@ async function sendChat() {
   } catch (e) {
     typingEl.remove();
     console.error("[logi-bot] チャット送信に失敗", e);
-    lastApiDebug = { error: true, status: e?.status ?? 0, code: e?.code ?? "unknown", message: e?.message ?? "不明なエラー" };
-    refreshDebugPanel();
+    pushApiLog(formatErrLog({
+      step: reqStep, status: e?.status, code: e?.code, message: e?.message,
+    }));
     addMessage("assistant", `❌ ${describeApiError(e)}`);
     if (!el.chatInput.value) el.chatInput.value = message;
   } finally {

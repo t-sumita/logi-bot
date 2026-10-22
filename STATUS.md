@@ -1,23 +1,20 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.17.0`
+`0.18.0`
 
 ## 最終更新
 2026-10-22
 
 ## 現在地
-- v0.17.0 を main へマージ・push・本番デプロイ済み（デプロイ URL: https://c3d04e6d.logi-bot.pages.dev / 本番 URL: https://logi-bot.pages.dev）
-- typecheck 0エラー / test:unit 114/114 全通過（実 API を使う検証は未実施 = Level 2）
-- 作業ブランチなし（main のみ）。v0.17.0 のブラウザ実機確認はユーザー未実施
-  （バッジ位置、ガード警告文、送信中デバッグ表示、AI の解説応答）
+- v0.18.0 を実装完了。typecheck 0エラー / test:unit 113/113 全通過（実 API を使う検証は未実施 = Level 2）
+- デバッグパネルを「1行ログビューア」に全面簡略化（生 JSON / `<details>` / リサイズをすべて廃止）
+- v0.17.0 までは main へマージ・push・本番デプロイ済み（本番 URL: https://logi-bot.pages.dev）
 - **重要な制約（ハマりどころ）**: `scripts/test-unit.mjs` は Node の型ストリッピングで `.ts` を直接読む。
   `.ts` から別の `.ts` への**値インポート**（`import { x } from "./y.js"`）は
   `ERR_MODULE_NOT_FOUND`（`y.js` が無い）で落ちる。型のみの import は消えるので問題ない。
   → テスト対象のロジックは「値インポートを持たない .ts」に置くこと。
   v0.17.0 では guard-messages.ts を新設しかけて落ちたため、session.ts に統合して解決した
-- 既知の仕様: `.debug-panel` は bottom/right 固定のため `resize: both` では左上方向に伸びる。
-  画面外にはみ出さない利点がある一方、ハンドルがカーソルに追従しない（CSS ネイティブ resize の制約）
 - オーナーモードの AI は環境変数 `AI_PROVIDER` / `AI_MODEL` / `AI_API_KEY` で切り替え（コード修正不要）。詳細は docs/specs/api.md「オーナーモードの AI 設定」
 - Gemini の既定モデルは `gemini-3.8-flash`（実在はこちらで未検証。404 の場合は `AI_MODEL` で上書きする）
 - typecheck 0エラー / test:unit 84/84 全通過（実 API を使う検証は未実施 = Level 2）
@@ -30,6 +27,25 @@
   （`git add` はファイル名を個別指定すること）
 
 ## 完了したこと
+
+### v0.18.0 — デバッグパネルを1行ログビューアへ簡略化
+- `public/js/debug-format.js` — **全面書き換え**。エッセンス／チップス表示の関数群を破棄し、
+  サーバーログ風の1行整形に統一：`formatClock` / `shortStep` / `formatReqLog` / `formatResLog` /
+  `formatErrLog` / `appendLog`（上限 `DEBUG_LOG_MAX = 20` 件、超過分は古い行から捨てる）
+  - REQ: `[19:00:15] REQ Step4 -> "送信メッセージ…" (11文字)`
+  - RES: `[19:00:18] RES Step4 <- 200 STOP [ツールのみ: update_session_parts]`（本文があれば冒頭20文字）
+  - ERR: `[19:00:20] ERR Step4 <- 502 upstream_error (Gemini API 524)`
+- `public/js/session-app.js` — 状態を `lastApiDebug`（単発スナップショット）から
+  `apiLog`（時系列配列）へ変更。`pushApiLog()` を追加し、`sendChat()` は
+  送信直前に REQ / 成功時に RES / catch で ERR を追記。`derivePattern()` は削除。
+  `refreshDebugPanel()` は `.debug-log-line` を並べて `scrollTop = scrollHeight` で自動スクロール
+- `public/css/app.css` — `resize: both` / `min-*` / `max-height` を撤去し `width: 360px; height: 180px` 固定。
+  行・チップ・生JSON・エッセンス系のスタイルを全削除し、ダークな等幅ログ表示に置換。
+  文字色は 送信中=黄 `#FBBF24` / 正常=緑 `#4ADE80` / エラー=赤 `#F87171`
+  - `.debug-panel-body` に `min-height: 0` が必須（flex 子要素が縮まず内部スクロールが効かなくなる）
+- `public/session.html` — タイトルを「🐞 Debug — API ログ（直近20件）」に。本体に `role="log" aria-live="polite"`。
+  `−` / `✕` / 🐞 バッジの最小化・再表示は現行仕様のまま維持
+- `scripts/test-unit.mjs` — エッセンス系・リクエストプレビュー系のテストを削除し、ログ整形のテスト14件を追加（計113件）
 
 ### v0.14.1 — 不具合修正3件
 - `functions/_lib/gemini.ts` — `max_output_tokens` を `forceTool ? 2048 : 1024` → **8192 固定**。

@@ -1,132 +1,106 @@
-// デバッグパネル用：ツール引数(extracted)をエッセンス化して表示用 HTML に整形する
+// デバッグパネル用：API 送受信を1行テキストのログ行に整形する（サーバーログ風の時系列表示）
 
-/** エッセンス表示で1行あたりに出す値の最大文字数 */
-export const DEBUG_ESSENCE_MAX_CHARS = 70;
-/** エッセンス表示で並べる最大行数（これを超えた分は「ほか N 件」に畳む） */
-export const DEBUG_ESSENCE_MAX_ROWS = 40;
+/** ログとして保持する最大件数（超えた古い行は捨てる） */
+export const DEBUG_LOG_MAX = 20;
+/** REQ 行に出す送信メッセージのプレビュー文字数 */
+export const DEBUG_REQ_PREVIEW_CHARS = 30;
+/** RES 行に出す応答本文のプレビュー文字数 */
+export const DEBUG_RES_PREVIEW_CHARS = 20;
+/** ツール呼び出しの関数名（ログ表示用） */
+const TOOL_NAME = "update_session_parts";
 
 /**
- * HTML 特殊文字をエスケープする。
- * @param {unknown} str 対象の値
- * @returns {string} エスケープ済み文字列
+ * 時刻を HH:MM:SS の 24 時間表記にする。
+ * @param {Date} [at] 対象時刻（既定は現在）
+ * @returns {string} HH:MM:SS
  */
-function escHtml(str) {
-  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+export function formatClock(at = new Date()) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${pad(at.getHours())}:${pad(at.getMinutes())}:${pad(at.getSeconds())}`;
 }
 
-/** 送信中プレビューで表示するユーザーメッセージの最大文字数 */
-export const DEBUG_SENT_MAX_CHARS = 160;
+/**
+ * ステップ名を "Step4" のような短縮表記にする。
+ * @param {string} step ステップ名（例: step4_verify）
+ * @returns {string} 短縮表記
+ */
+export function shortStep(step) {
+  const matched = /^step(\d)_/.exec(String(step ?? ""));
+  if (matched) return `Step${matched[1]}`;
+  if (step === "complete") return "Complete";
+  return step ? String(step) : "—";
+}
 
 /**
- * 送信先 AI を「モード / プロバイダ / モデル」の表示文字列にする。
- * API キーは絶対に含めない。
- * @param {{mode?: string, byokProvider?: string, byokModel?: string}} settings 設定オブジェクト
- * @returns {string} 送信先の表示文字列
+ * 文字列を指定文字数で切り詰める（超過時は省略記号を付ける）。
+ * @param {string} text 対象文字列
+ * @param {number} max 最大文字数
+ * @returns {string} 切り詰めた文字列
  */
-export function describeTarget(settings) {
-  const mode = settings?.mode ?? "mock";
-  if (mode === "mock")  return "手動作図モード（AI 呼び出しなし）";
-  if (mode === "owner") return "オーナーモード（サーバー設定の AI）";
-  if (mode === "byok") {
-    const provider = settings?.byokProvider || "（プロバイダ未設定）";
-    const model = settings?.byokModel || "（既定モデル）";
-    return `BYOK / ${provider} / ${model}`;
+function truncate(text, max) {
+  const str = String(text ?? "");
+  return str.length > max ? `${str.slice(0, max)}…` : str;
+}
+
+/** 改行・タブを可視記号に潰して1行に収める */
+function toSingleLine(text) {
+  return String(text ?? "").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * リクエスト送信時のログ行を作る。
+ * 例: [19:00:15] REQ Step4 -> "ユーザーの送信メッセージ…" (11文字)
+ * @param {{step: string, message: string, at?: Date}} params 送信内容
+ * @returns {{text: string, cls: string}} ログ行
+ */
+export function formatReqLog({ step, message, at }) {
+  const body = toSingleLine(message);
+  const text = `[${formatClock(at)}] REQ ${shortStep(step)} -> ` +
+    `"${truncate(body, DEBUG_REQ_PREVIEW_CHARS)}" (${body.length}文字)`;
+  return { text, cls: "log-req" };
+}
+
+/**
+ * 正常レスポンス受信時のログ行を作る。
+ * 例: [19:00:18] RES Step4 <- 200 STOP [ツールのみ: update_session_parts]
+ * @param {{step: string, stopReason?: string, hasToolCall?: boolean, reply?: string, at?: Date}} params 応答内容
+ * @returns {{text: string, cls: string}} ログ行
+ */
+export function formatResLog({ step, stopReason, hasToolCall, reply, at }) {
+  const body = toSingleLine(reply);
+  const parts = [`[${formatClock(at)}] RES ${shortStep(step)} <- 200`, stopReason || "—"];
+
+  if (body) {
+    parts.push(`"${truncate(body, DEBUG_RES_PREVIEW_CHARS)}"`);
+    if (hasToolCall) parts.push(`[+ツール: ${TOOL_NAME}]`);
+  } else if (hasToolCall) {
+    parts.push(`[ツールのみ: ${TOOL_NAME}]`);
+  } else {
+    parts.push("[本文・ツールなし]");
   }
-  return mode;
+  return { text: parts.join(" "), cls: "log-res" };
 }
 
 /**
- * 送信開始時点のデバッグ情報を組み立てる（レスポンス待ちの状態）。
- * @param {{message: string, step: string, settings: object}} req 送信内容
- * @returns {object} デバッグパネル用のオブジェクト
+ * エラー発生時のログ行を作る。
+ * 例: [19:00:20] ERR Step4 <- 502 upstream_error (Gemini API 524)
+ * @param {{step: string, status?: number, code?: string, message?: string, at?: Date}} params エラー内容
+ * @returns {{text: string, cls: string}} ログ行
  */
-export function buildRequestDebug({ message, step, settings }) {
-  const text = String(message ?? "");
-  return {
-    pending: true,
-    status: "sending…",
-    sentAt: new Date().toLocaleTimeString("ja-JP"),
-    step: step ?? "—",
-    target: describeTarget(settings),
-    sentMessage: text.length > DEBUG_SENT_MAX_CHARS
-      ? `${text.slice(0, DEBUG_SENT_MAX_CHARS)}…`
-      : text,
-    sentChars: text.length,
-  };
+export function formatErrLog({ step, status, code, message, at }) {
+  const detail = toSingleLine(message);
+  const text = `[${formatClock(at)}] ERR ${shortStep(step)} <- ${status || "—"} ` +
+    `${code || "unknown"}` + (detail ? ` (${truncate(detail, DEBUG_REQ_PREVIEW_CHARS)})` : "");
+  return { text, cls: "log-err" };
 }
 
 /**
- * 値を持つ末端フィールドの数を再帰的に数える。
- * 空文字・null・undefined は「更新なし」として数えない。
- * @param {unknown} val 対象の値
- * @returns {number} 末端フィールド数
+ * ログ配列に1行追記し、保持上限を超えた古い行を捨てた新しい配列を返す。
+ * @param {Array<{text: string, cls: string}>} log 既存のログ
+ * @param {{text: string, cls: string}} entry 追記する行
+ * @returns {Array<{text: string, cls: string}>} 上限内に収めたログ
  */
-export function countLeaves(val) {
-  if (val === null || val === undefined || val === "") return 0;
-  if (Array.isArray(val)) return val.reduce((sum, v) => sum + countLeaves(v), 0);
-  if (typeof val === "object") return Object.values(val).reduce((sum, v) => sum + countLeaves(v), 0);
-  return 1;
-}
-
-/**
- * extracted を「パス: 値」の1行表記に平坦化する（エッセンス表示用）。
- * 配列は 1 始まりの添字を付けて図のノード番号と対応させる。
- * @param {unknown} val 対象の値
- * @param {string} [prefix] 親までのパス
- * @param {Array<{path: string, value: string}>} [out] 収集先
- * @returns {Array<{path: string, value: string}>} 平坦化した行の配列
- */
-export function flattenExtracted(val, prefix = "", out = []) {
-  if (val === null || val === undefined || val === "") return out;
-  if (Array.isArray(val)) {
-    val.forEach((v, i) => flattenExtracted(v, `${prefix}[${i + 1}]`, out));
-    return out;
-  }
-  if (typeof val === "object") {
-    for (const [key, v] of Object.entries(val)) {
-      flattenExtracted(v, prefix ? `${prefix}.${key}` : key, out);
-    }
-    return out;
-  }
-  out.push({ path: prefix || "(root)", value: String(val) });
-  return out;
-}
-
-/**
- * 更新されたトップレベルキーを「キー(件数)」のチップ HTML にする。
- * @param {unknown} extracted ツール引数
- * @returns {string} チップ列の HTML
- */
-export function buildExtractedChips(extracted) {
-  if (!extracted || typeof extracted !== "object") {
-    return '<span class="debug-chip-none">—</span>';
-  }
-  const chips = Object.entries(extracted)
-    .map(([key, val]) => ({ key, count: countLeaves(val) }))
-    .filter((entry) => entry.count > 0)
-    .map((entry) => `<span class="debug-chip">${escHtml(entry.key)}(${entry.count})</span>`);
-  if (chips.length === 0) return '<span class="debug-chip-none">—</span>';
-  return `<span class="debug-chips">${chips.join("")}</span>`;
-}
-
-/**
- * ツール引数のエッセンス（パス: 値）を箇条書き HTML にする。
- * @param {unknown} extracted ツール引数
- * @returns {string} エッセンスの HTML
- */
-export function buildExtractedEssence(extracted) {
-  const rows = flattenExtracted(extracted);
-  if (rows.length === 0) return '<p class="debug-empty">更新されたフィールドはありません。</p>';
-
-  const shown = rows.slice(0, DEBUG_ESSENCE_MAX_ROWS);
-  const items = shown.map((row) => {
-    const truncated = row.value.length > DEBUG_ESSENCE_MAX_CHARS
-      ? `${row.value.slice(0, DEBUG_ESSENCE_MAX_CHARS)}…`
-      : row.value;
-    return `<li><span class="debug-ess-path">${escHtml(row.path)}</span>` +
-           `<span class="debug-ess-val">${escHtml(truncated)}</span></li>`;
-  });
-  const rest = rows.length - shown.length;
-  if (rest > 0) items.push(`<li><span class="debug-ess-val">…ほか ${rest} 件</span></li>`);
-  return `<ul class="debug-essence">${items.join("")}</ul>`;
+export function appendLog(log, entry) {
+  const next = [...(log ?? []), entry];
+  return next.length > DEBUG_LOG_MAX ? next.slice(next.length - DEBUG_LOG_MAX) : next;
 }
