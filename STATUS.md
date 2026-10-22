@@ -1,15 +1,18 @@
 # STATUS.md — 作業状況
 
 ## 現在のバージョン
-`0.15.0`
+`0.16.0`
 
 ## 最終更新
 2026-10-22
 
 ## 現在地
-- v0.15.0 を main へマージ・push・本番デプロイ済み（デプロイ URL: https://da989f96.logi-bot.pages.dev / 本番 URL: https://logi-bot.pages.dev）
-- v0.14.1（バグ修正3件）と v0.15.0（デバッグパネル改修＋APIキー取得ガイド）を同一ブランチで実装・マージ済み。作業ブランチは削除済み
-- v0.15.0 のブラウザ実機確認はユーザー未実施（デバッグパネルの最小化・再展開、設定モーダルのキー取得ガイド表示）
+- v0.16.0 を main へマージ・push・本番デプロイ済み（デプロイ URL: https://f9218ced.logi-bot.pages.dev / 本番 URL: https://logi-bot.pages.dev）
+- typecheck 0エラー / test:unit 107/107 全通過（実 API を使う検証は未実施 = Level 2）
+- 作業ブランチなし（main のみ）。v0.16.0 のブラウザ実機確認はユーザー未実施
+  （パネルのドラッグリサイズ、エッセンス表示、アコーディオン内スクロール）
+- 既知の仕様: `.debug-panel` は bottom/right 固定のため `resize: both` では左上方向に伸びる。
+  画面外にはみ出さない利点がある一方、ハンドルがカーソルに追従しない（CSS ネイティブ resize の制約）
 - オーナーモードの AI は環境変数 `AI_PROVIDER` / `AI_MODEL` / `AI_API_KEY` で切り替え（コード修正不要）。詳細は docs/specs/api.md「オーナーモードの AI 設定」
 - Gemini の既定モデルは `gemini-3.8-flash`（実在はこちらで未検証。404 の場合は `AI_MODEL` で上書きする）
 - typecheck 0エラー / test:unit 84/84 全通過（実 API を使う検証は未実施 = Level 2）
@@ -40,6 +43,22 @@
   `.debug-ctl-btn` に `pointer-events: auto`
 - `public/js/settings.js` — BYOK の API キー欄直下に Gemini キー取得手順を `<details>` で折りたたみ追加（Google AI Studio へのリンク付き）
 - `public/css/app.css` — `.keyguide` 系スタイル追加
+
+### v0.16.0 — デバッグパネルのリサイズ対応・ログのエッセンス化
+- `public/css/app.css` — `.debug-panel` に `resize: both` / `min-width:240px` / `min-height:120px` /
+  `max-width: calc(100vw - 24px)` / `max-height: calc(100vh - var(--nav-h) - 24px)`。既定サイズ 340×320px
+- `public/css/app.css` — `.debug-panel-body` に `min-height: 0`（flex 子要素が縮まず内部スクロールが効かない問題を修正）
+- `public/css/app.css` — `.debug-raw pre` の `max-height` を 140px → **180px**。`.debug-essence` も同じ 180px + `overflow-y:auto`
+- `public/css/app.css` — `.debug-chip` / `.debug-essence` / `.debug-ess-path` / `.debug-ess-val` を追加。
+  `.debug-value.error` の重複定義を削除
+- **新規 `public/js/debug-format.js`** — 純粋関数として切り出し（テスト可能化。chat-error.js / node-edit.js と同じパターン）
+  - `countLeaves(val)`: 値を持つ末端フィールド数を再帰カウント（空文字・null は数えない。false は数える）
+  - `flattenExtracted(val)`: `{ path, value }[]` に平坦化。配列は 1 始まり添字（図のノード番号と対応）
+  - `buildExtractedChips(extracted)`: トップレベルキーを `core(3)` 形式のチップに
+  - `buildExtractedEssence(extracted)`: 「パス: 値」の箇条書き。値は 70 文字で切り詰め、40 行超は「ほか N 件」
+- `public/js/session-app.js` — 「更新キー」チップ行を追加。アコーディオンは
+  「応答テキスト（N 文字）」「ツール引数 エッセンス（N 件）」の2本立てで、生 JSON は入れ子アコーディオンに格納
+- `scripts/test-unit.mjs` — debug-format のテスト 11 件を追加（84 → 96 → **107 件**）
 
 ### フェーズ 0〜7a（v0.7.1まで）
 （上記 STATUS.md 履歴参照）
