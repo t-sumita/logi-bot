@@ -102,6 +102,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     return err(400, "invalid_input", "session / message / step が必須です");
   if (body.message.trim() === "")
     return err(400, "invalid_input", "message が空です");
+  if (body.message.length > 20_000)
+    return err(400, "invalid_input", "message が長すぎます（上限 20,000 文字）");
 
   // バルク抽出モード判定
   const isBulk = body.step === "step1_core" && isBulkInput(body.message) && !body.session.parts.core.reality;
